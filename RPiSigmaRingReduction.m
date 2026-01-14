@@ -5,7 +5,7 @@
 
 $activateEcho=True;
 Clear[JEcho];
-JEcho[args___]:=If[$activateEcho,Echo[args],args]
+JEcho[strings___,arg_]:=If[$activateEcho,If[Length[{strings}]>0,Print[strings]];Echo[arg],arg]
 
 
 Clear[MyTSigma]
@@ -13,60 +13,87 @@ MyTSigma[expr_,0,___]:=expr
 MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
 
 
-Clear[RationalReduction]
-RationalReduction[g_,f_,tower_]:=Module[{xi,eta,rnf},
-rnf=RNF[f,tower];
-{xi,eta}={rnf[[1]]/rnf[[2]],rnf[[3]]/rnf[[4]]};
-
-Return[eta^(-1) RationalReductionRNF[eta g,xi,tower]]
+(*Ported to Mathematica from (HypergeometricCT.mm by Hui Huang) *)
+Clear[PolynomialReduction]
+PolynomialReduction[0,u_,v_,tower_]:={0,0}
+PolynomialReduction[b_,u_,v_,tower:{{x_,_,_}}]:=Module[{du,dv,dp,lu,lv,a=0,p=b,d,i,g,pg,lp,cu,cv,m,bm,pm,r,gr,dr,lr,pr},
+{du,dv,dp}=Exponent[{u,v,p},x];
+lu=Coefficient[u,x,du];lv=Coefficient[v,x,dv];
+If[du!=dv || lu!=lv, (*Case I*)
+	d=Max[du,dv];
+	If[du<dv,lu=0,If[du>dv,lv=0]];
+	i=dp-d;
+	While[i>=0,
+		g=x^i/(lu-lv);
+		pg=u MyTSigma[g,tower]-v g;
+		lp=Coefficient[p,x,dp];
+		a+=lp g;
+		p=Expand[p-lp pg];
+		dp=Exponent[p,x];
+		i=dp-d;
+	];
+	Return[{a,p}];
+,If[du==0,(*Case II*)
+	i=dp+1;
+	While[i>0,
+		g=x^i/(i u);
+		pg=Together[((x+1)^i-x^i)/i];
+		lp=Coefficient[p,x,dp];
+		a+=lp g;
+		p=Expand[p-lp pg];
+		dp=Exponent[p,x];
+		i=dp+1;
+	];
+	Return[{a,p}];	
+];];
+{cu,cv}=Coefficient[{u,v},x,du-1];
+m=(cv-cu)/lu;
+If[IntegerQ[m]&&m>=0 ,  (*Case IV*)
+	bm=Coefficient[b,x,du+m-1] x^(du+m-1);
+	p=Expand[p-bm];
+	dp=Exponent[p,x];
+	i=dp-du+1;
+	While[i>=0,
+		g=x^i/(i lu+cu-cv);
+		pg=Expand[u MyTSigma[g,tower]-v g];
+		lp=Coefficient[p,x,dp];
+		a+=lp g;
+		p=Expand[p-lp pg];
+		pm=Coefficient[p,x,du+m-1]x^(du+m-1);
+		bm+=pm;
+		p=Expand[p-pm];
+	
+		dp=Exponent[p,x];
+		i=dp-du+1;
+	];
+	
+	r=Expand[u (x+1)^m-v x^m];
+	gr=x^m;
+	dr=Exponent[r,x];
+	i=dr-du+1;
+	While[i>=0,
+		g=Coefficient[r,x,dr]x^i/(i lu+cu+cv);
+		gr-=g;
+		r=Expand[r-u MyTSigma[g,tower]+v g];	
+		dr=Exponent[r,x];
+		i=dr-du+1;	
+	];
+	{lr,pr}=Coefficient[{r,p},x,dr];
+	{a,p}={a+pr gr/lr,Expand[p+bm-pr r/lr]};
+, (*Case III*)
+	i=dp-du+1;
+	While[i>=0,
+		g=x^i/(i lu + cu-cv);
+		pg=Expand[u MyTSigma[g,tower]-v g];
+		lp=Coefficient[p,x,dp];
+		a+=lp g;
+		p=Expand[p-lp pg];
+		dp=Exponent[p,x];
+		i=dp-du+1;	
+	];
+];
+Return[{a,p}];
 ]
-
-
-Clear[RationalReductionRNF]
-Options[RationalReductionRNF]={"Representatives"->{}};
-RationalReductionRNF[g_,xi_,tower_,OptionsPattern[]]:=Module[{CurrentS, gT,h,x=tower[[-1,1]],hNum,hDen,piList,hFac,piSigmaMList,giSigmaNumList,
-																pijList,maxPower,mij,a,u,v,aj,uj,vj,xiNum,xiDen},
-CurrentS=OptionValue["Representatives"];
-{h,gT}=ProperAndPolynomialParts[g,x];
-If[h===0,Return[]];
-{hNum,hDen}=NumeratorDenominator[h];
-{xiNum,xiDen}=NumeratorDenominator[xi];
-{{piList,hFac},CurrentS}=AdjustSigmaFactorization[GetSigmaFactorization[{hDen},tower],CurrentS,tower];
-{hNum,hDen}/=hFac[[1,1]];
-piSigmaMList=Table[Product[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}],{i,Length[piList]}];
-giSigmaNumList=ParFracDecomp[JEcho[hNum], JEcho[piSigmaMList],x];
-
-{a,u,v}={0,0,0};
-Do[
-	pijList=ParFracDecomp[giSigmaNumList[[i]], Table[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}],x];
-	maxPower=Max[hFac[[1,-1,i,;;,2]]];
-	Do[
-		mij=hFac[[1,-1,i,j,2]];
-		{aj,uj,vj}=ShiftDenominatorToS[pijList[[j]],piList[[i]]^mij,hFac[[1,-1,i,j,1]],xi,tower];
-		{a,u,v}+={aj,u*(pijList[[j]]^(maxPower-mij)),vj};
-	,{j,Length[pijList]}];
-,{i,Length[piList]}];
-Return[{{a,u/hDen+gT+v/xiDen},CurrentS}];
-]
-
-
-Clear[DeltaF];
-DeltaF[g_,f_,tower_]:=f MyTSigma[g,1,tower]-g
-
-
-g=1/(x+1);f=(x^2+4);
-RationalReductionRNF[DeltaF[g,f,tower],f,tower]
-Together[%]
-
-
-tower={{x,1,1}};
-{piList,hFac}=GetSigmaFactorization[{x (x+1)^2(2x+1)},{{x,1,1}}]
-
-
-AdjustSigmaFactorization[{piList,hFac},{2x+5},tower]
-
-
-LookupShiftEq[x,{7x+4,7x-4},tower]
 
 
 Clear[LookupShiftEq]
@@ -100,54 +127,87 @@ Return[{{factors,sigmafac},Join[CurrentS,NewS]}];
 
 
 Clear[ShiftDenominatorToS];
-ShiftDenominatorToS[gNum_,dks_,0,xi_,tower_]:={0,gNum,0}
-ShiftDenominatorToS[c_,dks_,l_Integer,K_,tower_]:=Module[{a,u,v,x=tower[[1,1]],s,t,fTilde,dksM1,gTilde,bTilde,dksP1,g0},
+ShiftDenominatorToS[gNum_,dks_,0,xi_,tower_List]:={0,gNum,0}
+ShiftDenominatorToS[c_,dks_,l_Integer,K_,tower_]:=Module[{a,u,v,x=tower[[1,1]],s,t,fTilde,dksM1,gTilde,bTilde,dksP1,g0,result},
 Assert[PolynomialQ[c,x]];Assert[PolynomialQ[dks,x]];Assert[PolynomialQ[K,x]];
 {u,v}=NumeratorDenominator[K];
 If[l>0,
 	{s,t}=ExtendedEuclidean[u,dks,v c,x];
 	If[s===0,
-		Return[{0,0,t}]; (*i.e. fTilde===0*)
+		result={0,0,t}; (*i.e. fTilde===0*)
 	,
 		dksM1=Together[MyTSigma[dks,-1,tower]];
 		{gTilde,a,bTilde}=ShiftDenominatorToS[MyTSigma[s,-1,tower],dksM1,l-1,K,tower];
 		(*<-- There might be theoretically some cancellation in MyTSigma[s,-1,tower]/dksM1 *)
-		Return[{MyTSigma[s,-1,tower]/dksM1+gTilde,a,t+bTilde}];
+		result={MyTSigma[s,-1,tower]/dksM1+gTilde,a,t+bTilde};
 	];
 ,
 	{s,t}=ExtendedEuclidean[v,MyTSigma[dks,1,tower],u MyTSigma[c,1,tower],x];
 	g0=-c/dks;
 	If[s===0,
-		Return[{g0,0,t}]; (*i.e. fTilde===0*)
+		result={g0,0,t}; (*i.e. fTilde===0*)
 	,
 		dksP1=Together[MyTSigma[dks,1,tower]];
 		{gTilde,a,bTilde}=ShiftDenominatorToS[s,dksP1,l+1,K,tower];
 		(*<-- There might be theoretically some cancellation in s/dksP1 *)
-		Return[{g0+gTilde,a,t+bTilde}];
-	];
-,
-		
+		result={g0+gTilde,a,t+bTilde};
+	];		
 ];
-Return[{a,u,v}];
+Assert[Together[c/dks -(DeltaF[result[[1]],K,tower]+result[[2]]/MyTSigma[dks,-l,tower]+result[[3]]/v)]===0];
+Return[result];
 ]
 
 
-(*Clear[NormalForm]
-NormalForm[f_,tower_]:=Module[{xi,eta},
+Clear[RationalReduction]
+RationalReduction[g_,f_,tower_]:=Module[{xi,eta,rnf},
+rnf=RNF[f,tower];ProperAndPolynomialParts[DeltaF[g,f,tower],x]
+{xi,eta}={rnf[[1]]/rnf[[2]],rnf[[3]]/rnf[[4]]};
 
-Return[{xi,eta}]
-]*)
+Return[eta^(-1) RationalReductionRNF[eta g,xi,tower]]
+]
 
 
-(* ::Subsection:: *)
+Clear[RationalReductionRNF]
+Options[RationalReductionRNF]={"Representatives"->{}};
+RationalReductionRNF[g_,xi_,tower_,OptionsPattern[]]:=Module[{CurrentS, gT,h,x=tower[[-1,1]],hNum,hDen,piList,hFac,piSigmaMList,giSigmaNumList,
+																gijNumList,gijDenList,maxPower,mij,a,u,v,aj,uj,vj,xiNum,xiDen,gTS,gTR},
+CurrentS=OptionValue["Representatives"];
+{xiNum,xiDen}=NumeratorDenominator[xi];
+
+{h,gT}=JEcho["ProperAndPolynomialParts: ",ProperAndPolynomialParts[g,x]];
+{gTS,gTR}=JEcho["PolynomialReduction: ",PolynomialReduction[xiDen gT,xiNum,xiDen,tower]];
+Assert[Expand[xiNum MyTSigma[gTS,tower]-xiDen gTS+gTR -xiDen gT]===0];
+Assert[Together[ DeltaF[gTS,xi,tower]+gTR/xiDen-gT]===0];
+If[h===0,Return[{{gTS/xiDen,gTR/xiDen},CurrentS}]];
+{hNum,hDen}=NumeratorDenominator[h];
+{{piList,hFac},CurrentS}=AdjustSigmaFactorization[GetSigmaFactorization[{hDen},tower],CurrentS,tower];
+{hNum,hDen}/=hFac[[1,1]];
+piSigmaMList=Table[Product[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}],{i,Length[piList]}];
+giSigmaNumList=JEcho["giSigmaNumList: ",ParFracDecomp[hNum, piSigmaMList,x]];
+Assert[Together[Total[giSigmaNumList/piSigmaMList]-hNum/(Times@@piSigmaMList)]===0];
+{a,u,v}={0,0,0};
+Do[
+	gijDenList=Table[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}];
+	gijNumList=ParFracDecomp[giSigmaNumList[[i]],gijDenList ,x];
+	maxPower=Max[hFac[[1,-1,i,;;,2]]];
+	Do[
+		mij=hFac[[1,-1,i,j,2]];
+		{aj,uj,vj}=JEcho["{aj,uj,vj}",ShiftDenominatorToS[gijNumList[[j]],gijDenList[[j]],hFac[[1,-1,i,j,1]],xi,tower]];
+		{a,u,v}+={aj,uj*(gijNumList[[j]]^(maxPower-mij)),vj};
+	,{j,Length[gijNumList]}];
+,{i,Length[piList]}];
+Return[{{a+gTS/xiDen,u/hDen+(gTR+v)/xiDen},CurrentS}];
+]
+
+
+(* ::Subsection::Closed:: *)
 (*Rational*)
 
 
 (* ::Input::Initialization:: *)
 Clear[ProperAndPolynomialParts];
-ProperAndPolynomialParts[f_,var_Symbol]:=Module[{ff,num,den,r,pp,fp},
-ff=Together[f];
-{num,den}=NumeratorDenominator[ff];
+ProperAndPolynomialParts[f_,var_Symbol]:=Module[{num,den,r,pp,fp},
+{num,den}=NumeratorDenominator[Together[f]];
 {pp,r}=PolynomialQuotientRemainder[num,den,var];
 Return[{r/den,pp}]
 ];
@@ -307,3 +367,32 @@ For[i=1,i<=Length[nDS],i++,
 ];
 {u*w1,v*w2,s,r}
 ];
+
+
+(* ::Subsection:: *)
+(*Tests*)
+
+
+Clear[DeltaF];
+DeltaF[g_,f_,tower_]:=f MyTSigma[g,1,tower]-g
+
+
+g=(4x^2+x+5);f=1/(x);
+g=(4x^2+x+5);f=2x^2/(2x^2+1);
+Timing[RationalReductionRNF[DeltaF[g,f,tower],f,tower]]
+Together[%[[2,1,2]]]
+
+
+g=(x+5)/((x-1)x (2x+1)(x^2+1));f=(x-4);
+Timing[RationalReductionRNF[DeltaF[g,f,tower],f,tower]]
+Together[%]
+
+
+tower={{x,1,1}};
+{piList,hFac}=GetSigmaFactorization[{x (x+1)^2(2x+1)},{{x,1,1}}]
+
+
+AdjustSigmaFactorization[{piList,hFac},{2x+5},tower]
+
+
+LookupShiftEq[x,{7x+4,7x-4},tower]
