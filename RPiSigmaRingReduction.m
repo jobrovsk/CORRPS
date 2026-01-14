@@ -3,7 +3,7 @@
  
 
 
-$activateEcho=False;
+$activateEcho=True;
 Clear[JEcho];
 JEcho[args___]:=If[$activateEcho,Echo[args],args]
 
@@ -18,41 +18,117 @@ RationalReduction[g_,f_,tower_]:=Module[{xi,eta,rnf},
 rnf=RNF[f,tower];
 {xi,eta}={rnf[[1]]/rnf[[2]],rnf[[3]]/rnf[[4]]};
 
-Return[eta^(-1) RationalReductionSigmaReduced[eta g,xi,tower]]
+Return[eta^(-1) RationalReductionRNF[eta g,xi,tower]]
 ]
+
+
+Clear[RationalReductionRNF]
+Options[RationalReductionRNF]={"Representatives"->{}};
+RationalReductionRNF[g_,xi_,tower_,OptionsPattern[]]:=Module[{CurrentS, gT,h,x=tower[[-1,1]],hNum,hDen,piList,hFac,piSigmaMList,giSigmaNumList,
+																pijList,maxPower,mij,a,u,v,aj,uj,vj,xiNum,xiDen},
+CurrentS=OptionValue["Representatives"];
+{h,gT}=ProperAndPolynomialParts[g,x];
+If[h===0,Return[]];
+{hNum,hDen}=NumeratorDenominator[h];
+{xiNum,xiDen}=NumeratorDenominator[xi];
+{{piList,hFac},CurrentS}=AdjustSigmaFactorization[GetSigmaFactorization[{hDen},tower],CurrentS,tower];
+{hNum,hDen}/=hFac[[1,1]];
+piSigmaMList=Table[Product[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}],{i,Length[piList]}];
+giSigmaNumList=ParFracDecomp[JEcho[hNum], JEcho[piSigmaMList],x];
+
+{a,u,v}={0,0,0};
+Do[
+	pijList=ParFracDecomp[giSigmaNumList[[i]], Table[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}],x];
+	maxPower=Max[hFac[[1,-1,i,;;,2]]];
+	Do[
+		mij=hFac[[1,-1,i,j,2]];
+		{aj,uj,vj}=ShiftDenominatorToS[pijList[[j]],piList[[i]]^mij,hFac[[1,-1,i,j,1]],xi,tower];
+		{a,u,v}+={aj,u*(pijList[[j]]^(maxPower-mij)),vj};
+	,{j,Length[pijList]}];
+,{i,Length[piList]}];
+Return[{{a,u/hDen+gT+v/xiDen},CurrentS}];
+]
+
+
+Clear[DeltaF];
+DeltaF[g_,f_,tower_]:=f MyTSigma[g,1,tower]-g
+
+
+g=1/(x+1);f=(x^2+4);
+RationalReductionRNF[DeltaF[g,f,tower],f,tower]
+Together[%]
 
 
 tower={{x,1,1}};
 {piList,hFac}=GetSigmaFactorization[{x (x+1)^2(2x+1)},{{x,1,1}}]
 
 
+AdjustSigmaFactorization[{piList,hFac},{2x+5},tower]
 
 
+LookupShiftEq[x,{7x+4,7x-4},tower]
 
-?Sigma`DifferenceFields`BasicTools`SigmaFactorization`SigmaFactorization
 
-
-Clear[RationalReductionSigmaReduced]
-RationalReductionSigmaReduced[g_,xi_,tower_]:=Module[{gT,h,x=tower[[-1,1]],hNum,hDen,piList,hFac,piSigmaMList,giSigmaNumList,pijList},
-{h,gT}=ProperAndPolynomialParts[g,x];
-{hNum,hDen}=NumeratorDenominator[h];
-{piList,hFac}=GetSigmaFactorization[{hDen},tower];
-hNum/=hFac[[1,1]];
-piSigmaMList=Table[Product[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}],{i,Length[piList]}];
-giSigmaNumList=ParFracDecomp[hNum, piSigmaMList,x];
+Clear[LookupShiftEq]
+LookupShiftEq[g_,CurrentS_List,tower]:=Module[{key=Missing[],f,k},
 Do[
-pijList=ParFracDecomp[giSigmaNumList[[i]], Table[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}],x];
+	k=Sigma`DifferenceFields`BasicTools`DFInterface`GetSpecification[g,f,tower];
+	If[k=!=Null,
+		key=f;
+		Break[];
+	]
+,{f,CurrentS}];
+If[Head[key]===Missing,Return[key],Return[k]];
+]
 
 
+Clear[AdjustSigmaFactorization]
+AdjustSigmaFactorization[sigmaFactorization_,CurrentS_List,tower_List]:=Module[{NewS={},factors,sigmafac,i,k},
+{factors,sigmafac}=sigmaFactorization;
+Do[
+k=LookupShiftEq[factors[[i]],CurrentS,tower];
+If[Head[k]===Missing,
+	AppendTo[NewS,factors[[i]]];
+,
+	factors[[i]]=Together[MyTSigma[factors[[i]],k,tower]];
+	sigmafac[[1,-1,i,;;,1]]-=k;
+]
+,{i,Length[factors]}];
 
-,{i,Length[piList]}]
+Return[{{factors,sigmafac},Join[CurrentS,NewS]}];
 ]
 
 
 Clear[ShiftDenominatorToS];
-ShiftDenominatorToS[piM_,m_Integer,xi_,tower_]:=Module[{},
-
-
+ShiftDenominatorToS[gNum_,dks_,0,xi_,tower_]:={0,gNum,0}
+ShiftDenominatorToS[c_,dks_,l_Integer,K_,tower_]:=Module[{a,u,v,x=tower[[1,1]],s,t,fTilde,dksM1,gTilde,bTilde,dksP1,g0},
+Assert[PolynomialQ[c,x]];Assert[PolynomialQ[dks,x]];Assert[PolynomialQ[K,x]];
+{u,v}=NumeratorDenominator[K];
+If[l>0,
+	{s,t}=ExtendedEuclidean[u,dks,v c,x];
+	If[s===0,
+		Return[{0,0,t}]; (*i.e. fTilde===0*)
+	,
+		dksM1=Together[MyTSigma[dks,-1,tower]];
+		{gTilde,a,bTilde}=ShiftDenominatorToS[MyTSigma[s,-1,tower],dksM1,l-1,K,tower];
+		(*<-- There might be theoretically some cancellation in MyTSigma[s,-1,tower]/dksM1 *)
+		Return[{MyTSigma[s,-1,tower]/dksM1+gTilde,a,t+bTilde}];
+	];
+,
+	{s,t}=ExtendedEuclidean[v,MyTSigma[dks,1,tower],u MyTSigma[c,1,tower],x];
+	g0=-c/dks;
+	If[s===0,
+		Return[{g0,0,t}]; (*i.e. fTilde===0*)
+	,
+		dksP1=Together[MyTSigma[dks,1,tower]];
+		{gTilde,a,bTilde}=ShiftDenominatorToS[s,dksP1,l+1,K,tower];
+		(*<-- There might be theoretically some cancellation in s/dksP1 *)
+		Return[{g0+gTilde,a,t+bTilde}];
+	];
+,
+		
+];
+Return[{a,u,v}];
 ]
 
 
@@ -96,7 +172,7 @@ Clear[ExtendedEuclidean]
 ExtendedEuclidean[a_,b_,c_,var_Symbol]:=Module[{a1=Together[a],b1=Together[b],c1=Together[c],g,r,s,h,r1,rem,q},
 {g,{r,s}}=PolynomialExtendedGCD[a1,b1,var];
 {h,rem}=PolynomialQuotientRemainder[c1,g,var];
-If[rem=!=0,Throw["Error in ExtendedEuclidean: c is not in the ideal generated by a and b."],
+If[rem=!=0,Throw["Error in ExtendedEuclidean: c is not in the ideal generated by a and b."]];
 {r,s}=Cancel[h {r,s}];
 (* In this case we take care to keep track of the main variable to give the correct output in terms of the main variable. *)
 If[!(r===0)&&Exponent[b1,var]<= Exponent[r,var],
@@ -105,7 +181,7 @@ If[!(r===0)&&Exponent[b1,var]<= Exponent[r,var],
 (* We remember to return the denominator here! *)
 s=Together[q a1 Denominator[b1]/Denominator[r]+s];
 {r1/Denominator[r],s},
-{r,s}]]
+{r,s}]
 ];
 
 
