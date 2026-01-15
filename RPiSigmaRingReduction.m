@@ -129,7 +129,7 @@ Return[{{factors,sigmafac},Join[CurrentS,NewS]}];
 Clear[ShiftDenominatorToS];
 ShiftDenominatorToS[gNum_,dks_,0,xi_,tower_List]:={0,gNum,0}
 ShiftDenominatorToS[c_,dks_,l_Integer,K_,tower_]:=Module[{a,u,v,x=tower[[1,1]],s,t,fTilde,dksM1,gTilde,bTilde,dksP1,g0,result},
-Assert[PolynomialQ[c,x]];Assert[PolynomialQ[dks,x]];Assert[PolynomialQ[K,x]];
+Assert[PolynomialQ[c,x]];Assert[PolynomialQ[dks,x]];
 {u,v}=NumeratorDenominator[K];
 If[l>0,
 	{s,t}=ExtendedEuclidean[u,dks,v c,x];
@@ -186,24 +186,13 @@ Return[{{xi,eta},Join[CurrentS,NewS]}];
 ]
 
 
-Clear[RationalReduction]
-RationalReduction[g_,f_,tower_]:=Module[{xi,eta,rnf},
-rnf=RNF[f,tower];ProperAndPolynomialParts[DeltaF[g,f,tower],x]
-{xi,eta}={rnf[[1]]/rnf[[2]],rnf[[3]]/rnf[[4]]};
-
-Return[eta^(-1) RationalReductionRNF[eta g,xi,tower]]
-]
-
-
-Clear[RationalReductionRNF]
-Options[RationalReductionRNF]={"Representatives"->{}};
-RationalReductionRNF[g_,xi_,tower_,OptionsPattern[]]:=Module[{CurrentS, gT,h,x=tower[[-1,1]],hNum,hDen,piList,hFac,piSigmaMList,giSigmaNumList,
-																gijNumList,gijDenList,maxPower,mij,a,u,v,aj,uj,vj,xiNum,xiDen,gTS,gTR,polyPair,properPair},
+Clear[ProperReduction]
+Options[ProperReduction]={"Representatives"->{}};
+ProperReduction[0,_,_,OptionsPattern[]]:={{0,0,0},OptionValue["Representatives"]}
+ProperReduction[h_,xi_,tower:{{x_,1,1}},OptionsPattern[]]:=Module[{CurrentS,hNum,{
+ {hDen, piSigmaMList,giSigmaNumList,gijNumList,gijDenList,piList,hFac,maxPower,a,i,j,mij,u,v,aj,uj,vj}
+}},
 CurrentS=OptionValue["Representatives"];
-{xiNum,xiDen}=NumeratorDenominator[xi];
-
-{h,gT}=JEcho["ProperAndPolynomialParts: ",ProperAndPolynomialParts[g,x]];
-If[h===0,Return[{polyPair,CurrentS}]];
 {hNum,hDen}=NumeratorDenominator[h];
 {{piList,hFac},CurrentS}=AdjustSigmaFactorization[GetSigmaFactorization[{hDen},tower],CurrentS,tower];
 {hNum,hDen}/=hFac[[1,1]];
@@ -221,9 +210,30 @@ Do[
 		{a,u,v}+={aj,uj*(gijNumList[[j]]^(maxPower-mij)),vj};
 	,{j,Length[gijNumList]}];
 ,{i,Length[piList]}];
+
+Return[{{a,u,v},CurrentS}];
+]
+
+
+Clear[RationalReductionRNF]
+Options[RationalReductionRNF]={"Representatives"->{}};
+RationalReductionRNF[g_,xi_,tower:{{x_,_,_}},OptionsPattern[]]:=Module[{a,u,v,CurrentS,gT,h,hNum,hDen,mij,xiNum,xiDen,gTS,gTR,polyPair,properPair},
+CurrentS=OptionValue["Representatives"];
+{xiNum,xiDen}=NumeratorDenominator[xi];
+
+{h,gT}=JEcho["ProperAndPolynomialParts: ",ProperAndPolynomialParts[g,x]];
+{{a,u,v},CurrentS}=ProperReduction[h,xi,tower,"Representatives"->CurrentS];
 {gTS,gTR}=JEcho["PolynomialReduction: ",PolynomialReduction[xiDen gT+v,xiNum,xiDen,tower]];
 Assert[Together[DeltaF[gTS,xi,tower]+gTR/xiDen-(gT+v/xiDen)]===0];
 Return[{{a+gTS,u/hDen+gTR/xiDen},CurrentS}];
+]
+
+
+Clear[RationalReduction]
+Options[RationalReduction]={"Representatives"->{}};
+RationalReduction[g_,f_,tower_,OptionsPattern[]]:=Module[{xi,eta,CurrentS},
+{{xi,eta},CurrentS}=RationalRNF[f,tower,"Representatives"->OptionValue["Representatives"]];
+Return[eta^(-1) RationalReductionRNF[eta g,xi,tower,"Representatives"->CurrentS]]
 ]
 
 
@@ -409,13 +419,41 @@ For[i=1,i<=Length[nDS],i++,
 (*Tests*)
 
 
+Clear[randomPoly]
+randomPoly[maxAnzahlMonome_Integer,maxDeg_Integer,maxCoef_,vars_List]:=Module[{res,numVars=Length[vars]},
+res=Expand[Sum[(Times@@(vars^(RandomInteger[{0,maxDeg},{numVars}])))RandomInteger[{-maxCoef,maxCoef}] ,{i,0,RandomInteger[{1,maxAnzahlMonome}]}]];
+If[res===0,Return[1],Return[res]];
+]
+Clear[randomPolyFactors]
+randomPolyFactors[{numFactorsNum_Integer,numFactorsDen_Integer},maxAnzahlMonome_Integer,maxDeg_Integer,maxCoef_,vars_List]:=
+Factor[Product[randomPoly[maxAnzahlMonome,maxDeg,maxCoef,vars],{numFactorsNum}]/Product[randomPoly[maxAnzahlMonome,maxDeg,maxCoef,vars],{numFactorsDen}]]
+
+
+Clear[TestReduction];
+TestReduction[{numFactorsNum_Integer,numFactorsDen_Integer},maxAnzahlMonome_Integer,maxDeg_Integer,maxCoef_]:=Module[{zero,CurrentS,tower={{x,1,1}},dg,rg,f,g,dgg,rgg},
+f=randomPolyFactors[{4,3},3,2,4,{x}];
+g=randomPolyFactors[{numFactorsNum,numFactorsDen},maxAnzahlMonome,maxDeg,maxCoef,{x}];
+{{dg,rg},CurrentS}=RationalReduction[g,f,tower];
+zero=randomPolyFactors[{numFactorsNum,numFactorsDen},maxAnzahlMonome,maxDeg,maxCoef,{x}];
+{{dgg,rgg},CurrentS}=RationalReduction[rg+DeltaF[zero,f,tower],f,tower,"Representatives"->CurrentS];
+If[Together[rgg-rg]=!=0,Print[{f,g,zero}]];
+]
+
+
+TestReduction[{4,1},3,2,4]
+
+
+randomPolyFactors[{4,1},3,2,4,{x}]
+
+
 Clear[DeltaF];
 DeltaF[g_,f_,tower_]:=f MyTSigma[g,1,tower]-g
 
 
 g=(4x^2+x+5);f=1/(x);
-g=(4x^2+x+5);f=2x^2/(2x^2+1);
-Timing[RationalReductionRNF[DeltaF[g,f,tower],f,tower]]
+g=(4x^2+x+5);f=2x^2/(x^2-1)(x+5)/(x-5);
+Timing[RationalReduction[DeltaF[g,f,tower],f,tower]]
+(*Timing[RationalReductionRNF[DeltaF[g,f,tower],f,tower]]*)
 Together[%[[2,1,2]]]
 
 
