@@ -175,7 +175,7 @@ If[Head[k]===Missing,
 	shiftgoal[[i]]=If[multi>0,k-1,k+1];
 ]
 ,{i,Length[factors]}];
-
+Print["NewS: ",NewS];
 xi=sigmaFac[[1,1]]Product[MyTSigma[factors[[i]],shiftgoal[[i]],tower]^Total[sigmaFac[[1,-1,i,;;,2]]],{i,Length[factors]}];
 JEcho["xi:",xi];
 eta=Product[Product[MyTSigma[factors[[i]],j,tower]^-Total[Select[sigmaFac[[1,-1,i]],(#[[1]]<=j)&][[;;,2]]],{j,Min[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]-1}] ,{i,Length[factors]}]
@@ -189,15 +189,13 @@ Return[{{xi,eta},Join[CurrentS,NewS]}];
 Clear[ProperReduction]
 Options[ProperReduction]={"Representatives"->{}};
 ProperReduction[0,_,_,OptionsPattern[]]:={{0,0,0},OptionValue["Representatives"]}
-ProperReduction[h_,xi_,tower:{{x_,1,1}},OptionsPattern[]]:=Module[{CurrentS,hNum,{
- {hDen, piSigmaMList,giSigmaNumList,gijNumList,gijDenList,piList,hFac,maxPower,a,i,j,mij,u,v,aj,uj,vj}
-}},
+ProperReduction[h_,xi_,tower:{{x_,1,1}},OptionsPattern[]]:=Module[{CurrentS,hNum,hDen, piSigmaMList,giSigmaNumList,gijNumList,gijDenList,piList,hFac,maxPower,a,i,j,mij,u,v,aj,uj,vj},
 CurrentS=OptionValue["Representatives"];
 {hNum,hDen}=NumeratorDenominator[h];
 {{piList,hFac},CurrentS}=AdjustSigmaFactorization[GetSigmaFactorization[{hDen},tower],CurrentS,tower];
 {hNum,hDen}/=hFac[[1,1]];
 piSigmaMList=Table[Product[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}],{i,Length[piList]}];
-giSigmaNumList=JEcho["giSigmaNumList: ",ParFracDecomp[hNum, piSigmaMList,x]];
+giSigmaNumList=ParFracDecomp[hNum, piSigmaMList,x];
 Assert[Together[Total[giSigmaNumList/piSigmaMList]-hNum/(Times@@piSigmaMList)]===0];
 {a,u,v}={0,0,0};
 Do[
@@ -220,8 +218,8 @@ Options[RationalReductionRNF]={"Representatives"->{}};
 RationalReductionRNF[g_,xi_,tower:{{x_,_,_}},OptionsPattern[]]:=Module[{a,u,v,CurrentS,gT,h,hNum,hDen,mij,xiNum,xiDen,gTS,gTR,polyPair,properPair},
 CurrentS=OptionValue["Representatives"];
 {xiNum,xiDen}=NumeratorDenominator[xi];
-
 {h,gT}=JEcho["ProperAndPolynomialParts: ",ProperAndPolynomialParts[g,x]];
+{hNum,hDen}=NumeratorDenominator[h];
 {{a,u,v},CurrentS}=ProperReduction[h,xi,tower,"Representatives"->CurrentS];
 {gTS,gTR}=JEcho["PolynomialReduction: ",PolynomialReduction[xiDen gT+v,xiNum,xiDen,tower]];
 Assert[Together[DeltaF[gTS,xi,tower]+gTR/xiDen-(gT+v/xiDen)]===0];
@@ -231,9 +229,10 @@ Return[{{a+gTS,u/hDen+gTR/xiDen},CurrentS}];
 
 Clear[RationalReduction]
 Options[RationalReduction]={"Representatives"->{}};
-RationalReduction[g_,f_,tower_,OptionsPattern[]]:=Module[{xi,eta,CurrentS},
+RationalReduction[g_,f_,tower_,OptionsPattern[]]:=Module[{xi,eta,CurrentS,gS,gR},
 {{xi,eta},CurrentS}=RationalRNF[f,tower,"Representatives"->OptionValue["Representatives"]];
-Return[eta^(-1) RationalReductionRNF[eta g,xi,tower,"Representatives"->CurrentS]]
+{{gS,gR},CurrentS}=RationalReductionRNF[eta g,xi,tower,"Representatives"->CurrentS];
+Return[{eta^(-1){gS,gR},CurrentS}]
 ]
 
 
@@ -432,12 +431,17 @@ Factor[Product[randomPoly[maxAnzahlMonome,maxDeg,maxCoef,vars],{numFactorsNum}]/
 Clear[TestReduction];
 TestReduction[{numFactorsNum_Integer,numFactorsDen_Integer},maxAnzahlMonome_Integer,maxDeg_Integer,maxCoef_]:=Module[{zero,CurrentS,tower={{x,1,1}},dg,rg,f,g,dgg,rgg},
 f=randomPolyFactors[{4,3},3,2,4,{x}];
-g=randomPolyFactors[{numFactorsNum,numFactorsDen},maxAnzahlMonome,maxDeg,maxCoef,{x}];
+g=randomPolyFactors[{numFactorsNum,numFactorsDen},maxAnzahlMonome,maxDeg,maxCoef,{x}]*0;
 {{dg,rg},CurrentS}=RationalReduction[g,f,tower];
 zero=randomPolyFactors[{numFactorsNum,numFactorsDen},maxAnzahlMonome,maxDeg,maxCoef,{x}];
 {{dgg,rgg},CurrentS}=RationalReduction[rg+DeltaF[zero,f,tower],f,tower,"Representatives"->CurrentS];
-If[Together[rgg-rg]=!=0,Print[{f,g,zero}]];
+If[Together[rgg-rg]=!=0,Print[{f,g,zero}];Abort[]];
 ]
+
+
+{g,f,zero}={-((2 x^2 (1+2 x) (-1+4 x) (3+x^2) (3+4 x^2))/(9 (-1+2 x) (-1+6 x^2))),-((4 (-1+x)^2 (1+x)^2 (-1+2 x^2) (-4+3 x^2))/(x (2+3 x))),x^3 (4+3 x) (-1+4 x) (1+2 x^2)};
+RationalReduction[g,f,tower]//Together
+RationalReduction[((-(27698/2187)+(21223 x)/486+(30089 x^2)/2916-(16127 x^3)/162+(34109 x^4)/486+(3569 x^5)/81-(475 x^6)/9)/(2+3 x)+(13/72-(1045 (1+3 x))/52488)/(9 (-1+2 x) (-1+6 x^2)))/((-1+x) x^2)+DeltaF[zero,f,tower],f,tower,"Representatives"->{x,1/3 (-1+3 x),1/2 (1+4 x+2 x^2),1/3 (-1+6 x+3 x^2),1/2 (-1+2 x),1/6 (-1+6 x^2)}]//Together
 
 
 TestReduction[{4,1},3,2,4]
