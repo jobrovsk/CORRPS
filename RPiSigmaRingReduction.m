@@ -97,7 +97,7 @@ Return[{a,p}];
 
 
 Clear[LookupShiftEq]
-LookupShiftEq[g_,CurrentS_List,tower]:=Module[{key=Missing[],f,k},
+LookupShiftEq[g_,CurrentS_List,tower_]:=Module[{key=Missing[],f,k},
 Do[
 	k=Sigma`DifferenceFields`BasicTools`DFInterface`GetSpecification[g,f,tower];
 	If[k=!=Null,
@@ -158,6 +158,34 @@ Return[result];
 ]
 
 
+Clear[RationalRNF]
+Options[RationalRNF]={"Representatives"->{}};
+RationalRNF[f_,tower_List,OptionsPattern[]]:=Module[{CurrentS,factors,sigmaFac,shiftgoal={},multi,xi,eta,k,i,NewS={}},
+CurrentS=OptionValue["Representatives"];
+{factors,sigmaFac}=GetSigmaFactorization[{f},tower];
+shiftgoal=Table[0,{Length[factors]}];
+Do[
+multi=Total[sigmaFac[[1,-1,i,;;,2]]];
+If[multi==0,Continue[]];
+k=LookupShiftEq[factors[[i]],CurrentS,tower];
+If[Head[k]===Missing,	
+	AppendTo[NewS,Together[MyTSigma[factors[[i]],If[multi>0,1,-1],tower]]];
+	shiftgoal[[i]]=0;
+,
+	shiftgoal[[i]]=If[multi>0,k-1,k+1];
+]
+,{i,Length[factors]}];
+
+xi=sigmaFac[[1,1]]Product[MyTSigma[factors[[i]],shiftgoal[[i]],tower]^Total[sigmaFac[[1,-1,i,;;,2]]],{i,Length[factors]}];
+JEcho["xi:",xi];
+eta=Product[Product[MyTSigma[factors[[i]],j,tower]^-Total[Select[sigmaFac[[1,-1,i]],(#[[1]]<=j)&][[;;,2]]],{j,Min[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]-1}] ,{i,Length[factors]}]
+	Product[Product[MyTSigma[factors[[i]],j-1,tower]^Total[Select[sigmaFac[[1,-1,i]],(#[[1]]>=j)&][[;;,2]]],{j,Max[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]+1,-1}] ,{i,Length[factors]}];
+JEcho["eta:",eta];
+Assert[Together[(xi MyTSigma[eta,tower]/eta-f)]===0];
+Return[{{xi,eta},Join[CurrentS,NewS]}];
+]
+
+
 Clear[RationalReduction]
 RationalReduction[g_,f_,tower_]:=Module[{xi,eta,rnf},
 rnf=RNF[f,tower];ProperAndPolynomialParts[DeltaF[g,f,tower],x]
@@ -170,15 +198,12 @@ Return[eta^(-1) RationalReductionRNF[eta g,xi,tower]]
 Clear[RationalReductionRNF]
 Options[RationalReductionRNF]={"Representatives"->{}};
 RationalReductionRNF[g_,xi_,tower_,OptionsPattern[]]:=Module[{CurrentS, gT,h,x=tower[[-1,1]],hNum,hDen,piList,hFac,piSigmaMList,giSigmaNumList,
-																gijNumList,gijDenList,maxPower,mij,a,u,v,aj,uj,vj,xiNum,xiDen,gTS,gTR},
+																gijNumList,gijDenList,maxPower,mij,a,u,v,aj,uj,vj,xiNum,xiDen,gTS,gTR,polyPair,properPair},
 CurrentS=OptionValue["Representatives"];
 {xiNum,xiDen}=NumeratorDenominator[xi];
 
 {h,gT}=JEcho["ProperAndPolynomialParts: ",ProperAndPolynomialParts[g,x]];
-{gTS,gTR}=JEcho["PolynomialReduction: ",PolynomialReduction[xiDen gT,xiNum,xiDen,tower]];
-Assert[Expand[xiNum MyTSigma[gTS,tower]-xiDen gTS+gTR -xiDen gT]===0];
-Assert[Together[ DeltaF[gTS,xi,tower]+gTR/xiDen-gT]===0];
-If[h===0,Return[{{gTS/xiDen,gTR/xiDen},CurrentS}]];
+If[h===0,Return[{polyPair,CurrentS}]];
 {hNum,hDen}=NumeratorDenominator[h];
 {{piList,hFac},CurrentS}=AdjustSigmaFactorization[GetSigmaFactorization[{hDen},tower],CurrentS,tower];
 {hNum,hDen}/=hFac[[1,1]];
@@ -196,8 +221,19 @@ Do[
 		{a,u,v}+={aj,uj*(gijNumList[[j]]^(maxPower-mij)),vj};
 	,{j,Length[gijNumList]}];
 ,{i,Length[piList]}];
-Return[{{a+gTS/xiDen,u/hDen+(gTR+v)/xiDen},CurrentS}];
+{gTS,gTR}=JEcho["PolynomialReduction: ",PolynomialReduction[xiDen gT+v,xiNum,xiDen,tower]];
+Assert[Together[DeltaF[gTS,xi,tower]+gTR/xiDen-(gT+v/xiDen)]===0];
+Return[{{a+gTS,u/hDen+gTR/xiDen},CurrentS}];
 ]
+
+
+RationalRNF[5(x+5)^3(x+4)/((x+12)(x-4)^2),tower,"Representatives"->{}]
+
+
+x^2*MyTSigma[(1+x)^2 (2+x)^2 (3+x)^2 (4+x),tower]/((1+x)^2 (2+x)^2 (3+x)^2 (4+x))
+
+
+(x+5)*MyTSigma[(x+5)(x+6),tower]/(x+5)/(x+6)
 
 
 (* ::Subsection::Closed:: *)
