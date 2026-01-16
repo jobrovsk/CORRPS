@@ -1,6 +1,7 @@
 (* ::Package:: *)
 
- 
+(* ::Section:: *)
+(*Code*)
 
 
 $activateEcho=True;
@@ -11,6 +12,10 @@ JEcho[strings___,arg_]:=If[$activateEcho,If[Length[{strings}]>0,Print[strings]];
 Clear[MyTSigma]
 MyTSigma[expr_,0,___]:=expr
 MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
+
+
+Clear[DeltaF];
+DeltaF[g_,f_,tower_]:=f MyTSigma[g,1,tower]-g
 
 
 (*Ported to Mathematica from (HypergeometricCT.mm by Hui Huang) *)
@@ -96,6 +101,21 @@ Return[{a,p}];
 ]
 
 
+Collect[MyTSigma[a x^2+b x+c,5,tower],x]
+
+
+Clear[MyGetSpecificationCoeffList]
+MyGetSpecificationCoeffList[g_List,f_List,tower_]:=Module[{shiftCand,dg=Length[g]-1,df=Length[f]-1},
+If[dg!=df,Return[Null]];
+shiftCand=(f[[-2]]/f[[1]]-g[[-2]]/g[[1]])/(dg);
+If[!IntegerQ[shiftCand],Return[Null]];
+Do[
+
+
+{i,}]
+]
+
+
 Clear[LookupShiftEq]
 LookupShiftEq[g_,CurrentS_List,tower_]:=Module[{key=Missing[],f,k},
 Do[
@@ -113,7 +133,9 @@ Clear[AdjustSigmaFactorization]
 AdjustSigmaFactorization[sigmaFactorization_,CurrentS_List,tower_List]:=Module[{NewS={},factors,sigmafac,i,k},
 {factors,sigmafac}=sigmaFactorization;
 Do[
+Sow[Timing[
 k=LookupShiftEq[factors[[i]],CurrentS,tower];
+][[1]],"LookupShiftEq"];
 If[Head[k]===Missing,
 	AppendTo[NewS,factors[[i]]];
 ,
@@ -175,7 +197,6 @@ If[Head[k]===Missing,
 	shiftgoal[[i]]=If[multi>0,k-1,k+1];
 ]
 ,{i,Length[factors]}];
-Print["NewS: ",NewS];
 xi=sigmaFac[[1,1]]Product[MyTSigma[factors[[i]],shiftgoal[[i]],tower]^Total[sigmaFac[[1,-1,i,;;,2]]],{i,Length[factors]}];
 JEcho["xi:",xi];
 eta=Product[Product[MyTSigma[factors[[i]],j,tower]^-Total[Select[sigmaFac[[1,-1,i]],(#[[1]]<=j)&][[;;,2]]],{j,Min[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]-1}] ,{i,Length[factors]}]
@@ -189,10 +210,15 @@ Return[{{xi,eta},Join[CurrentS,NewS]}];
 Clear[ProperReduction]
 Options[ProperReduction]={"Representatives"->{}};
 ProperReduction[0,_,_,OptionsPattern[]]:={{0,0,0},OptionValue["Representatives"]}
-ProperReduction[h_,xi_,tower:{{x_,1,1}},OptionsPattern[]]:=Module[{CurrentS,hNum,hDen, piSigmaMList,giSigmaNumList,gijNumList,gijDenList,piList,hFac,maxPower,a,i,j,mij,u,v,aj,uj,vj},
+ProperReduction[h_,xi_,tower:{{x_,1,1}},OptionsPattern[]]:=Module[{unsigmaFac,CurrentS,hNum,hDen, piSigmaMList,giSigmaNumList,xiDen,gijNumList,gijDenList,piList,hFac,maxPower,a,i,j,mij,u,v,aj,uj,vj,ai,ui,vi},
 CurrentS=OptionValue["Representatives"];
 {hNum,hDen}=NumeratorDenominator[h];
-{{piList,hFac},CurrentS}=AdjustSigmaFactorization[GetSigmaFactorization[{hDen},tower],CurrentS,tower];
+xiDen=Denominator[xi];
+Sow[Timing[
+unsigmaFac=GetSigmaFactorization[{hDen},tower];
+][[1]],"SigmaFactorization"];
+{{piList,hFac},CurrentS}=AdjustSigmaFactorization[unsigmaFac,CurrentS,tower];
+
 {hNum,hDen}/=hFac[[1,1]];
 piSigmaMList=Table[Product[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}],{i,Length[piList]}];
 giSigmaNumList=ParFracDecomp[hNum, piSigmaMList,x];
@@ -202,13 +228,16 @@ Do[
 	gijDenList=Table[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}];
 	gijNumList=ParFracDecomp[giSigmaNumList[[i]],gijDenList ,x];
 	maxPower=Max[hFac[[1,-1,i,;;,2]]];
+	{ai,ui,vi}={0,0,0};
 	Do[
 		mij=hFac[[1,-1,i,j,2]];
-		{aj,uj,vj}=JEcho["{aj,uj,vj}",ShiftDenominatorToS[gijNumList[[j]],gijDenList[[j]],hFac[[1,-1,i,j,1]],xi,tower]];
-		{a,u,v}+={aj,uj*(gijNumList[[j]]^(maxPower-mij)),vj};
+		{aj,uj,vj}=ShiftDenominatorToS[gijNumList[[j]],gijDenList[[j]],hFac[[1,-1,i,j,1]],xi,tower];
+		Assert[PolynomialQ[uj,x]];
+		{ai,ui,vi}+={aj,uj*(piList[[i]]^(maxPower-mij)),vj};
 	,{j,Length[gijNumList]}];
+	{a,u,v}+={ai,Expand[ui]/piList[[i]]^maxPower,vi};
 ,{i,Length[piList]}];
-
+Assert[Together[DeltaF[a,xi,tower]+u+v/xiDen -h]===0];
 Return[{{a,u,v},CurrentS}];
 ]
 
@@ -220,10 +249,14 @@ CurrentS=OptionValue["Representatives"];
 {xiNum,xiDen}=NumeratorDenominator[xi];
 {h,gT}=JEcho["ProperAndPolynomialParts: ",ProperAndPolynomialParts[g,x]];
 {hNum,hDen}=NumeratorDenominator[h];
-{{a,u,v},CurrentS}=ProperReduction[h,xi,tower,"Representatives"->CurrentS];
-{gTS,gTR}=JEcho["PolynomialReduction: ",PolynomialReduction[xiDen gT+v,xiNum,xiDen,tower]];
+Sow[Timing[
+{{a,u,v},CurrentS}=JEcho["ProperReduction: ",ProperReduction[h,xi,tower,"Representatives"->CurrentS]];
+][[1]],"ProperReduction"];
+Sow[Timing[
+{gTS,gTR}=JEcho["PolynomialReduction: ",PolynomialReduction[Expand[xiDen gT+v],xiNum,xiDen,tower]];
+][[1]],"PolynomialReduction"];
 Assert[Together[DeltaF[gTS,xi,tower]+gTR/xiDen-(gT+v/xiDen)]===0];
-Return[{{a+gTS,u/hDen+gTR/xiDen},CurrentS}];
+Return[{{a+gTS,u+gTR/xiDen},CurrentS}];
 ]
 
 
@@ -234,15 +267,6 @@ RationalReduction[g_,f_,tower_,OptionsPattern[]]:=Module[{xi,eta,CurrentS,gS,gR}
 {{gS,gR},CurrentS}=RationalReductionRNF[eta g,xi,tower,"Representatives"->CurrentS];
 Return[{eta^(-1){gS,gR},CurrentS}]
 ]
-
-
-RationalRNF[5(x+5)^3(x+4)/((x+12)(x-4)^2),tower,"Representatives"->{}]
-
-
-x^2*MyTSigma[(1+x)^2 (2+x)^2 (3+x)^2 (4+x),tower]/((1+x)^2 (2+x)^2 (3+x)^2 (4+x))
-
-
-(x+5)*MyTSigma[(x+5)(x+6),tower]/(x+5)/(x+6)
 
 
 (* ::Subsection::Closed:: *)
@@ -414,8 +438,11 @@ For[i=1,i<=Length[nDS],i++,
 ];
 
 
-(* ::Subsection:: *)
+(* ::Section:: *)
 (*Tests*)
+
+
+timingsGeneral={"ProperReduction","PolynomialReduction","SigmaFactorization","LookupShiftEq"};
 
 
 Clear[randomPoly]
@@ -429,29 +456,43 @@ Factor[Product[randomPoly[maxAnzahlMonome,maxDeg,maxCoef,vars],{numFactorsNum}]/
 
 
 Clear[TestReduction];
-TestReduction[{numFactorsNum_Integer,numFactorsDen_Integer},maxAnzahlMonome_Integer,maxDeg_Integer,maxCoef_]:=Module[{zero,CurrentS,tower={{x,1,1}},dg,rg,f,g,dgg,rgg},
-f=randomPolyFactors[{4,3},3,2,4,{x}];
-g=randomPolyFactors[{numFactorsNum,numFactorsDen},maxAnzahlMonome,maxDeg,maxCoef,{x}]*0;
+TestReduction[{numFactorsNum_Integer,numFactorsDen_Integer},maxAnzahlMonome_Integer,maxDeg_Integer,maxCoef_]:=Module[
+{h,zero,CurrentS,tower={{x,1,1}},dg,rg,dh,rh,f,g,dgh,rgh},
+f=randomPolyFactors[{3,3},3,2,4,{x}];
+g=randomPolyFactors[{numFactorsNum,numFactorsDen},maxAnzahlMonome,maxDeg,maxCoef,{x}];
+h=randomPolyFactors[{numFactorsNum,numFactorsDen},maxAnzahlMonome,maxDeg,maxCoef,{x}];
+TimeConstrained[
 {{dg,rg},CurrentS}=RationalReduction[g,f,tower];
-zero=randomPolyFactors[{numFactorsNum,numFactorsDen},maxAnzahlMonome,maxDeg,maxCoef,{x}];
-{{dgg,rgg},CurrentS}=RationalReduction[rg+DeltaF[zero,f,tower],f,tower,"Representatives"->CurrentS];
-If[Together[rgg-rg]=!=0,Print[{f,g,zero}];Abort[]];
+{{dh,rh},CurrentS}=RationalReduction[h,f,tower,"Representatives"->CurrentS];
+{{dgh,rgh},CurrentS}=RationalReduction[g+h+DeltaF[zero,f,tower],f,tower,"Representatives"->CurrentS];
+,10,Print["Time: ",{f,g,h}];Abort[]];
+If[Together[rgh-rg-rh]=!=0,Print[{f,g,h}];Abort[]];
 ]
 
 
-{g,f,zero}={-((2 x^2 (1+2 x) (-1+4 x) (3+x^2) (3+4 x^2))/(9 (-1+2 x) (-1+6 x^2))),-((4 (-1+x)^2 (1+x)^2 (-1+2 x^2) (-4+3 x^2))/(x (2+3 x))),x^3 (4+3 x) (-1+4 x) (1+2 x^2)};
-RationalReduction[g,f,tower]//Together
-RationalReduction[((-(27698/2187)+(21223 x)/486+(30089 x^2)/2916-(16127 x^3)/162+(34109 x^4)/486+(3569 x^5)/81-(475 x^6)/9)/(2+3 x)+(13/72-(1045 (1+3 x))/52488)/(9 (-1+2 x) (-1+6 x^2)))/((-1+x) x^2)+DeltaF[zero,f,tower],f,tower,"Representatives"->{x,1/3 (-1+3 x),1/2 (1+4 x+2 x^2),1/3 (-1+6 x+3 x^2),1/2 (-1+2 x),1/6 (-1+6 x^2)}]//Together
+$activateEcho=False;
 
 
-TestReduction[{4,1},3,2,4]
+$activateEcho=True;
 
 
-randomPolyFactors[{4,1},3,2,4,{x}]
+{f,g,zero}={(2 (-3+x) (-2+x) x (2+5 x^2))/((-1+x) (1+x) (2+3 x^2)),(3 (-1+x) (-1+2 x) (-3-3 x+2 x^2))/(x^3 (2+5 x) (2+x^2)),-((3 (-2+x)^2 x (1+x) (2+x)^2)/((-1+2 x) (1+2 x) (-2+x+2 x^2)))};
+f=(2 (-3+x) (2+5 x^2))/(2+3 x^2);
+{{dg,rg},CurrentS}=RationalReduction[g,f,tower];
+{rg,CurrentS}[[1]]//Together
+{{dgg,rgg},CurrentS}=RationalReduction[rg+DeltaF[zero,f,tower],f,tower,"Representatives"->CurrentS];
+rgg//Together
 
 
-Clear[DeltaF];
-DeltaF[g_,f_,tower_]:=f MyTSigma[g,1,tower]-g
+result=Timing[Reap[Do[TestReduction[{12,6},3,2,4],{4}],Join[timingsGeneral,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]]]];
+{result[[1]],result[[2,1]],SystemInformation["Kernel","MachineName"]}
+SortBy[Transpose[{Join[timingsGeneral,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]],Total[#,2]&/@result[[2,2]]}],-#[[2]]&]
+
+
+Off[Assert];
+
+
+On[Assert];
 
 
 g=(4x^2+x+5);f=1/(x);
