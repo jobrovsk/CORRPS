@@ -101,25 +101,49 @@ Return[{a,p}];
 ]
 
 
-Collect[MyTSigma[a x^2+b x+c,5,tower],x]
+test=RandomInteger[10^2,{500}]/RandomInteger[10^4,{500}];
+Timing[Variables[test];]
+Timing[Total[test];]
 
 
-Clear[MyGetSpecificationCoeffList]
-MyGetSpecificationCoeffList[g_List,f_List,tower_]:=Module[{shiftCand,dg=Length[g]-1,df=Length[f]-1},
+(*way slower*)
+Clear[MyTaylorShiftList];
+MyTaylorShiftList[g_List,k_Integer]:=Module[{i,l},
+	Table[g[[i]]+Sum[g[[l]]Binomial[l-1,i-1]k^(l-i),{l,i+1,Length[g]}],{i,Length[g]}]]
+
+
+testpol=FromDigits[Reverse[test],x];
+Timing[Expand[DiscreteShift[testpol,{x,5}]];]
+Timing[Expand[MyTSigma[testpol,5,tower]];]
+Timing[Expand[testpol/.x->x+5];]
+Timing[MyTaylorShiftList[test,-5];]
+
+
+Clear[MyGetSpecification]
+MyGetSpecification[gIn_,f_,tower_:{{x_,1,1}}]:=Module[{lc,g,i,l,k,dg=Exponent[gIn,x],df=Exponent[f,x]},
 If[dg!=df,Return[Null]];
-shiftCand=(f[[-2]]/f[[1]]-g[[-2]]/g[[1]])/(dg);
-If[!IntegerQ[shiftCand],Return[Null]];
+lc=Coefficient[f,x,df];
+g=gIn*lc/Coefficient[gIn,x,dg];
+k=Together[(Coefficient[f,x,df-1]-Coefficient[g,x,dg-1])/(dg lc)];
+If[!IntegerQ[k],Return[Null]];
 Do[
-
-
-{i,}]
+ If[Together[Coefficient[g,x,i]+Sum[Coefficient[g,x,l]Binomial[l,i]k^(l-i),{l,i+1,dg}]-Coefficient[f,x,i]]=!=0,
+ k=Null;
+ Break[];
+ ]
+,{i,dg-2,Max[dg-4,0],-1}];
+If[k=!=Null && Together[MyTSigma[g,k,tower]-f]=!=0,
+	k=Null;
+];
+Return[k];
 ]
 
 
 Clear[LookupShiftEq]
 LookupShiftEq[g_,CurrentS_List,tower_]:=Module[{key=Missing[],f,k},
 Do[
-	k=Sigma`DifferenceFields`BasicTools`DFInterface`GetSpecification[g,f,tower];
+	k=MyGetSpecification[g,f,tower];
+	Assert[k===Sigma`DifferenceFields`BasicTools`DFInterface`GetSpecification[g,f,tower]];
 	If[k=!=Null,
 		key=f;
 		Break[];
@@ -484,7 +508,8 @@ f=(2 (-3+x) (2+5 x^2))/(2+3 x^2);
 rgg//Together
 
 
-result=Timing[Reap[Do[TestReduction[{12,6},3,2,4],{4}],Join[timingsGeneral,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]]]];
+SeedRandom[1235];
+result=Timing[Reap[Do[TestReduction[{12,6},3,2,4],{100}],Join[timingsGeneral,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]]]];
 {result[[1]],result[[2,1]],SystemInformation["Kernel","MachineName"]}
 SortBy[Transpose[{Join[timingsGeneral,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]],Total[#,2]&/@result[[2,2]]}],-#[[2]]&]
 
