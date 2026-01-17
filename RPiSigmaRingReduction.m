@@ -106,7 +106,7 @@ Timing[Variables[test];]
 Timing[Total[test];]
 
 
-(*way slower*)
+(*wwwaaayyy sslloowweerr*)
 Clear[MyTaylorShiftList];
 MyTaylorShiftList[g_List,k_Integer]:=Module[{i,l},
 	Table[g[[i]]+Sum[g[[l]]Binomial[l-1,i-1]k^(l-i),{l,i+1,Length[g]}],{i,Length[g]}]]
@@ -131,12 +131,57 @@ Do[
  k=Null;
  Break[];
  ]
-,{i,dg-2,Max[dg-4,0],-1}];
+,{i,dg-2,Max[dg-3,0],-1}];
 If[k=!=Null && Together[MyTSigma[g,k,tower]-f]=!=0,
 	k=Null;
 ];
 Return[k];
 ]
+
+
+f=2a x (x+4)^2(2x+5)(x^2+1)/(2x-3);
+Timing[GetSigmaFactorization[{f},tower]]
+
+
+Timing[MyGetSigmaFactorization[{f},{{x,1,1}}]]
+
+
+Clear[MyGetSigmaFactorization];
+MyGetSigmaFactorization[{f_},tower:{{x_,1,1}}]:=Module[
+{factors={},lc,factorsRawDeg,sigmafactors={},sigmafactorsDeg,facTest,mult,degree,facNum,k,i,j,factorsDeg,factord,factorsRaw,xFreePart,fac},
+factorsRaw=FactorList[f];
+factorsRaw=Table[{fac[[1]],fac[[2]],Exponent[fac[[1]],x]},{fac,factorsRaw}];
+factorsRaw=GatherBy[factorsRaw,Last];
+xFreePart=Times@@(factorsRaw[[1,;;,1]]^factorsRaw[[1,;;,2]]);
+Do[
+	factorsDeg={};
+	sigmafactorsDeg={};
+	Do[		
+		k=Null;
+		{facTest,mult,degree}=factorsRawDeg[[i]];
+		lc=Coefficient[facTest,x,degree];
+		xFreePart*=lc^mult;
+		Do[
+			k=MyGetSpecification[factorsDeg[[j]],facTest,tower];
+			If[k=!=Null,facNum=j;Break[];];
+		,{j,Length[factorsDeg]}];
+		If[k===Null,
+			AppendTo[factorsDeg,Together[facTest/lc]];
+			AppendTo[sigmafactorsDeg,{{0,mult}}];
+		,
+			AppendTo[sigmafactorsDeg[[facNum]],{k,mult}];
+		];
+	,{i,Length[factorsRawDeg]}];
+	factors=Join[factors,factorsDeg];
+	sigmafactors=Join[sigmafactors,sigmafactorsDeg];
+,{factorsRawDeg,Select[factorsRaw,(#[[1,3]]>0)&]}];
+(*sigmafactors=(Total/@GatherBy[#,First])&/@sigmafactors;*)
+Assert[Together[xFreePart Product[MyTSigma[factors[[i]],sigmafactors[[i,j,1]],tower]^sigmafactors[[i,j,2]] ,{i,Length[factors]},{j,Length[sigmafactors[[i]]]}]-f]===0];
+Return[{factors,{{xFreePart,1,sigmafactors}}}];
+]
+
+
+Total[{{1,1}}]
 
 
 Clear[LookupShiftEq]
@@ -208,7 +253,7 @@ Clear[RationalRNF]
 Options[RationalRNF]={"Representatives"->{}};
 RationalRNF[f_,tower_List,OptionsPattern[]]:=Module[{CurrentS,factors,sigmaFac,shiftgoal={},multi,xi,eta,k,i,NewS={}},
 CurrentS=OptionValue["Representatives"];
-{factors,sigmaFac}=GetSigmaFactorization[{f},tower];
+{factors,sigmaFac}=MyGetSigmaFactorization[{f},tower];
 shiftgoal=Table[0,{Length[factors]}];
 Do[
 multi=Total[sigmaFac[[1,-1,i,;;,2]]];
@@ -239,7 +284,7 @@ CurrentS=OptionValue["Representatives"];
 {hNum,hDen}=NumeratorDenominator[h];
 xiDen=Denominator[xi];
 Sow[Timing[
-unsigmaFac=GetSigmaFactorization[{hDen},tower];
+unsigmaFac=MyGetSigmaFactorization[{hDen},tower];
 ][[1]],"SigmaFactorization"];
 {{piList,hFac},CurrentS}=AdjustSigmaFactorization[unsigmaFac,CurrentS,tower];
 
@@ -270,9 +315,11 @@ Clear[RationalReductionRNF]
 Options[RationalReductionRNF]={"Representatives"->{}};
 RationalReductionRNF[g_,xi_,tower:{{x_,_,_}},OptionsPattern[]]:=Module[{a,u,v,CurrentS,gT,h,hNum,hDen,mij,xiNum,xiDen,gTS,gTR,polyPair,properPair},
 CurrentS=OptionValue["Representatives"];
+Sow[Timing[
 {xiNum,xiDen}=NumeratorDenominator[xi];
 {h,gT}=JEcho["ProperAndPolynomialParts: ",ProperAndPolynomialParts[g,x]];
 {hNum,hDen}=NumeratorDenominator[h];
+][[1]],"ProperAndPolynomialParts"];
 Sow[Timing[
 {{a,u,v},CurrentS}=JEcho["ProperReduction: ",ProperReduction[h,xi,tower,"Representatives"->CurrentS]];
 ][[1]],"ProperReduction"];
@@ -287,13 +334,17 @@ Return[{{a+gTS,u+gTR/xiDen},CurrentS}];
 Clear[RationalReduction]
 Options[RationalReduction]={"Representatives"->{}};
 RationalReduction[g_,f_,tower_,OptionsPattern[]]:=Module[{xi,eta,CurrentS,gS,gR},
+Sow[Timing[
+Sow[Timing[
 {{xi,eta},CurrentS}=RationalRNF[f,tower,"Representatives"->OptionValue["Representatives"]];
+][[1]],"RationalRNF"];
 {{gS,gR},CurrentS}=RationalReductionRNF[eta g,xi,tower,"Representatives"->CurrentS];
+][[1]],"RationalReductionCombined"];
 Return[{eta^(-1){gS,gR},CurrentS}]
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Rational*)
 
 
@@ -466,7 +517,8 @@ For[i=1,i<=Length[nDS],i++,
 (*Tests*)
 
 
-timingsGeneral={"ProperReduction","PolynomialReduction","SigmaFactorization","LookupShiftEq"};
+timingsGeneral={"ProperReduction","PolynomialReduction","SigmaFactorization","LookupShiftEq",
+"ProperAndPolynomialParts","RationalRNF","RationalReductionCombined"};
 
 
 Clear[randomPoly]
@@ -508,8 +560,8 @@ f=(2 (-3+x) (2+5 x^2))/(2+3 x^2);
 rgg//Together
 
 
-SeedRandom[1235];
-result=Timing[Reap[Do[TestReduction[{12,6},3,2,4],{100}],Join[timingsGeneral,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]]]];
+SeedRandom[17837];
+result=Timing[Reap[Do[TestReduction[{60,30},3,2,2],{100}],Join[timingsGeneral,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]]]];
 {result[[1]],result[[2,1]],SystemInformation["Kernel","MachineName"]}
 SortBy[Transpose[{Join[timingsGeneral,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]],Total[#,2]&/@result[[2,2]]}],-#[[2]]&]
 
