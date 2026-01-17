@@ -139,13 +139,6 @@ Return[k];
 ]
 
 
-f=2a x (x+4)^2(2x+5)(x^2+1)/(2x-3);
-Timing[GetSigmaFactorization[{f},tower]]
-
-
-Timing[MyGetSigmaFactorization[{f},{{x,1,1}}]]
-
-
 Clear[MyGetSigmaFactorization];
 MyGetSigmaFactorization[{f_},tower:{{x_,1,1}}]:=Module[
 {factors={},lc,factorsRawDeg,sigmafactors={},sigmafactorsDeg,facTest,mult,degree,facNum,k,i,j,factorsDeg,factord,factorsRaw,xFreePart,fac},
@@ -341,12 +334,9 @@ Return[{Together[{eta^(-1)gS,eta^(-1)gR}],CurrentS}]
 ]
 
 
-(* ::Subsection:: *)
-(*Pi-Case*)
-
-
 Clear[RingReduction]
 Options[RingReduction]={"Representatives"->{}};
+RingReduction[0,_,_?MatrixQ,OptionsPattern[]]:={{0,0},OptionValue["Representatives"]}
 RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{alpha,beta,CurrentS,gS,gR},
 CurrentS=OptionValue["Representatives"];
 If[Length[tower]==1,
@@ -368,31 +358,67 @@ If[alpha===1,
 ]
 
 
+(* ::Subsection:: *)
+(*Pi-Case*)
+
+
 Clear[PiReduction];
 Options[PiReduction]={"Representatives"->{}};
-PiReduction[g_,f_,towerIn_?MatrixQ,OptionsPattern[]]:=Module[{gS,gR,gcS,gcr,tdegG,gCoeffs,CurrentS,t,a,m,tower=Most[towerIn]},
+PiReduction[g_,s_,towerIn_?MatrixQ,OptionsPattern[]]:=Module[
+{st,sc,i,degG,gS,gR,gcS,gcR,tdegG,gCoeffs,CurrentS,t,h,a,m,tower=Most[towerIn]},
 CurrentS=OptionValue["Representatives"];
 Assert[towerIn[[-1,3]]===0];
 {t,a}=towerIn[[-1,1;;2]];
-Assert[Exponent[f,t]==-Exponent[f,t^-1]];
-m=Exponent[f,t];
+Assert[Exponent[s,t]==-Exponent[s,t^-1]];
+m=Exponent[s,t];
 tdegG=-Exponent[g,t^(-1)];
-gCoeffs=CoefficientList[g t^(tdegG),t];
+degG=Exponent[g,t];
+gCoeffs=CoefficientList[g t^(-tdegG),t];
 If[m==0,
-{gS,gR}=Sum[
-	{{gcS,gcr},CurrentS}=RingReduction[g[[i-tdegG+1]],f a^i,Most[tower],"Representatives"->CurrentS];
-	{gcS,gcr}t^i
-,{i,tdegG,Exponent[g,t]}];
+	{gS,gR}=Sum[
+		{{gcS,gcR},CurrentS}=RingReduction[gCoeffs[[i-tdegG+1]],s a^i,tower,"Representatives"->CurrentS];
+		{gcS,gcR}t^i
+	,{i,tdegG,degG}];
+	Assert[Together[DeltaF[gS,s,towerIn]+gR-g]===0];
+	Return[{{gS,gR},CurrentS}];
+];
+sc=(s/.t->1);
+Print["g= ",g];
+gCoeffs=PadRight[gCoeffs,Max[degG,Abs[m]-1]-Min[tdegG,0]+1,0,Max[tdegG,0]];
+Print["gCoeffs= ",gCoeffs];
+st=Min[tdegG,0]-1; (*exponent of first entry in gCoeffs*)
+gS=0;
+If[m>0,
+	Do[
+		gCoeffs[[i+m-st]]+=sc a^i MyTSigma[gCoeffs[[i-st]],tower];
+		gS-=gCoeffs[[i-st]]t^i;	
+	,{i,tdegG,-1}];
+	Do[
+		h=MyTSigma[gCoeffs[[i-st]]/(sc a^(i-m)),-1,tower];
+		gCoeffs[[i-m-st]]+=h;
+		gS+=h t^(i-m);	
+	,{i,degG,m,-1}];
+	
+];
+If[m<0,
+	Do[
+		h=MyTSigma[gCoeffs[[i-st]]/(sc a^(i-m)),-1,tower];
+		gCoeffs[[i-m-st]]+=h;
+		gS+=h t^(i-m);	
+	,{i,tdegG,-1}];
+	Do[
+		gCoeffs[[i+m-st]]+=sc a^i MyTSigma[gCoeffs[[i-st]],tower];
+		gS-=gCoeffs[[i-st]]t^i;	
+	,{i,degG,-m,-1}];
+];
+gR=Sum[Together[gCoeffs[[i-st]]] t^i,{i,0,Abs[m]-1}];
+Print[{m,gR//Factor}];
+Assert[Together[DeltaF[gS,s,towerIn]+gR-g]===0];
 Return[{{gS,gR},CurrentS}];
-]
-
-]
+];
 
 
-
-
-
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Rational*)
 
 
@@ -617,11 +643,24 @@ $activateEcho=False;
 $activateEcho=True;
 
 
-SeedRandom[17837];
-f=randomPolyFactors[{3,3},3,2,4,{x}];
-g=randomPolyFactors[{50,50},3,2,4,{x}]+randomPolyFactors[{50,0},3,2,4,{x}];
+MyTSigma[-((896 x (1+x)^2 (2+x) (-3+x^2) (3+4 (1+x)) (3+(1+x)^2))/(-1+7 x^2))/((f/t) 2^3 ),-1,{{x,1,1}}]
+
+
+SeedRandom[1837];
+tower={{x,1,1},{t,x,0}};
+f=randomPolyFactors[{3,3},3,2,4,{x}]/t^-0;
+g=randomPolyFactors[{5,0},3,2,4,{x}]t^(-3)+t;
 zero=DeltaF[g,f,tower];
-Timing[RationalReduction[zero,f,tower][[1,2]]]
+Factor[zero]
+Timing[RingReduction[zero,f,tower][[1]]]
+
+
+SeedRandom[17837];
+tower={{x,1,1}};
+f=randomPolyFactors[{3,3},3,2,4,{x}];
+g=randomPolyFactors[{5,5},3,2,4,{x}]+randomPolyFactors[{50,0},3,2,4,{x}];
+zero=DeltaF[g,f,tower];
+Timing[RingReduction[zero,f,tower][[1,2]]]
 Timing[SolveDifferenceVectorSpace[{1,-f},{zero},tower];]
 result=Timing[Reap[SolvePLDEInDRMaster[{{{1}},{{-f}}},{{zero}},tower],Join[timingsGeneral,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]]]];
 SortBy[Transpose[{Join[timingsGeneral,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]],Total[#,2]&/@result[[2,2]]}],-#[[2]]&]
