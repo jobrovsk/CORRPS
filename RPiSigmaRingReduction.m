@@ -181,9 +181,6 @@ Return[{factors,{{xFreePart,1,sigmafactors}}}];
 ]
 
 
-Total[{{1,1}}]
-
-
 Clear[LookupShiftEq]
 LookupShiftEq[g_,CurrentS_List,tower_]:=Module[{key=Missing[],f,k},
 Do[
@@ -340,8 +337,59 @@ Sow[Timing[
 ][[1]],"RationalRNF"];
 {{gS,gR},CurrentS}=RationalReductionRNF[eta g,xi,tower,"Representatives"->CurrentS];
 ][[1]],"RationalReductionCombined"];
-Return[{eta^(-1){gS,gR},CurrentS}]
+Return[{Together[{eta^(-1)gS,eta^(-1)gR}],CurrentS}]
 ]
+
+
+(* ::Subsection:: *)
+(*Pi-Case*)
+
+
+Clear[RingReduction]
+Options[RingReduction]={"Representatives"->{}};
+RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{alpha,beta,CurrentS,gS,gR},
+CurrentS=OptionValue["Representatives"];
+If[Length[tower]==1,
+	Assert[tower[[1,2;;3]]==={1,1}];
+	Return[RationalReduction[g,f,tower,"Representatives"->CurrentS]];	
+];
+{alpha,beta}=tower[[-1,2;;3]];
+If[beta===0,
+	If[RootOfUnityQ[alpha],
+		Return[RReduction[g,f,tower,"Representatives"->CurrentS]];
+	,
+		Return[PiReduction[g,f,tower,"Representatives"->CurrentS]];
+	];
+];
+If[alpha===1,
+	Assert[f===1];
+	Return[SigmaReduction[g,tower,"Representatives"->CurrentS]];
+]
+]
+
+
+Clear[PiReduction];
+Options[PiReduction]={"Representatives"->{}};
+PiReduction[g_,f_,towerIn_?MatrixQ,OptionsPattern[]]:=Module[{gS,gR,gcS,gcr,tdegG,gCoeffs,CurrentS,t,a,m,tower=Most[towerIn]},
+CurrentS=OptionValue["Representatives"];
+Assert[towerIn[[-1,3]]===0];
+{t,a}=towerIn[[-1,1;;2]];
+Assert[Exponent[f,t]==-Exponent[f,t^-1]];
+m=Exponent[f,t];
+tdegG=-Exponent[g,t^(-1)];
+gCoeffs=CoefficientList[g t^(tdegG),t];
+If[m==0,
+{gS,gR}=Sum[
+	{{gcS,gcr},CurrentS}=RingReduction[g[[i-tdegG+1]],f a^i,Most[tower],"Representatives"->CurrentS];
+	{gcS,gcr}t^i
+,{i,tdegG,Exponent[g,t]}];
+Return[{{gS,gR},CurrentS}];
+]
+
+]
+
+
+
 
 
 (* ::Subsection:: *)
@@ -517,7 +565,7 @@ For[i=1,i<=Length[nDS],i++,
 (*Tests*)
 
 
-timingsGeneral={"ProperReduction","PolynomialReduction","SigmaFactorization","LookupShiftEq",
+timingsReduction={"ProperReduction","PolynomialReduction","SigmaFactorization","LookupShiftEq",
 "ProperAndPolynomialParts","RationalRNF","RationalReductionCombined"};
 
 
@@ -546,10 +594,37 @@ If[Together[rgh-rg-rh]=!=0,Print[{f,g,h}];Abort[]];
 ]
 
 
+Clear[TestReduction];
+TestReduction[{numFactorsNum_Integer,numFactorsDen_Integer},maxAnzahlMonome_Integer,maxDeg_Integer,maxCoef_]:=Module[
+{h,zero,CurrentS,tower={{x,1,1}},dg,rg,dh,rh,f,g,dgh,rgh},
+f=randomPolyFactors[{3,3},3,2,4,{x}];
+g=randomPolyFactors[{numFactorsNum,numFactorsDen},maxAnzahlMonome,maxDeg,maxCoef,{x}]
+	+randomPolyFactors[{numFactorsNum,0},maxAnzahlMonome,maxDeg,maxCoef,{x}];
+h=randomPolyFactors[{numFactorsNum,numFactorsDen},maxAnzahlMonome,maxDeg,maxCoef,{x}]
+	+randomPolyFactors[{numFactorsNum,0},maxAnzahlMonome,maxDeg,maxCoef,{x}];
+TimeConstrained[
+{{dg,rg},CurrentS}=RationalReduction[g,f,tower];
+{{dh,rh},CurrentS}=RationalReduction[h,f,tower,"Representatives"->CurrentS];
+{{dgh,rgh},CurrentS}=RationalReduction[g+h+DeltaF[zero,f,tower],f,tower,"Representatives"->CurrentS];
+,10,Print["Time: ",{f,g,h}];Abort[]];
+If[Together[rgh-rg-rh]=!=0,Print[{f,g,h}];Abort[]];
+]
+
+
 $activateEcho=False;
 
 
 $activateEcho=True;
+
+
+SeedRandom[17837];
+f=randomPolyFactors[{3,3},3,2,4,{x}];
+g=randomPolyFactors[{50,50},3,2,4,{x}]+randomPolyFactors[{50,0},3,2,4,{x}];
+zero=DeltaF[g,f,tower];
+Timing[RationalReduction[zero,f,tower][[1,2]]]
+Timing[SolveDifferenceVectorSpace[{1,-f},{zero},tower];]
+result=Timing[Reap[SolvePLDEInDRMaster[{{{1}},{{-f}}},{{zero}},tower],Join[timingsGeneral,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]]]];
+SortBy[Transpose[{Join[timingsGeneral,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]],Total[#,2]&/@result[[2,2]]}],-#[[2]]&]
 
 
 {f,g,zero}={(2 (-3+x) (-2+x) x (2+5 x^2))/((-1+x) (1+x) (2+3 x^2)),(3 (-1+x) (-1+2 x) (-3-3 x+2 x^2))/(x^3 (2+5 x) (2+x^2)),-((3 (-2+x)^2 x (1+x) (2+x)^2)/((-1+2 x) (1+2 x) (-2+x+2 x^2)))};
@@ -561,9 +636,9 @@ rgg//Together
 
 
 SeedRandom[17837];
-result=Timing[Reap[Do[TestReduction[{60,30},3,2,2],{100}],Join[timingsGeneral,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]]]];
+result=Timing[Reap[Do[TestReduction[{30,30},3,2,2],{100}],Join[timingsReduction,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]]]];
 {result[[1]],result[[2,1]],SystemInformation["Kernel","MachineName"]}
-SortBy[Transpose[{Join[timingsGeneral,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]],Total[#,2]&/@result[[2,2]]}],-#[[2]]&]
+SortBy[Transpose[{Join[timingsReduction,Table[ToString[tower[[i,1]]]<>" combined",{i,Length[tower]}]],Total[#,2]&/@result[[2,2]]}],-#[[2]]&]
 
 
 Off[Assert];
