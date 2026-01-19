@@ -306,22 +306,65 @@ unsigmaFac=MyGetSigmaFactorization[{hDen},tower];
 
 {hNum,hDen}/=hFac[[1,1]];
 piSigmaMList=Table[Product[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}],{i,Length[piList]}];
+Sow[Timing[
 giSigmaNumList=ParFracDecomp[hNum, piSigmaMList,x];
+][[1]],"ParFracDecomp"];
 Assert[MyTogether[Total[giSigmaNumList/piSigmaMList]-hNum/(Times@@piSigmaMList)]===0];
 {a,u,v}={0,0,0};
 Do[
 	gijDenList=Table[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}];
+	Sow[Timing[
 	gijNumList=ParFracDecomp[giSigmaNumList[[i]],gijDenList ,x];
+	][[1]],"ParFracDecomp"];
 	maxPower=Max[hFac[[1,-1,i,;;,2]]];
 	{ai,ui,vi}={0,0,0};
 	Do[
 		mij=hFac[[1,-1,i,j,2]];
+		Sow[Timing[
 		{aj,uj,vj}=ShiftDenominatorToS[gijNumList[[j]],gijDenList[[j]],hFac[[1,-1,i,j,1]],xi,tower];
+		][[1]],"ShiftDenominatorToS"];
 		Assert[PolynomialQ[uj,x]];
 		{ai,ui,vi}+={aj,uj*(piList[[i]]^(maxPower-mij)),vj};
 	,{j,Length[gijNumList]}];
-	{a,u,v}+={ai,Expand[ui]/piList[[i]]^maxPower,vi};
+	{a,u,v}+={ai,ui/piList[[i]]^maxPower,vi};
 ,{i,Length[piList]}];
+Assert[MyTogether[DeltaF[a,xi,tower]+u+v/xiDen -h]===0];
+Return[{{a,u,v},CurrentS}];
+]
+
+
+Clear[LookupMultInFac];
+LookupMultInFac[fac_?MatrixQ,k_Integer]:=Lookup[Association[Rule@@@fac],k,0]
+
+
+Clear[ProperReductionAlt]
+Options[ProperReductionAlt]={"Representatives"->{}};
+ProperReductionAlt[0,_,_,OptionsPattern[]]:={{0,0,0},OptionValue["Representatives"]}
+ProperReductionAlt[h_,xi_,tower:{{x_,1,1}},OptionsPattern[]]:=Module[{minShift,maxShift,unsigmaFac,CurrentS,hNum,hDen, piSigmaMList,giSigmaNumList,xiDen,piList,hFac,a,i,mij,u,v,ai,ui,vi},
+CurrentS=OptionValue["Representatives"];
+{hNum,hDen}=NumeratorDenominator[h];
+xiDen=Denominator[xi];
+Sow[Timing[
+unsigmaFac=MyGetSigmaFactorization[{hDen},tower];
+][[1]],"SigmaFactorization"];
+{{piList,hFac},CurrentS}=AdjustSigmaFactorization[unsigmaFac,CurrentS,tower];
+{hNum,hDen}/=hFac[[1,1]];
+{minShift,maxShift}=MinMax[hFac[[1,-1,;;,;;,1]]];
+(*Print[{minShift,maxShift}];*)
+piSigmaMList=Table[Product[MyTSigma[piList[[i]],k,tower]^LookupMultInFac[hFac[[1,-1,i]],k],{i,Length[piList]}],{k,minShift,maxShift}];
+(*Print["{hFac[[1,1]], piSigmaMList}= ",{hFac[[1,1]], piSigmaMList}];*)
+Sow[Timing[
+giSigmaNumList=ParFracDecomp[hNum, piSigmaMList,x];
+][[1]],"ParFracDecomp"];
+Assert[MyTogether[Total[giSigmaNumList/piSigmaMList]-hNum/(Times@@piSigmaMList)]===0];
+{a,u,v}={0,0,0};
+Do[
+	Sow[Timing[
+	{ai,ui,vi}=ShiftDenominatorToS[giSigmaNumList[[k-minShift+1]],piSigmaMList[[k-minShift+1]],k,xi,tower];
+	][[1]],"ShiftDenominatorToS"];
+	Assert[PolynomialQ[ui,x]];
+	{a,u,v}+={ai,ui/Product[piList[[i]]^LookupMultInFac[hFac[[1,-1,i]],k],{i,Length[piList]}],vi};
+,{k,minShift,maxShift}];
 Assert[MyTogether[DeltaF[a,xi,tower]+u+v/xiDen -h]===0];
 Return[{{a,u,v},CurrentS}];
 ]
@@ -333,14 +376,15 @@ RationalReductionRNF[g_,xi_,tower:{{x_,_,_}},OptionsPattern[]]:=Module[{a,u,v,Cu
 CurrentS=OptionValue["Representatives"];
 Sow[Timing[
 {xiNum,xiDen}=NumeratorDenominator[xi];
-{h,gT}=JEcho["ProperAndPolynomialParts: ",ProperAndPolynomialParts[g,x]];
+{h,gT}=JEcho["ProperAndPolynomialParts: ",ProperAndPolynomialPartsAlt[g,x]];
+(*Print["{h, g}= ",{h, g}];*)
 {hNum,hDen}=NumeratorDenominator[h];
 ][[1]],"ProperAndPolynomialParts"];
 Sow[Timing[
 {{a,u,v},CurrentS}=JEcho["ProperReduction: ",ProperReduction[h,xi,tower,"Representatives"->CurrentS]];
 ][[1]],"ProperReduction"];
 Sow[Timing[
-{gTS,gTR}=JEcho["PolynomialReduction: ",PolynomialReduction[Expand[xiDen gT+v],xiNum,xiDen,tower]];
+{gTS,gTR}=JEcho["PolynomialReduction: ",PolynomialReduction[Collect[xiDen gT+v,x,MyTogether],xiNum,xiDen,tower]];
 ][[1]],"PolynomialReduction"];
 Assert[MyTogether[DeltaF[gTS,xi,tower]+gTR/xiDen-(gT+v/xiDen)]===0];
 Return[{{a+gTS,u+gTR/xiDen},CurrentS}];
@@ -384,7 +428,7 @@ If[alpha===1,
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Pi-Case*)
 
 
@@ -444,7 +488,7 @@ Return[{{gS,gR},CurrentS}];
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Rational*)
 
 
@@ -454,6 +498,26 @@ ProperAndPolynomialParts[f_,var_Symbol]:=Module[{num,den,r,pp,fp},
 {num,den}=NumeratorDenominator[MyTogether[f]];
 {pp,r}=PolynomialQuotientRemainder[num,den,var];
 Return[{r/den,pp}]
+];
+
+
+Clear[MyPolynomialQuotientRemainder];
+MyPolynomialQuotientRemainder[pol_,div_,x_]:=If[Length[Variables[{div}]]>1,Flatten[PolynomialReduce[pol,{div},{x}]] , P]
+
+
+
+(* ::Code::Initialization:: *)
+Clear[ProperAndPolynomialPartsAlt];
+ProperAndPolynomialPartsAlt[f_,var_Symbol]:=Module[{rNum,rDen,num,den,r,pp,fp},
+{num,den}=NumeratorDenominator[MyTogether[f]];
+
+{{pp},r}=MyTogether[PolynomialReduce[num,{den},{var}]];
+
+{rNum,rDen}=NumeratorDenominator[r];
+Assert[PolynomialQ[pp,var]];
+Assert[Exponent[rNum,var]<Exponent[rDen den,var]];
+Assert[MyTogether[rNum/(rDen den)+pp-f]===0];
+Return[{rNum/(rDen den),pp}]
 ];
 
 
@@ -469,23 +533,26 @@ g=Cancel[g/Coefficient[g,var,Exponent[g,var]]]
 ];
 
 
-(* ::Input::Initialization:: *)
+(* ::Code::Initialization:: *)
 (* Input: Three polynomials a, b and c in var. *)
 (* Output: Two polynomials r and s such that r a + s b = c and degree of r in var is lower than that of b. *)
 Clear[ExtendedEuclidean]
 ExtendedEuclidean[a_,b_,c_,var_Symbol]:=Module[{a1=MyTogether[a],b1=MyTogether[b],c1=MyTogether[c],g,r,s,h,r1,rem,q},
 {g,{r,s}}=PolynomialExtendedGCD[a1,b1,var];
-{h,rem}=PolynomialQuotientRemainder[c1,g,var];
+{{h},rem}=PolynomialReduce[c1,{g},{var}];
 If[rem=!=0,Throw["Error in ExtendedEuclidean: c is not in the ideal generated by a and b."]];
-{r,s}=Cancel[h {r,s}];
+{r,s}=MyTogether[h {r,s}];
 (* In this case we take care to keep track of the main variable to give the correct output in terms of the main variable. *)
 If[!(r===0)&&Exponent[b1,var]<= Exponent[r,var],
-(* An ad hoc trick: we only compute the quotient and remainder of the numerators in order to save time (because we know that it is a polynomial in terms of var). *)
-{q,r1}=PolynomialQuotientRemainder[Numerator[r],Numerator[b1],var];
-(* We remember to return the denominator here! *)
-s=MyTogether[q a1 Denominator[b1]/Denominator[r]+s];
-{r1/Denominator[r],s},
-{r,s}]
+	(* An ad hoc trick: we only compute the quotient and remainder of the numerators in order to save time (because we know that it is a polynomial in terms of var). *)
+	(*{q,r1}=PolynomialQuotientRemainder[Numerator[r],Numerator[b1],var];*)
+	{{q},r1}=PolynomialReduce[Numerator[r],{Numerator[b1]},{var}];
+	(* We remember to return the denominator here! *)
+	s=MyTogether[q a1 Denominator[b1]/Denominator[r]+s];
+	{r1/Denominator[r],s}
+,
+	{r,s}
+]
 ];
 
 
