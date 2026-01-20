@@ -4,7 +4,7 @@
 (*Code*)
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*MISC*)
 
 
@@ -376,7 +376,6 @@ CurrentS=OptionValue["Representatives"];
 Sow[Timing[
 {xiNum,xiDen}=NumeratorDenominator[xi];
 {h,gT}=JEcho["ProperAndPolynomialParts: ",ProperAndPolynomialPartsAlt[g,x]];
-(*Print["{h, g}= ",{h, g}];*)
 {hNum,hDen}=NumeratorDenominator[h];
 ][[1]],"ProperAndPolynomialParts"];
 Sow[Timing[
@@ -427,8 +426,26 @@ If[alpha===1,
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Pi-Case*)
+
+
+Clear[MyGetOrderOfUnity]
+MyGetOrderOfUnity[alpha_]:=Module[{i=1,alphaj=1}
+,While[!PossibleZeroQ[1-(alphaj*=alpha),Method->"ExactAlgebraics"]&&i<1000,
+i++;
+];
+If[i==1000,Print["cannot find order of unity of ", alpha];Abort[];,Return[i]];
+]
+
+
+MyGetOrderOfUnity[(-1)^(1/36)]
+
+
+Clear[RReduction]
+Options[RReduction]={"Representatives"->{}};
+RReduction[g_,1,tower_?MatrixQ,OptionsPattern[]]:=Module[{y=tower[[-1,1]],alpha=tower[[-1,2]],AAA},
+PiReduction[Collect[g,y,MyTogether]/.y^(AAA_.)->y^Mod[AAA,MyGetOrderOfUnity[alpha]],1,tower,"Representatives"->OptionValue["Representatives"]]]
 
 
 Clear[PiReduction];
@@ -608,10 +625,6 @@ V = ParFracDecompAlt[a2,T[[;;Floor[n/2]]],y];
 W = ParFracDecompAlt[a1,T[[Floor[n/2]+1;;]],y];
 Return[Join[V,W]];
 ];
-
-
-ParFracDecompAlt[(x^4-x^3-x^2+x-5),{(x-4),x^2+5,x+1,x^2+1},x]
-ParFracDecomp[(x^4-x^3-x^2+x-5),{(x-4),x^2+5,x+1,x^2+1},x]//Together
 
 
 (* ::Input::Initialization:: *)
