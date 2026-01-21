@@ -4,7 +4,7 @@
 (*Code*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*MISC*)
 
 
@@ -71,7 +71,7 @@ Return[k];
 
 Clear[MyGetSigmaFactorization];
 MyGetSigmaFactorization[{f_},tower:{{x_,1,1}}]:=Module[
-{factors={},lc,factorsRawDeg,sigmafactors={},sigmafactorsDeg,facTest,mult,degree,facNum,k,i,j,factorsDeg,factord,factorsRaw,xFreePart,fac},
+{shiftgoal,factors={},lc,factorsRawDeg,sigmafactors={},sigmafactorsDeg,facTest,mult,degree,facNum,k,i,j,factorsDeg,factord,factorsRaw,xFreePart,fac},
 factorsRaw=FactorList[f];
 factorsRaw=Table[{fac[[1]],fac[[2]],Exponent[fac[[1]],x]},{fac,factorsRaw}];
 factorsRaw=GatherBy[factorsRaw,Last];
@@ -99,6 +99,10 @@ Do[
 	sigmafactors=Join[sigmafactors,sigmafactorsDeg];
 ,{factorsRawDeg,Select[factorsRaw,(#[[1,3]]>0)&]}];
 (*sigmafactors=(Total/@GatherBy[#,First])&/@sigmafactors;*)
+(*Shift do the middle*)
+shiftgoal=Floor/@Mean/@sigmafactors[[;;,;;,1]];
+Do[sigmafactors[[i,;;,1]]-=shiftgoal[[i]],{i,Length[factors]}];
+factors=Table[If[shiftgoal[[i]]!=0,MyTogether[MyTSigma[factors[[i]],shiftgoal[[i]],tower]],factors[[i]]],{i,Length[factors]}];
 Assert[MyTogether[xFreePart Product[MyTSigma[factors[[i]],sigmafactors[[i,j,1]],tower]^sigmafactors[[i,j,2]] ,{i,Length[factors]},{j,Length[sigmafactors[[i]]]}]-f]===0];
 Return[{factors,{{xFreePart,1,sigmafactors}}}];
 ]
@@ -137,7 +141,7 @@ Return[{{factors,sigmafac},Join[CurrentS,NewS]}];
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Rational Reduction*)
 
 
@@ -426,7 +430,7 @@ If[alpha===1,
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Pi-Case*)
 
 
