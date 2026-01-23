@@ -141,7 +141,7 @@ Return[{{factors,sigmafac},Join[CurrentS,NewS]}];
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Rational Reduction*)
 
 
@@ -407,84 +407,6 @@ Return[{MyTogether[{eta^(-1)gS,eta^(-1)gR}],CurrentS}]
 
 
 
-
-
-(* ::Subsection:: *)
-(*Pi-Case*)
-
-
-Clear[MyGetOrderOfUnity]
-MyGetOrderOfUnity[alpha_]:=Module[{i=1,alphaj=1}
-,While[!PossibleZeroQ[1-(alphaj*=alpha),Method->"ExactAlgebraics"]&&i<1000,
-i++;
-];
-If[i==1000,Print["cannot find order of unity of ", alpha];Abort[];,Return[i]];
-]
-
-
-MyGetOrderOfUnity[(-1)^(1/36)]
-
-
-Clear[RReduction]
-Options[RReduction]={"Representatives"->{}};
-RReduction[g_,1,tower_?MatrixQ,OptionsPattern[]]:=Module[{y=tower[[-1,1]],alpha=tower[[-1,2]],AAA},
-PiReduction[Collect[g,y,MyTogether]/.y^(AAA_.)->y^Mod[AAA,MyGetOrderOfUnity[alpha]],1,tower,"Representatives"->OptionValue["Representatives"]]]
-
-
-Clear[PiReduction];
-Options[PiReduction]={"Representatives"->{}};
-PiReduction[g_,s_,towerIn_?MatrixQ,OptionsPattern[]]:=Module[
-{st,sc,i,degG,gS,gR,gcS,gcR,tdegG,gCoeffs,CurrentS,t,h,a,m,tower=Most[towerIn]},
-CurrentS=OptionValue["Representatives"];
-Assert[towerIn[[-1,3]]===0];
-{t,a}=towerIn[[-1,1;;2]];
-Assert[Exponent[s,t]==-Exponent[s,t^-1]];
-m=Exponent[s,t];
-tdegG=-Exponent[g,t^(-1)];
-degG=Exponent[g,t];
-gCoeffs=CoefficientList[g t^(-tdegG),t];
-If[m==0,
-	{gS,gR}=Sum[
-		{{gcS,gcR},CurrentS}=RingReduction[gCoeffs[[i-tdegG+1]],s a^i,tower,"Representatives"->CurrentS];
-		{gcS,gcR}t^i
-	,{i,tdegG,degG}];
-	Assert[MyTogether[DeltaF[gS,s,towerIn]+gR-g]===0];
-	Return[{{gS,gR},CurrentS}];
-];
-sc=(s/.t->1);
-(*Print["g= ",g];*)
-gCoeffs=PadRight[gCoeffs,Max[degG,Abs[m]-1]-Min[tdegG,0]+1,0,Max[tdegG,0]];
-(*Print["gCoeffs= ",gCoeffs];*)
-st=Min[tdegG,0]-1; (*exponent of first entry in gCoeffs*)
-gS=0;
-If[m>0,
-	Do[
-		gCoeffs[[i+m-st]]+=sc a^i MyTSigma[gCoeffs[[i-st]],tower];
-		gS-=gCoeffs[[i-st]]t^i;	
-	,{i,tdegG,-1}];
-	Do[
-		h=MyTSigma[gCoeffs[[i-st]]/(sc a^(i-m)),-1,tower];
-		gCoeffs[[i-m-st]]+=h;
-		gS+=h t^(i-m);	
-	,{i,degG,m,-1}];
-	
-];
-If[m<0,
-	Do[
-		h=MyTSigma[gCoeffs[[i-st]]/(sc a^(i-m)),-1,tower];
-		gCoeffs[[i-m-st]]+=h;
-		gS+=h t^(i-m);	
-	,{i,tdegG,-1}];
-	Do[
-		gCoeffs[[i+m-st]]+=sc a^i MyTSigma[gCoeffs[[i-st]],tower];
-		gS-=gCoeffs[[i-st]]t^i;	
-	,{i,degG,-m,-1}];
-];
-gR=Sum[MyTogether[gCoeffs[[i-st]]] t^i,{i,0,Abs[m]-1}];
-(*Print[{m,gR//Factor}];*)
-Assert[MyTogether[DeltaF[gS,s,towerIn]+gR-g]===0];
-Return[{{gS,gR},CurrentS}];
-];
 
 
 (* ::Subsection:: *)

@@ -16,7 +16,9 @@ AuxiliaryReduction::usage="";
 Basis::usage="";
 MyProjection::usage="";
 SigmaRingReduction::usage="";
-CollectTowerInfo::usage="";
+RingReduction::usage="";
+ResetTower::usage="";
+(*CollectTowerInfo::usage="";*)
 PT ::usage="";
 
 
@@ -24,16 +26,8 @@ PT ::usage="";
 Begin["`Private`"];
 
 
-(* ::Input::Initialization:: *)
-(*Input: n, a positive integer
-         DenomSeq is set to be a list consisting of n empty lists
-*)
-
-
-(* ::Input::Initialization:: *)
-ResetDenomSeq[n_Integer]:=Module[{},
-DenomSeq=Table[{},n]
-];
+(* ::Subsection:: *)
+(*Re-used*)
 
 
 $activateEcho=False;
@@ -46,12 +40,32 @@ MyTSigma[expr_,0,___]:=expr
 MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
 
 
-(* ::Input::Initialization:: *)
-(*Input: a diference field (C(x),\[Sigma]) with \[Sigma](x)=x+1 and f in the field
-Output: {g,h} such that
-      f=\[CapitalDelta](g)+h,
-            where g, h \in C(x) and h is x-simple
+Clear[DeltaF];
+DeltaF[g_,f_,tower_]:=f MyTSigma[g,1,tower]-g
+
+
+Clear[MyEliminateRootObjects];
+MyEliminateRootObjects[f_]:=If[FreeQ[f,Power[_,Rational[_,_]]|Root[__]],f,ToRadicals[RootReduce[Together[f]]]]
+
+
+(*Nothing for QQ,
+plain Together for QQ(x_1,x_2,...),
+MyEliminateRootObjects for algebraic numbers 
+(Mathematica is really bad at dealing with algebraic numbers like (-1)^(2/3))
 *)
+Clear[MyTogether]
+MyTogether[f_]:=
+If[!FreeQ[f,Power[_,Rational[_,_]]|Root[__]],
+	Together[MyEliminateRootObjects[f]]
+,If[Length[Variables[f]]>0,
+	Together[f]
+,
+	f
+]]
+
+
+(* ::Subsection:: *)
+(*Sigma*)
 
 
 (* ::Input::Initialization:: *)
@@ -90,9 +104,10 @@ Remark:n>1
 *)
 
 
-(* ::Input::Initialization:: *)
+(* ::Code::Initialization:: *)
 $activateEcho=False;
 Basis[k_Integer,tower_List]:=Module[{n=Length[tower],t=tower[[-1,1]],H,lt,v0,m,L,i,a,b,q,r,u,v},
+Assert[KeyExistsQ[TowerInfo,t]];
 H=TowerInfo[t];
 lt=H[[1]];
 v0=H[[2]];
@@ -112,6 +127,10 @@ TowerInfo[t]={H[[1]],H[[2]],H[[3]],H[[4]],L};
 ]
 
 
+Clear[ResetTower]
+ResetTower[]:=(TowerInfo=<||>);
+
+
 (* ::Input::Initialization:: *)
 (*Input: a \Sigma tower reperensted by{{x,1,1},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}},
          r, an element of the auxiliary space,
@@ -121,7 +140,7 @@ TowerInfo[t]={H[[1]],H[[2]],H[[3]],H[[4]],L};
 *)
 
 
-(* ::Input::Initialization:: *)
+(* ::Code::Initialization:: *)
 $activateEcho=False;
 MyProjection[r_,b_,c_,tower_List]:=Module[{t,k,B,i,a,n,ct,L,w,u,v,time1},
 If[r===0,Return[{0,0}]];
@@ -131,6 +150,7 @@ time1=TimeUsed[];
 Basis[k,tower];
 (*myEcho[TimeUsed[]-time1,"Basis"];*)
 n=Length[tower];
+Assert[KeyExistsQ[TowerInfo,t]];
 B=TowerInfo[t][[5]];
 
 {u,v}={0,r};
@@ -159,10 +179,9 @@ a=Coefficient[v,t,k-i];
 *)
 
 
-(* ::Code::Initialization:: *)
 $activateEcho=False;
 SigmaRingReduction[0,_]:={0,0}
-SigmaRingReduction[f_,tower_List]:=Module[{n=Length[tower],t=tower[[-1,1]],fp,pp,q,r,w,b,c,u,v,g,h,G},
+SigmaRingReduction[f_,tower_List]:=Module[{n=Length[tower],t=tower[[-1,1]],fp,pp,q,r,w,b,c,u,v,g,h},
 Assert[tower[[-1,2]]===1];
 If[n===1,Return[CompleteReduction0[f,t]]];
 {fp,pp}=Rational`ProperAndPolynomialParts[f,t];
@@ -174,12 +193,8 @@ pp=Collect[pp,{t},Together];
 r=Collect[r,{t},Together];
 If[r===0, Return[{g+q,h}]];
 w=RingReduction[tower[[-1]][[3]],Drop[tower,-1]][[2]];
-If[KeyExistsQ[TowerInfo,t],
-G=TowerInfo[t];
-,
-	
-];
-{b,c}= {G[[3]],G[[4]]};
+If[!KeyExistsQ[TowerInfo,t],TowerPrecomp[tower]];
+{b,c}= TowerInfo[t][[3;;4]];
 {u,v}=MyProjection[r,b,c,tower];
 {Together[g+q+u],h+v}
 ];
@@ -196,25 +211,21 @@ G=TowerInfo[t];
 *)
 
 
-Clear[GeneratorPrecomp];
-GeneratorPrecomp[tower_]:=Module[{n,i,g,r,b,c,B,G},
-n=Length[tower];
-TowerInfo={};
-For[i=2,i<=n,i++,
-	G=tower[[;;i-1]];
-	{g,r}=RingReduction[tower[[i,3]],G];
-	{b,c}=Rational`BasisElement[tower[[1;;i-1,1]],r];
-	B={{tower[[i,1]]-g,r}};
-	AppendTo[TowerInfo,{g,r,b,c,B}];
-];
-TowerInfo=AssociationThread[tower[[2;;,1]]->TowerInfo]
+Clear[TowerPrecomp];
+TowerPrecomp[tower_]:=Module[{t,beta,g,r,b,c,B},
+{t,beta}=tower[[-1,{1,3}]];
+Assert[!KeyExistsQ[TowerInfo,t]];
+{g,r}=RingReduction[beta,tower[[;;-2]]];
+{b,c}=Rational`BasisElement[tower[[1;;-2,1]],r];
+B={{t-g,r}};
+TowerInfo[t]={g,r,b,c,B};
 ]
 
 
-(* ::Input::Initialization:: *)
+(* ::Code::Initialization:: *)
 $activateEcho=false;
 Clear[CollectTowerInfo];
-CollectTowerInfo[tower_List]:=Module[{n,i,g,r,b,c,B,G},
+oCollectTowerInfo[tower_List]:=Module[{n,i,g,r,b,c,B,G},
 n=Length[tower];
 TowerInfo={};
 For[i=2,i<=n,i++,
@@ -228,30 +239,36 @@ TowerInfo=AssociationThread[tower[[2;;,1]]->TowerInfo]
 ]
 
 
-(*main scheduler*)
+(*main scheduler. TowerInfo must be initialized before using this function 
+(either with TowerInfo=Association[], or with information which was produced for this tower)
+  *)
+RingReduction::malformedTower="Error: Tower `1` is malformed";
 Clear[RingReduction];
-Options[RingReduction]={"Representatives"->{}};
-RingReduction[0,_,_?MatrixQ,OptionsPattern[]]:={{0,0},OptionValue["Representatives"]}
+RingReduction[0,_,_?MatrixQ,OptionsPattern[]]:={0,0}
 RingReduction[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=RingReduction[g,1,tower,opts];
-RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{alpha,beta,CurrentS,gS,gR},
-CurrentS=OptionValue["Representatives"];
-If[Head[TowerInfo]=!=List,TowerInfo={}];
+RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{x,alpha,beta,gS,gR},
+Assert[Head[TowerInfo]===Association];
+(*If[Head[TowerInfo]=!=List,TowerInfo={}];*)
 If[Length[tower]==1,
 	Assert[tower[[1,2;;3]]==={1,1}];
-	Return[RationalReduction[g,f,tower,"Representatives"->CurrentS]];	
+	x=tower[[1,1]];
+	If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]={}];
+	{{gS,gR},TowerInfo[x]}=RationalReduction[g,f,tower,"Representatives"->TowerInfo[x]];
+	Return[{gS,gR}];	
 ];
 {alpha,beta}=tower[[-1,2;;3]];
 If[beta===0,
 	If[RootOfUnityQ[alpha],
-		Return[RReduction[g,f,tower,"Representatives"->CurrentS]];
+		Return[RReduction[g,f,tower]];
 	,
-		Return[PiReduction[g,f,tower,"Representatives"->CurrentS]];
+		Return[PiReduction[g,f,tower]];
 	];
 ];
 If[alpha===1,
 	Assert[f===1];
-	Return[SigmaRingReduction[g,tower,"Representatives"->CurrentS]];
-]
+	Return[SigmaRingReduction[g,tower]];
+];
+Message[RingReduction::malformedTower,tower];Abort[];
 ]
 
 
@@ -280,7 +297,92 @@ MapThread[Append,{Sol,Together[Sol . A[[1;;n,1]]]}]
 
 
 (* ::Subsection:: *)
+(*RPi-Case*)
+
+
+Clear[MyGetOrderOfUnity]
+MyGetOrderOfUnity[alpha_]:=Module[{i=1,alphaj=1}
+,While[!PossibleZeroQ[1-(alphaj*=alpha),Method->"ExactAlgebraics"]&&i<1000,
+i++;
+];
+If[i==1000,Print["cannot find order of unity of ", alpha];Abort[];,Return[i]];
+]
+
+
+Clear[RReduction]
+Options[RReduction]={"Representatives"->{}};
+RReduction[g_,1,tower_?MatrixQ,OptionsPattern[]]:=Module[{y=tower[[-1,1]],alpha=tower[[-1,2]],AAA},
+PiReduction[Collect[g,y,MyTogether]/.y^(AAA_.)->y^Mod[AAA,MyGetOrderOfUnity[alpha]],1,tower,"Representatives"->OptionValue["Representatives"]]]
+
+
+Clear[PiReduction];
+Options[PiReduction]={"Representatives"->{}};
+PiReduction[g_,s_,towerIn_?MatrixQ,OptionsPattern[]]:=Module[
+{st,sc,i,degG,gS,gR,gcS,gcR,tdegG,gCoeffs,t,h,a,m,tower=Most[towerIn]},
+Assert[towerIn[[-1,3]]===0];
+{t,a}=towerIn[[-1,1;;2]];
+Assert[Exponent[s,t]==-Exponent[s,t^-1]];
+m=Exponent[s,t];
+tdegG=-Exponent[g,t^(-1)];
+degG=Exponent[g,t];
+gCoeffs=CoefficientList[g t^(-tdegG),t];
+If[m==0,
+	{gS,gR}=Sum[
+	RingReduction[gCoeffs[[i-tdegG+1]],s a^i,tower]t^i
+	,{i,tdegG,degG}];
+	Assert[MyTogether[DeltaF[gS,s,towerIn]+gR-g]===0];
+	Return[{gS,gR}];
+];
+sc=(s/.t->1);
+(*Print["g= ",g];*)
+gCoeffs=PadRight[gCoeffs,Max[degG,Abs[m]-1]-Min[tdegG,0]+1,0,Max[tdegG,0]];
+(*Print["gCoeffs= ",gCoeffs];*)
+st=Min[tdegG,0]-1; (*exponent of first entry in gCoeffs*)
+gS=0;
+If[m>0,
+	Do[
+		gCoeffs[[i+m-st]]+=sc a^i MyTSigma[gCoeffs[[i-st]],tower];
+		gS-=gCoeffs[[i-st]]t^i;	
+	,{i,tdegG,-1}];
+	Do[
+		h=MyTSigma[gCoeffs[[i-st]]/(sc a^(i-m)),-1,tower];
+		gCoeffs[[i-m-st]]+=h;
+		gS+=h t^(i-m);	
+	,{i,degG,m,-1}];
+	
+];
+If[m<0,
+	Do[
+		h=MyTSigma[gCoeffs[[i-st]]/(sc a^(i-m)),-1,tower];
+		gCoeffs[[i-m-st]]+=h;
+		gS+=h t^(i-m);	
+	,{i,tdegG,-1}];
+	Do[
+		gCoeffs[[i+m-st]]+=sc a^i MyTSigma[gCoeffs[[i-st]],tower];
+		gS-=gCoeffs[[i-st]]t^i;	
+	,{i,degG,-m,-1}];
+];
+gR=Sum[MyTogether[gCoeffs[[i-st]]] t^i,{i,0,Abs[m]-1}];
+(*Print[{m,gR//Factor}];*)
+Assert[MyTogether[DeltaF[gS,s,towerIn]+gR-g]===0];
+Return[{gS,gR}];
+];
+
+
+(* ::Subsection::Closed:: *)
 (*Field stuff*)
+
+
+(* ::Input::Initialization:: *)
+(*Input: n, a positive integer
+         DenomSeq is set to be a list consisting of n empty lists
+*)
+
+
+(* ::Input::Initialization:: *)
+ResetDenomSeq[n_Integer]:=Module[{},
+DenomSeq=Table[{},n]
+];
 
 
 (* ::Input::Initialization:: *)
@@ -344,7 +446,6 @@ h=h+R[[2]]/L[[k]][[1]],
 
 
 
-(* ::Code::Initialization:: *)
 $activateEcho=False;
 GetCoprimeFactorization[p_,tower_List]:=Module[{A,n,i,k,S,j,B},
 A=Sigma`DifferenceFields`BasicTools`DFInterface`GetSigmaFactorization[{p},tower];
@@ -393,6 +494,14 @@ n=Length[DenomSeq];
 M=AppendTo[DenomSeq[[k]],a];
 DenomSeq=ReplacePart[DenomSeq,k->M]
 ];
+
+
+(* ::Input::Initialization:: *)
+(*Input: a difference field (C(x),\[Sigma]) with \[Sigma](x)=x+1 and f in the field
+Output: {g,h} such that
+      f=\[CapitalDelta](g)+h,
+            where g, h \in C(x) and h is x-simple
+*)
 
 
 (* ::Input::Initialization:: *)
