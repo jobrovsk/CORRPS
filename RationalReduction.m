@@ -4,6 +4,9 @@
 BeginPackage["RationalReduction`"];
 
 
+ClearAll@@Names["RationalReduction`*"];
+
+
 (* ::Input::Initialization:: *)
 RationalReduction::usage=""
 
@@ -57,7 +60,7 @@ MyTaylorShiftList[g_List,k_Integer]:=Module[{i,l},
 
 
 Clear[MyGetSpecification]
-MyGetSpecification[gIn_,f_,tower_:{{x_,1,1}}]:=Module[{shiftListNumber,lc,g,i,l,k,dg=Exponent[gIn,x],df=Exponent[f,x]},
+MyGetSpecification[gIn_,f_,tower:{{x_,1,1}}]:=Module[{shiftListNumber,lc,g,i,l,k,dg=Exponent[gIn,x],df=Exponent[f,x]},
 If[dg!=df,Return[Null]];
 lc=Coefficient[f,x,df];
 g=gIn*lc/Coefficient[gIn,x,dg];
@@ -247,7 +250,7 @@ RationalRNF[f_,tower_List,OptionsPattern[]]:=Module[{CurrentS,factors,sigmaFac,s
 CurrentS=OptionValue["Representatives"];
 Sow[Timing[
 {factors,sigmaFac}=MyGetSigmaFactorization[{f},tower];
-][[1]],"SigmaFactorization"];
+][[1]],"MySigmaFactorization"];
 shiftgoal=Table[0,{Length[factors]}];
 Do[
 multi=Total[sigmaFac[[1,-1,i,;;,2]]];
@@ -313,7 +316,7 @@ CurrentS=OptionValue["Representatives"];
 xiDen=Denominator[xi];
 Sow[Timing[
 unsigmaFac=MyGetSigmaFactorization[{hDen},tower];
-][[1]],"SigmaFactorization"];
+][[1]],"MySigmaFactorization"];
 {{piList,hFac},CurrentS}=AdjustSigmaFactorization[unsigmaFac,CurrentS,tower];
 
 {hNum,hDen}/=hFac[[1,1]];
@@ -358,7 +361,7 @@ CurrentS=OptionValue["Representatives"];
 xiDen=Denominator[xi];
 Sow[Timing[
 unsigmaFac=MyGetSigmaFactorization[{hDen},tower];
-][[1]],"SigmaFactorization"];
+][[1]],"MySigmaFactorization"];
 {{piList,hFac},CurrentS}=AdjustSigmaFactorization[unsigmaFac,CurrentS,tower];
 {minShift,maxShift}=MinMax[hFac[[1,-1,;;,;;,1]]];
 (*Print[{minShift,maxShift}];*)
@@ -405,11 +408,9 @@ Clear[RationalReduction]
 Options[RationalReduction]={"Representatives"->{}};
 RationalReduction[g_,f_,tower_,OptionsPattern[]]:=Module[{xi,eta,CurrentS,gS,gR},
 Sow[Timing[
-Sow[Timing[
 {{xi,eta},CurrentS}=RationalRNF[f,tower,"Representatives"->OptionValue["Representatives"]];
 ][[1]],"RationalRNF"];
 {{gS,gR},CurrentS}=RationalReductionRNF[eta g,xi,tower,"Representatives"->CurrentS];
-][[1]],"RationalReductionCombined"];
 Return[{MyTogether[{eta^(-1)gS,eta^(-1)gR}],CurrentS}]
 ]
 
@@ -417,7 +418,7 @@ Return[{MyTogether[{eta^(-1)gS,eta^(-1)gR}],CurrentS}]
 
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Rational*)
 
 

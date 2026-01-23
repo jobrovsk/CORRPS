@@ -2,6 +2,7 @@
 
 (* ::Input::Initialization:: *)
 BeginPackage["Rational`"];
+ClearAll@@Names["Rational`*"];
 
 
 (* ::Input::Initialization:: *)
@@ -263,7 +264,7 @@ n=Length[T];
 
 
 (* ::Input::Initialization:: *)
-$activateEcho=True;
+$activateEcho=False;
 Clear[myEcho];
 myEcho[args___]:=If[$activateEcho,Echo[args]];
 DispersionSet[a_,b_,tower_List]:=Module[{t,A,B,DS,i,j,s,m},
@@ -301,7 +302,7 @@ DS
 
 
 (* ::Input::Initialization:: *)
-$activateEcho=True;
+$activateEcho=False;
 Clear[myEcho];
 myEcho[args___]:=If[$activateEcho,Echo[args]];
 PrimitiveRNF[nf_,df_,tower_List]:=Module[{w1,w2,u,v,s,r,t, DS,pDS,nDS,i,k,p,pk},
@@ -360,7 +361,7 @@ For[i=1,i<=Length[nDS],i++,
 
 
 (* ::Input::Initialization:: *)
-$activateEcho=True;
+$activateEcho=False;
 Clear[myEcho];
 myEcho[args___]:=If[$activateEcho,Echo[args]];
 RNF[f_,tower_List]:=Module[{ff=Together[f],t,nf,df,A,c,u,v,s,r},

@@ -2,6 +2,7 @@
 
 (* ::Input::Initialization:: *)
 BeginPackage["RingReduction`"];
+ClearAll@@Names["RingReduction`*"];
 
 
 (* ::Input::Initialization:: *)
@@ -20,6 +21,8 @@ RingReduction::usage="";
 ResetTower::usage="";
 (*CollectTowerInfo::usage="";*)
 PT ::usage="";
+MyTogether::usage="";
+DeltaF::usage="";
 
 
 (* ::Input::Initialization:: *)
@@ -77,12 +80,11 @@ If[!FreeQ[f,Power[_,Rational[_,_]]|Root[__]],
 *)
 
 
-(* ::Input::Initialization:: *)
-$activateEcho=False;
+(* ::Code::Initialization:: *)
 AuxiliaryReduction[p_,tower_List]:=Module[{t,pt,q,r,d,lc,g,u,tower1},
 If[p===0,Return[{0,0}]];
 t=tower[[-1]][[1]];
-pt =p; q=0;r=0;
+pt =p; {q,r}={0,0};
 tower1=Drop[tower,-1];
 While[pt=!=0,
 d =Exponent[pt,t];
@@ -90,7 +92,8 @@ lc=Coefficient[pt,t,d];
 {g,u}=RingReduction[lc,tower1];
 q+= g*t^d;
 r+= u*t^d;
-pt=Collect[pt-MyTSigma[g*t^d,1,tower]+g*t^d-u*t^d,{t},Together];
+pt=Collect[pt-MyTSigma[g*t^d,1,tower]+g*t^d-u*t^d,t,Together];
+Assert[Exponent[pt,t]<d];
 ];
 {q,r}
 ];
@@ -106,6 +109,7 @@ Remark:n>1
 
 (* ::Code::Initialization:: *)
 $activateEcho=False;
+Clear[Basis];
 Basis[k_Integer,tower_List]:=Module[{n=Length[tower],t=tower[[-1,1]],H,lt,v0,m,L,i,a,b,q,r,u,v},
 Assert[KeyExistsQ[TowerInfo,t]];
 H=TowerInfo[t];
@@ -117,7 +121,6 @@ Do[
 a=t^(i+1)/(i+1)-lt*t^i;
 b=Collect[MyTSigma[a,1,tower]-a-v0*t^i,{t},Together];
 {q,r}=AuxiliaryReduction[b,tower];
-(*myEcho[{TimeUsed[]-time,i},{"AR"}];*)
 u = a-q;
 v=r+v0*t^i;
 L=AppendTo[L,{u,v}],
@@ -147,8 +150,9 @@ If[r===0,Return[{0,0}]];
 t=tower[[-1]][[1]];
 k=Exponent[r,t];
 time1=TimeUsed[];
+Sow[Timing[
 Basis[k,tower];
-(*myEcho[TimeUsed[]-time1,"Basis"];*)
+][[1]],"Basis"];
 n=Length[tower];
 Assert[KeyExistsQ[TowerInfo,t]];
 B=TowerInfo[t][[5]];
@@ -181,22 +185,25 @@ a=Coefficient[v,t,k-i];
 
 $activateEcho=False;
 SigmaRingReduction[0,_]:={0,0}
-SigmaRingReduction[f_,tower_List]:=Module[{n=Length[tower],t=tower[[-1,1]],fp,pp,q,r,w,b,c,u,v,g,h},
+SigmaRingReduction[f_,tower_List]:=Module[{n=Length[tower],t=tower[[-1,1]],pp,q,r,w,b,c,u,v},
 Assert[tower[[-1,2]]===1];
 If[n===1,Return[CompleteReduction0[f,t]]];
-{fp,pp}=Rational`ProperAndPolynomialParts[f,t];
-{g,h}=NormalReduction[fp,tower];
-pp=Collect[pp,{t},Together];
+(*{fp,pp}=Rational`ProperAndPolynomialParts[f,t];
+{g,h}=NormalReduction[fp,tower];*)
+pp=Collect[f,{t},Together];
 
-
+Sow[Timing[
 {q,r}=AuxiliaryReduction[pp,tower];
+][[1]],"AuxiliaryReduction"];
 r=Collect[r,{t},Together];
-If[r===0, Return[{g+q,h}]];
+If[r===0, Return[{q,0}]];
 w=RingReduction[tower[[-1]][[3]],Drop[tower,-1]][[2]];
-If[!KeyExistsQ[TowerInfo,t],TowerPrecomp[tower]];
+If[!KeyExistsQ[TowerInfo,t],Sow[Timing[TowerPrecomp[tower]][[1]],"TowerPrecomp"]];
 {b,c}= TowerInfo[t][[3;;4]];
+Sow[Timing[
 {u,v}=MyProjection[r,b,c,tower];
-{Together[g+q+u],h+v}
+][[1]],"MyProjection"];
+{Together[q+u],v}
 ];
 
 
@@ -223,7 +230,8 @@ TowerInfo[t]={g,r,b,c,B};
 
 
 (* ::Code::Initialization:: *)
-$activateEcho=false;
+(* deprecated *)
+$activateEcho=False;
 Clear[CollectTowerInfo];
 oCollectTowerInfo[tower_List]:=Module[{n,i,g,r,b,c,B,G},
 n=Length[tower];
@@ -239,39 +247,45 @@ TowerInfo=AssociationThread[tower[[2;;,1]]->TowerInfo]
 ]
 
 
+Clear[CheckReduction]
+CheckReduction[{g_,f_},{gS_,gR_},tower_]:=(MyTogether[DeltaF[gS,f,tower]+gR-g]===0)
+
+
 (*main scheduler. TowerInfo must be initialized before using this function 
 (either with TowerInfo=Association[], or with information which was produced for this tower)
   *)
   
 Clear[RingReduction];
 RingReduction::malformedTower="Error: Tower `1` is malformed";
-
 RingReduction[0,_,_?MatrixQ,OptionsPattern[]]:={0,0}
 RingReduction[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=RingReduction[g,1,tower,opts];
 RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{x,alpha,beta,gS,gR},
 Assert[Head[TowerInfo]===Association];
+Sow[Timing[
 (*If[Head[TowerInfo]=!=List,TowerInfo={}];*)
 If[Length[tower]==1,
 	Assert[tower[[1,2;;3]]==={1,1}];
 	x=tower[[1,1]];
 	If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]={}];
-	Print[{f,g,TowerInfo[x]}];
 	{{gS,gR},TowerInfo[x]}=RationalReduction`RationalReduction[g,f,tower,"Representatives"->TowerInfo[x]];
-	Return[{gS,gR}];	
-];
+,
 {alpha,beta}=tower[[-1,2;;3]];
 If[beta===0,
 	If[RootOfUnityQ[alpha],
-		Return[RReduction[g,f,tower]];
+		{gS,gR}=RReduction[g,f,tower];
 	,
-		Return[PiReduction[g,f,tower]];
+		{gS,gR}=PiReduction[g,f,tower];
 	];
-];
-If[alpha===1,
+,If[alpha===1,
 	Assert[f===1];
-	Return[SigmaRingReduction[g,tower]];
-];
-Message[RingReduction::malformedTower,tower];Abort[];
+	{gS,gR}=SigmaRingReduction[g,tower];
+,
+	Message[RingReduction::malformedTower,tower];
+	Abort[];
+];]];
+][[1]],ToString[tower[[-1,1]]]<>" combined"];
+Assert[CheckReduction[{g,f},{gS,gR},tower]];
+Return[{gS,gR}];
 ]
 
 
@@ -279,18 +293,13 @@ Message[RingReduction::malformedTower,tower];Abort[];
 PT [tower_List,F_List]:= Module[{n,A,R,c,clist,coeff,m,B,i,j,Sol},
 n=Length[F];
 A=SigmaRingReduction[#,tower]&/@F;
-R=A[[1;;n,2]];
+R=A[[;;,2]];
 clist=Array[c,n];
-coeff=Flatten[CoefficientList[Numerator[Together[clist . R]],tower[[1;;Length[tower],1]]]];
+coeff=Flatten[CoefficientList[Numerator[Together[clist . R]],tower[[;;,1]]]];
 coeff=Select[coeff,(#=!=0)&];
-If[coeff==={},Return[{Table[1,n],Plus@@A[[1;;n,1]]}]];
+If[coeff==={},Return[{Table[1,n],Total[A[[1;;n,1]]]}]];
 m=Length[coeff];
-B=Table[{},{i,m},{j,n}];
-For[i=1,i<=m,i++,
-	For[j=1,j<=n,j++,
-		B[[i,j]]=Coefficient[coeff[[i]],clist[[j]],1];
-	];
-];
+B=Table[Coefficient[coeff[[i]],clist[[j]]],{i,m},{j,n}];
 Sol=NullSpace[B];
 If[Sol==={},Return[{}]];
 (*{Sol,Together[Sol . A[[1;;n,1]]]}*)
@@ -372,7 +381,7 @@ Return[{gS,gR}];
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Field stuff*)
 
 
