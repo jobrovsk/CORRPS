@@ -1,7 +1,7 @@
 (* ::Package:: *)
 
 (* ::Input::Initialization:: *)
-BeginPackage["Reduction`"];
+BeginPackage["RingReduction`"];
 
 
 (* ::Input::Initialization:: *)
@@ -242,8 +242,10 @@ TowerInfo=AssociationThread[tower[[2;;,1]]->TowerInfo]
 (*main scheduler. TowerInfo must be initialized before using this function 
 (either with TowerInfo=Association[], or with information which was produced for this tower)
   *)
-RingReduction::malformedTower="Error: Tower `1` is malformed";
+  
 Clear[RingReduction];
+RingReduction::malformedTower="Error: Tower `1` is malformed";
+
 RingReduction[0,_,_?MatrixQ,OptionsPattern[]]:={0,0}
 RingReduction[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=RingReduction[g,1,tower,opts];
 RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{x,alpha,beta,gS,gR},
@@ -253,7 +255,8 @@ If[Length[tower]==1,
 	Assert[tower[[1,2;;3]]==={1,1}];
 	x=tower[[1,1]];
 	If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]={}];
-	{{gS,gR},TowerInfo[x]}=RationalReduction[g,f,tower,"Representatives"->TowerInfo[x]];
+	Print[{f,g,TowerInfo[x]}];
+	{{gS,gR},TowerInfo[x]}=RationalReduction`RationalReduction[g,f,tower,"Representatives"->TowerInfo[x]];
 	Return[{gS,gR}];	
 ];
 {alpha,beta}=tower[[-1,2;;3]];

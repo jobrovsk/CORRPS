@@ -1,7 +1,15 @@
 (* ::Package:: *)
 
-(* ::Section:: *)
-(*Code*)
+(* ::Input::Initialization:: *)
+BeginPackage["RationalReduction`"];
+
+
+(* ::Input::Initialization:: *)
+RationalReduction::usage=""
+
+
+(* ::Input::Initialization:: *)
+Begin["`Private`"];
 
 
 (* ::Subsection:: *)
@@ -141,7 +149,7 @@ Return[{{factors,sigmafac},Join[CurrentS,NewS]}];
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Rational Reduction*)
 
 
@@ -635,3 +643,11 @@ For[i=1,i<=Length[nDS],i++,
 ];
 {u*w1,v*w2,s,r}
 ];
+
+
+(* ::Subsection:: *)
+(*End of package*)
+
+
+End[];
+EndPackage[];
