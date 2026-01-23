@@ -141,7 +141,7 @@ Return[{{factors,sigmafac},Join[CurrentS,NewS]}];
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Rational Reduction*)
 
 
@@ -406,31 +406,10 @@ Return[{MyTogether[{eta^(-1)gS,eta^(-1)gR}],CurrentS}]
 ]
 
 
-Clear[RingReduction]
-Options[RingReduction]={"Representatives"->{}};
-RingReduction[0,_,_?MatrixQ,OptionsPattern[]]:={{0,0},OptionValue["Representatives"]}
-RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{alpha,beta,CurrentS,gS,gR},
-CurrentS=OptionValue["Representatives"];
-If[Length[tower]==1,
-	Assert[tower[[1,2;;3]]==={1,1}];
-	Return[RationalReduction[g,f,tower,"Representatives"->CurrentS]];	
-];
-{alpha,beta}=tower[[-1,2;;3]];
-If[beta===0,
-	If[RootOfUnityQ[alpha],
-		Return[RReduction[g,f,tower,"Representatives"->CurrentS]];
-	,
-		Return[PiReduction[g,f,tower,"Representatives"->CurrentS]];
-	];
-];
-If[alpha===1,
-	Assert[f===1];
-	Return[SigmaReduction[g,tower,"Representatives"->CurrentS]];
-]
-]
 
 
-(* ::Subsection::Closed:: *)
+
+(* ::Subsection:: *)
 (*Pi-Case*)
 
 

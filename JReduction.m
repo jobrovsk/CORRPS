@@ -1,0 +1,419 @@
+(* ::Package:: *)
+
+(* ::Input::Initialization:: *)
+BeginPackage["Reduction`"];
+
+
+(* ::Input::Initialization:: *)
+ResetDenomSeq::usage="";
+SearchDenomSeq::usage="";
+UpdateDenomSeq::usage="";
+GetCoprimeFactorization::usage="";
+LocalNormalReduction::usage="";
+NormalReduction::usage="";
+CompleteReduction0::usage="";
+AuxiliaryReduction::usage="";
+Basis::usage="";
+MyProjection::usage="";
+SigmaRingReduction::usage="";
+CollectTowerInfo::usage="";
+PT ::usage="";
+
+
+(* ::Input::Initialization:: *)
+Begin["`Private`"];
+
+
+(* ::Input::Initialization:: *)
+(*Input: n, a positive integer
+         DenomSeq is set to be a list consisting of n empty lists
+*)
+
+
+(* ::Input::Initialization:: *)
+ResetDenomSeq[n_Integer]:=Module[{},
+DenomSeq=Table[{},n]
+];
+
+
+$activateEcho=False;
+Clear[myEcho];
+myEcho[args___]:=If[$activateEcho,Echo[args]];
+
+
+Clear[MyTSigma]
+MyTSigma[expr_,0,___]:=expr
+MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
+
+
+(* ::Input::Initialization:: *)
+(*Input: a diference field (C(x),\[Sigma]) with \[Sigma](x)=x+1 and f in the field
+Output: {g,h} such that
+      f=\[CapitalDelta](g)+h,
+            where g, h \in C(x) and h is x-simple
+*)
+
+
+(* ::Input::Initialization:: *)
+(*Input:a \Sigma tower reperensted by{{x,1,1},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}} and
+        a polynomial p in t_n
+  Output: {q,r}, r in the auxiliary space such that
+             p=\[CapitalDelta](q)+r
+  Remark: n>=1
+*)
+
+
+(* ::Input::Initialization:: *)
+$activateEcho=False;
+AuxiliaryReduction[p_,tower_List]:=Module[{t,pt,q,r,d,lc,g,u,tower1},
+If[p===0,Return[{0,0}]];
+t=tower[[-1]][[1]];
+pt =p; q=0;r=0;
+tower1=Drop[tower,-1];
+While[pt=!=0,
+d =Exponent[pt,t];
+lc=Coefficient[pt,t,d];
+{g,u}=RingReduction[lc,tower1];
+q+= g*t^d;
+r+= u*t^d;
+pt=Collect[pt-MyTSigma[g*t^d,1,tower]+g*t^d-u*t^d,{t},Together];
+];
+{q,r}
+];
+
+
+(* ::Input::Initialization:: *)
+(* Input:a \Sigma tower represented by{{x,1,1},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}} and
+        a nonnegative integer k
+    Output: {{u_0,v_0},...,{u_k,v_k}} such that v_0,...,v_k form a C-basis of the intersection of \[CapitalDelta](F_{n-1}(t_n))and the auxiliary space  
+Remark:n>1            
+*)
+
+
+(* ::Input::Initialization:: *)
+$activateEcho=False;
+Basis[k_Integer,tower_List]:=Module[{n=Length[tower],t=tower[[-1,1]],H,lt,v0,m,L,i,a,b,q,r,u,v},
+H=TowerInfo[t];
+lt=H[[1]];
+v0=H[[2]];
+L=H[[5]];
+m=Length[L];
+Do[
+a=t^(i+1)/(i+1)-lt*t^i;
+b=Collect[MyTSigma[a,1,tower]-a-v0*t^i,{t},Together];
+{q,r}=AuxiliaryReduction[b,tower];
+(*myEcho[{TimeUsed[]-time,i},{"AR"}];*)
+u = a-q;
+v=r+v0*t^i;
+L=AppendTo[L,{u,v}],
+{i,m,k}
+];
+TowerInfo[t]={H[[1]],H[[2]],H[[3]],H[[4]],L};
+]
+
+
+(* ::Input::Initialization:: *)
+(*Input: a \Sigma tower reperensted by{{x,1,1},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}},
+         r, an element of the auxiliary space,
+         b, an element in the C-basis effective in \[Phi](\[CapitalDelta](t)),
+        c,equal to b^*\circ\[Phi](t');
+  Output:{u,v}, u in K[t] and v in the b-complement such that r=\[CapitalDelta](u)+v
+*)
+
+
+(* ::Input::Initialization:: *)
+$activateEcho=False;
+MyProjection[r_,b_,c_,tower_List]:=Module[{t,k,B,i,a,n,ct,L,w,u,v,time1},
+If[r===0,Return[{0,0}]];
+t=tower[[-1]][[1]];
+k=Exponent[r,t];
+time1=TimeUsed[];
+Basis[k,tower];
+(*myEcho[TimeUsed[]-time1,"Basis"];*)
+n=Length[tower];
+B=TowerInfo[t][[5]];
+
+{u,v}={0,r};
+For[i=0,i<=k,i++,
+a=Coefficient[v,t,k-i];
+	n=Length[tower];
+	
+	ct=Rational`MyCoefficientNew[tower[[1;;n,1]],a,b];
+	
+	If[ct=!=0,L=B[[k-i+1]];
+	w=Cancel[ct/c];
+	{u,v}={Collect[u+w*L[[1]],{t},Together],Collect[v-w*L[[2]],{t},Together]};
+	
+	];
+];
+{u,v}
+];
+
+
+(* ::Input::Initialization:: *)
+(*Input:a \Sigma tower represented by{{x,1,1},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}} and
+        f, an element in the tower
+  Output: {g,r}, two elements in the tower s.t.
+             f=\[CapitalDelta](g)+r
+          is a complete reduction of f
+*)
+
+
+(* ::Code::Initialization:: *)
+$activateEcho=False;
+SigmaRingReduction[0,_]:={0,0}
+SigmaRingReduction[f_,tower_List]:=Module[{n=Length[tower],t=tower[[-1,1]],fp,pp,q,r,w,b,c,u,v,g,h,G},
+Assert[tower[[-1,2]]===1];
+If[n===1,Return[CompleteReduction0[f,t]]];
+{fp,pp}=Rational`ProperAndPolynomialParts[f,t];
+{g,h}=NormalReduction[fp,tower];
+pp=Collect[pp,{t},Together];
+
+
+{q,r}=AuxiliaryReduction[pp,tower];
+r=Collect[r,{t},Together];
+If[r===0, Return[{g+q,h}]];
+w=RingReduction[tower[[-1]][[3]],Drop[tower,-1]][[2]];
+If[KeyExistsQ[TowerInfo,t],
+G=TowerInfo[t];
+,
+	
+];
+{b,c}= {G[[3]],G[[4]]};
+{u,v}=MyProjection[r,b,c,tower];
+{Together[g+q+u],h+v}
+];
+
+
+
+(* ::Input::Initialization:: *)
+(*Input: a \Sigma tower reperensted by{{x,1,1},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}}
+        For all t in T,TowerInfo=[[\[Phi](b_i), l_t, \[CapitalTheta](t), B_t]  | t in Y], where
+   \[Phi](b_i), the remainder of b_i in the previous tower,
+    l_i, an element in the previous tower s.t. b_i=\[CapitalDelta](l_t)+\[Phi](b_i)
+ \[CapitalTheta](t), a basis element effective in \[Phi](b_i)
+    B_t, a basis of the intersection up to certain level
+*)
+
+
+Clear[GeneratorPrecomp];
+GeneratorPrecomp[tower_]:=Module[{n,i,g,r,b,c,B,G},
+n=Length[tower];
+TowerInfo={};
+For[i=2,i<=n,i++,
+	G=tower[[;;i-1]];
+	{g,r}=RingReduction[tower[[i,3]],G];
+	{b,c}=Rational`BasisElement[tower[[1;;i-1,1]],r];
+	B={{tower[[i,1]]-g,r}};
+	AppendTo[TowerInfo,{g,r,b,c,B}];
+];
+TowerInfo=AssociationThread[tower[[2;;,1]]->TowerInfo]
+]
+
+
+(* ::Input::Initialization:: *)
+$activateEcho=false;
+Clear[CollectTowerInfo];
+CollectTowerInfo[tower_List]:=Module[{n,i,g,r,b,c,B,G},
+n=Length[tower];
+TowerInfo={};
+For[i=2,i<=n,i++,
+	G=tower[[;;i-1]];
+	{g,r}=RingReduction[tower[[i,3]],G];
+	{b,c}=Rational`BasisElement[tower[[1;;i-1,1]],r];
+	B={{tower[[i,1]]-g,r}};
+	AppendTo[TowerInfo,{g,r,b,c,B}];
+];
+TowerInfo=AssociationThread[tower[[2;;,1]]->TowerInfo]
+]
+
+
+(*main scheduler*)
+Clear[RingReduction];
+Options[RingReduction]={"Representatives"->{}};
+RingReduction[0,_,_?MatrixQ,OptionsPattern[]]:={{0,0},OptionValue["Representatives"]}
+RingReduction[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=RingReduction[g,1,tower,opts];
+RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{alpha,beta,CurrentS,gS,gR},
+CurrentS=OptionValue["Representatives"];
+If[Head[TowerInfo]=!=List,TowerInfo={}];
+If[Length[tower]==1,
+	Assert[tower[[1,2;;3]]==={1,1}];
+	Return[RationalReduction[g,f,tower,"Representatives"->CurrentS]];	
+];
+{alpha,beta}=tower[[-1,2;;3]];
+If[beta===0,
+	If[RootOfUnityQ[alpha],
+		Return[RReduction[g,f,tower,"Representatives"->CurrentS]];
+	,
+		Return[PiReduction[g,f,tower,"Representatives"->CurrentS]];
+	];
+];
+If[alpha===1,
+	Assert[f===1];
+	Return[SigmaRingReduction[g,tower,"Representatives"->CurrentS]];
+]
+]
+
+
+(* ::Input::Initialization:: *)
+PT [tower_List,F_List]:= Module[{n,A,R,c,clist,coeff,m,B,i,j,Sol},
+n=Length[F];
+A=SigmaRingReduction[#,tower]&/@F;
+R=A[[1;;n,2]];
+clist=Array[c,n];
+coeff=Flatten[CoefficientList[Numerator[Together[clist . R]],tower[[1;;Length[tower],1]]]];
+coeff=Select[coeff,(#=!=0)&];
+If[coeff==={},Return[{Table[1,n],Plus@@A[[1;;n,1]]}]];
+m=Length[coeff];
+B=Table[{},{i,m},{j,n}];
+For[i=1,i<=m,i++,
+	For[j=1,j<=n,j++,
+		B[[i,j]]=Coefficient[coeff[[i]],clist[[j]],1];
+	];
+];
+Sol=NullSpace[B];
+If[Sol==={},Return[{}]];
+(*{Sol,Together[Sol . A[[1;;n,1]]]}*)
+MapThread[Append,{Sol,Together[Sol . A[[1;;n,1]]]}]
+]
+
+
+
+(* ::Subsection:: *)
+(*Field stuff*)
+
+
+(* ::Input::Initialization:: *)
+(* Input: Two polynomials v, p in \Sigma tower with deg(v)<deg(p) and l an integer. *)
+(* Output: {g, h} such that
+v/\[Sigma]^l(p)=\[CapitalDelta](g)+h/p. *)
+LocalNormalReduction[v_,p_,l_Integer,tower_List]:=Module[{i,g, h},
+   If[l===0,Return[{0,v}]];
+If[ l>0, g=Sum[MyTSigma[v,-i,tower]/MyTSigma[p,l-i,tower],{i,1,l}],g=Sum[-MyTSigma[v,i,tower]/MyTSigma[p,l+i,tower],{i,0,-l-1}]];
+h=MyTSigma[v,-l,tower];
+{g,h}];
+
+
+(* ::Input::Initialization:: *)
+(*Input: a \Sigma tower reperensted by{{x,1,1},{t_1,a_1,b_1},{t_2,a_2,b_2},...{t_n,a_n,b_n}},
+        a nonzero {t_n}-proper element h in the tower, 
+  Output: {g,h} such that f= \[CapitalDelta](g)+h, where g,h are in the tower and h is t-simple
+*)
+
+
+(* ::Input::Initialization:: *)
+$activateEcho=False;
+NormalReduction[f_,tower_List]:=Module[{ff=Together[f],denf,deg,numf,t,A,n,B,L,i,j,w,C,d,m,g,k, R,h,time1,time2,time3,time4},
+If[ff===0,Return[{0,0}]];
+t=tower[[-1]][[1]];
+denf=Denominator[ff];
+denf=Cancel[denf/Coefficient[denf,t,Exponent[denf,t]]];
+numf=Collect[denf*ff,{t},Together];
+time1=TimeUsed[];
+A=GetCoprimeFactorization[denf,tower];
+(*myEcho[TimeUsed[]-time1,"factor"];*)
+n= Length[A[[1]]];
+B ={};
+L={};
+time2=TimeUsed[];
+Do[
+m=Length[A[[2]][[1]][[3]][[i]]];
+Do[
+w=MyTSigma[A[[1]][[i]]^A[[2]][[1]][[3]][[i]][[j]][[2]],A[[2]][[1]][[3]][[i]][[j]][[1]],tower];
+
+L=AppendTo[L,{A[[1]][[i]]^A[[2]][[1]][[3]][[i]][[j]][[2]],A[[2]][[1]][[3]][[i]][[j]][[1]]}];
+B=AppendTo[B,w],{j,1,m}],
+{i,1,n} 
+];
+(*myEcho[TimeUsed[]-time2,"set"];*)
+time3=TimeUsed[];
+C=Rational`ParFracDecomp[numf,B,t];
+(*myEcho[TimeUsed[]-time3,"parFrac"];*)
+g=0;
+h=0;
+time4=TimeUsed[];
+Do[
+R=LocalNormalReduction[C[[k]],L[[k]][[1]],L[[k]][[2]],tower];
+g=g+R[[1]];
+h=h+R[[2]]/L[[k]][[1]],
+{k,1,Length[C]}
+];  
+(*myEcho[TimeUsed[]-time4,"Reduce"];*)
+{g,h}
+];
+
+
+
+(* ::Code::Initialization:: *)
+$activateEcho=False;
+GetCoprimeFactorization[p_,tower_List]:=Module[{A,n,i,k,S,j,B},
+A=Sigma`DifferenceFields`BasicTools`DFInterface`GetSigmaFactorization[{p},tower];
+n=Length[A[[1]]];
+k=Length[tower];
+For [i=1,i<=n,i++,
+S=SearchDenomSeq[k,A[[1]][[i]],tower];
+If[S===Null,
+	UpdateDenomSeq[k,A[[1]][[i]]]
+,
+	A[[1,i]]=S[[1]];
+	B=A[[2]][[1]][[3]][[i]];
+	For [j=1,j<=Length[B],j++,
+		B[[j]][[1]]=B[[j]][[1]]+S[[2]];
+		A[[2,1,3,i,j,1]]=B[[j,1]];
+	];
+];
+];
+A
+];
+
+
+(* ::Input::Initialization:: *)
+(*Input: k, a positive integer,
+         a \PiSigma tower C(x)(t_1,t_2,...,t_k)
+         p,a monic and irreducible polynomial in t_k 
+ Output: {m, q}, the Specification of p if there exists q such that \[Sigma]^m(q)=p,
+           Otherwise, Null is returned
+*)
+SearchDenomSeq[k_Integer,p_,tower_List]:=Module[{M,m,i,a},
+M=DenomSeq[[k]];
+m=Length[M];
+For[i=1,i<=m,i++,  a=Sigma`DifferenceFields`BasicTools`DFInterface`GetSpecification[M[[i]],p,tower];
+ If[a=!=Null,Break[] ];
+];
+If[i==m+1,Return[],Return[{M[[i]],a}]]
+];
+
+
+(* ::Input::Initialization:: *)
+(*Input: k, a positive integer no more than the length of DenomSeq,
+         a, a member to be inserted in DenomSeq
+*)
+UpdateDenomSeq[k_Integer,a_]:=Module[{n, M},
+n=Length[DenomSeq];
+M=AppendTo[DenomSeq[[k]],a];
+DenomSeq=ReplacePart[DenomSeq,k->M]
+];
+
+
+(* ::Input::Initialization:: *)
+$activateEcho=False;
+CompleteReduction0[f_,var_Symbol]:=Module[{fp,pp,g,A},
+{fp,pp}=Rational`ProperAndPolynomialParts[f,var];
+g=Sum[pp,var];
+A =NormalReduction[fp,{{var,1,1}}];
+{g+A[[1]],A[[2]]}
+];
+
+
+
+(* ::Subsection:: *)
+(*End of package*)
+
+
+(* ::Input::Initialization:: *)
+End[];
+
+
+(* ::Input::Initialization:: *)
+EndPackage[];
+
