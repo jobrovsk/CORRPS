@@ -101,7 +101,7 @@ f
 ,If[KeyExistsQ[TowerInfo,"R-Extension"],
    With[{y=TowerInfo["R-Extension"][[1]],l=TowerInfo["R-Extension"][[2]]},
 	If[!FreeQ[f,y]&&Exponent[f,y]>=l,
-	Together[MyEliminateRootObjects[(Collect[f,y]/.y^(AAA12_.)->y^Mod[AAA12,l])]]
+	Together[MyEliminateRootObjects[(Collect[f,y]/.y^(AAA12_)->y^Mod[AAA12,l])]]
 ,
 	Together[MyEliminateRootObjects[f]]
 	]]
@@ -164,21 +164,20 @@ a=Coefficient[v,t,k-i];
 
 
 Clear[AuxiliaryReduction]
-AuxiliaryReduction[p_,tower_List]:=Module[{betaS,betaR,w,ct,b,c,t,d,pCoeffs,beta,pt,q,r,lc,g,u,tower1},
+AuxiliaryReduction[p_,tower_List]:=Module[{betaS,betaR,w,ct,b,c,t,d,pCoeffs,beta,q,r,lc,g,u,tower1},
 If[p===0,Return[{0,0}]];
 {t,beta}=tower[[-1,{1,3}]];
-pt =p; {q,r}={0,0};
+{q,r}={0,0};
 tower1=Drop[tower,-1];
 {betaS,betaR,b,c}= TowerInfo[t][[;;4]];
 Assert[CheckReduction[{beta,1},{betaS,betaR},tower]];
 
-pCoeffs=CoefficientList[p,t];
+pCoeffs=(MyTogether/@CoefficientList[p,t]);
 Do[
+	If[pCoeffs[[+1+d]]===0,Continue[]];
 	{g,u}=RingReduction[pCoeffs[[+1+d]],tower1];
-	(*{q,r}+= {g,u}*t^d;*)
 	ct=Rational`MyCoefficientNew[tower[[;;,1]],u,b];
 	w=MyTogether[ct/c];
-	(*Print["AuxiliaryReduction: ",w];*)
 	{q,r}+= {w/(d+1) t^(d+1)+(g-w betaS)*t^d,(u-w*betaR)t^d};
 	
 	Assert[Rational`MyCoefficientNew[tower[[;;,1]],u-w*betaR,b]===0];
@@ -191,16 +190,17 @@ Return[{q,r}];
 ];
 
 
-Clear[AuxiliaryReduction]
-AuxiliaryReduction[p_,tower_List]:=Module[{t,d,pCoeffs,beta,pt,q,r,lc,g,u,tower1},
+Clear[AuxiliaryReductionO]
+AuxiliaryReductionO[p_,tower_List]:=Module[{t,d,pCoeffs,beta,pt,q,r,lc,g,u,tower1},
 If[p===0,Return[{0,0}]];
 {t,beta}=tower[[-1,{1,3}]];
 pt =p; {q,r}={0,0};
 tower1=Drop[tower,-1];
 
 
-pCoeffs=CoefficientList[p,t];
+pCoeffs=(MyTogether/@CoefficientList[p,t]);
 Do[
+	If[pCoeffs[[+1+d]]===0,Continue[]];
 	{g,u}=RingReduction[pCoeffs[[+1+d]],tower1];
 	{q,r}+= {g,u}*t^d;
 	pCoeffs[[;;d]]-=MyTSigma[g,tower1] Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
@@ -210,11 +210,11 @@ Return[{q,r}];
 ];
 
 
-Clear[AuxiliaryReductionOld]
-AuxiliaryReductionOld[p_,tower_List]:=Module[{t,pt,q,r,d,lc,g,u,tower1},
+Clear[AuxiliaryReductionO]
+AuxiliaryReductionO[p_,tower_List]:=Module[{t,pt,q,r,d,lc,g,u,tower1},
 If[p===0,Return[{0,0}]];
 t=tower[[-1]][[1]];
-pt =p; {q,r}={0,0};
+pt =Collect[p,t,MyTogether]; {q,r}={0,0};
 tower1=Drop[tower,-1];
 While[pt=!=0,
 d =Exponent[pt,t];
@@ -294,18 +294,18 @@ If[Length[RExt]>1,Message[ReInitTower::malformedTower,tower];Abort[]];
 
 $activateEcho=False;
 SigmaRingReduction[0,_]:={0,0}
-SigmaRingReduction[f_,tower_List]:=Module[{n=Length[tower],t=tower[[-1,1]],pp,q,r,b,c,u=0,v},
+SigmaRingReduction[f_,tower_List]:=Module[{n=Length[tower],t=tower[[-1,1]],pp=f,q,r,b,c,u=0,v},
 Assert[tower[[-1,2]]===1];
 If[n===1,Return[CompleteReduction0[f,t]]];
 (*{fp,pp}=Rational`ProperAndPolynomialParts[f,t];
 {g,h}=NormalReduction[fp,tower];*)
-pp=Collect[f,t,MyTogether];
+(*pp=Collect[f,t,MyTogether];*)
 If[!KeyExistsQ[TowerInfo,t],Sow[Timing[TowerPrecomp[tower]][[1]],"TowerPrecomp"]];
 Sow[Timing[
 {q,r}=AuxiliaryReduction[pp,tower];
 ][[1]],"AuxiliaryReduction"];
-r=Collect[r,t,MyTogether];
-(*Return[{q,r}];*)
+(*r=Collect[r,t,MyTogether];*)
+Return[{q,r}];
 If[r===0, Return[{q,r}]];
 (*w=RingReduction[tower[[-1]][[3]],Drop[tower,-1]][[2]];*)
 
@@ -379,7 +379,7 @@ MapThread[Append,{Sol,MyTogether[Sol . A[[1;;n,1]]]}]
 
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*RPi-Case*)
 
 
@@ -395,15 +395,13 @@ If[i==1000,Print["cannot find order of unity of ", alpha];Abort[];,Return[i]];
 Clear[RReduction]
 Options[RReduction]={"Representatives"->{}};
 RReduction[g_,1,tower_?MatrixQ,OptionsPattern[]]:=Module[{y=tower[[-1,1]],alpha=tower[[-1,2]],AAA},
-PiReduction[Collect[g,y,MyTogether]/.y^(AAA_.)->y^Mod[AAA,MyGetOrderOfUnity[alpha]],1,tower,"Representatives"->OptionValue["Representatives"]]]
-
-
-Collect[x+1/x+ (1+x)/x^3+y x^3,x]
+PiReduction[Collect[g,y,MyTogether]/.y^(AAA_)->y^Mod[AAA,MyGetOrderOfUnity[alpha]],1,tower]]
 
 
 Clear[PiReduction];
 Options[PiReduction]={"Representatives"->{}};
-PiReduction[gIn_,s_,towerIn_?MatrixQ,OptionsPattern[]]:=Module[
+PiReduction[0,_,tower_?MatrixQ]:={0,0}
+PiReduction[gIn_,s_,towerIn_?MatrixQ]:=Module[
 {g,st,sc,i,degG,gS,gR,gcS,gcR,tdegG,gCoeffs,t,h,a,m,tower=Most[towerIn]},
 Assert[towerIn[[-1,3]]===0];
 {t,a}=towerIn[[-1,1;;2]];
@@ -412,6 +410,7 @@ Assert[Exponent[s,t]==-Exponent[s,t^-1]];
 m=Exponent[s,t];
 tdegG=-Exponent[g,t^(-1)];
 degG=Exponent[g,t];
+If[tdegG>degG,Return[{0,0}]];
 gCoeffs=CoefficientList[g t^(-tdegG),t];
 If[m==0,
 	{gS,gR}=Sum[
