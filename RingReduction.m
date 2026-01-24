@@ -143,8 +143,7 @@ a=Coefficient[v,t,k-i];
 	
 	ct=Rational`MyCoefficientNew[tower[[;;,1]],a,b];
 	
-	If[ct=!=0,Print[ct];L=B[[k-i+1]];
-	
+	If[ct=!=0,L=B[[k-i+1]];
 	w=Cancel[ct/c];
 	{u,v}={Collect[u+w*L[[1]],t,MyTogether],Collect[v-w*L[[2]],t,MyTogether]};
 	
@@ -154,36 +153,59 @@ a=Coefficient[v,t,k-i];
 ];
 
 
-{b,c}= TowerInfo[t][[3;;4]];
-Sow[Timing[
-{u,v}=MyProjection[r,b,c,tower];
+(* ::Input::Initialization:: *)
+(*Input: a \Sigma tower reperensted by{{x,1,1},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}}
+        For all t in T,TowerInfo=[[\[Phi](b_i), l_t, \[CapitalTheta](t), B_t]  | t in Y], where
+   \[Phi](b_i), the remainder of b_i in the previous tower,
+    l_i, an element in the previous tower s.t. b_i=\[CapitalDelta](l_t)+\[Phi](b_i)
+ \[CapitalTheta](t), a basis element effective in \[Phi](b_i)
+    B_t, a basis of the intersection up to certain level
+*)
 
 
 Clear[AuxiliaryReduction]
-AuxiliaryReduction[p_,tower_List]:=Module[{w,ct,b,c,t,d,pCoeffs,beta,pt,q,r,lc,g,u,tower1},
+AuxiliaryReduction[p_,tower_List]:=Module[{betaS,betaR,w,ct,b,c,t,d,pCoeffs,beta,pt,q,r,lc,g,u,tower1},
 If[p===0,Return[{0,0}]];
 {t,beta}=tower[[-1,{1,3}]];
 pt =p; {q,r}={0,0};
 tower1=Drop[tower,-1];
-{b,c}= TowerInfo[t][[3;;4]];
+{betaS,betaR,b,c}= TowerInfo[t][[;;4]];
+Assert[CheckReduction[{beta,1},{betaS,betaR},tower]];
+
+pCoeffs=CoefficientList[p,t];
+Do[
+	{g,u}=RingReduction[pCoeffs[[+1+d]],tower1];
+	(*{q,r}+= {g,u}*t^d;*)
+	ct=Rational`MyCoefficientNew[tower[[;;,1]],u,b];
+	w=MyTogether[ct/c];
+	(*Print["AuxiliaryReduction: ",w];*)
+	{q,r}+= {w/(d+1) t^(d+1)+(g-w betaS)*t^d,(u-w*betaR)t^d};
+	
+	Assert[Rational`MyCoefficientNew[tower[[;;,1]],u-w*betaR,b]===0];
+	
+	pCoeffs[[;;d]]-=MyTSigma[g-w betaS,tower1] Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
+	pCoeffs[[;;d]]-=Table[w/(d+1) Binomial[d+1,i] beta^(d+1-i),{i,0,d-1}];
+,{d,Length[pCoeffs]-1,0,-1}];
+(*r=Sum[pCoeffs[[i]]t^(i-1),{i,Length[pCoeffs]}];*)
+Return[{q,r}];
+];
+
+
+Clear[AuxiliaryReduction]
+AuxiliaryReduction[p_,tower_List]:=Module[{t,d,pCoeffs,beta,pt,q,r,lc,g,u,tower1},
+If[p===0,Return[{0,0}]];
+{t,beta}=tower[[-1,{1,3}]];
+pt =p; {q,r}={0,0};
+tower1=Drop[tower,-1];
 
 
 pCoeffs=CoefficientList[p,t];
 Do[
 	{g,u}=RingReduction[pCoeffs[[+1+d]],tower1];
 	{q,r}+= {g,u}*t^d;
-	
-	
-	
-	ct=Rational`MyCoefficientNew[tower[[;;,1]],u,b];
-	w=MyTogether[ct/c];
-	{q,r}+= {w,-www}*t^(d+1);
-	
-	
-	pCoeffs=Most[pCoeffs];
-	pCoeffs-=MyTSigma[g,tower] Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
+	pCoeffs[[;;d]]-=MyTSigma[g,tower1] Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
 ,{d,Length[pCoeffs]-1,0,-1}];
-
+(*r=Sum[pCoeffs[[i]]t^(i-1),{i,Length[pCoeffs]}];*)
 Return[{q,r}];
 ];
 
@@ -272,7 +294,7 @@ If[Length[RExt]>1,Message[ReInitTower::malformedTower,tower];Abort[]];
 
 $activateEcho=False;
 SigmaRingReduction[0,_]:={0,0}
-SigmaRingReduction[f_,tower_List]:=Module[{n=Length[tower],t=tower[[-1,1]],pp,q,r,b,c,u,v},
+SigmaRingReduction[f_,tower_List]:=Module[{n=Length[tower],t=tower[[-1,1]],pp,q,r,b,c,u=0,v},
 Assert[tower[[-1,2]]===1];
 If[n===1,Return[CompleteReduction0[f,t]]];
 (*{fp,pp}=Rational`ProperAndPolynomialParts[f,t];
@@ -283,6 +305,7 @@ Sow[Timing[
 {q,r}=AuxiliaryReduction[pp,tower];
 ][[1]],"AuxiliaryReduction"];
 r=Collect[r,t,MyTogether];
+(*Return[{q,r}];*)
 If[r===0, Return[{q,r}]];
 (*w=RingReduction[tower[[-1]][[3]],Drop[tower,-1]][[2]];*)
 
