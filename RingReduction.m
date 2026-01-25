@@ -126,30 +126,31 @@ f
 
 
 $activateEcho=False;
-MyProjection[r_,b_,c_,tower_List]:=Module[{t,k,B,i,a,ct,L,w,u,v,time1},
+MyProjection[r_,b_,c_,tower_List]:=Module[{t,k,B,i,a,ct,L,w,u,v},
 If[r===0,Return[{0,0}]];
 t=tower[[-1]][[1]];
 k=Exponent[r,t];
-time1=TimeUsed[];
 Sow[Timing[
 Basis[k,tower];
 ][[1]],"Basis"];
 Assert[KeyExistsQ[TowerInfo,t]];
 B=TowerInfo[t][[5]];
 
-{u,v}={0,r};
-For[i=0,i<=k,i++,
-a=Coefficient[v,t,k-i];
+{u,v}={Table[0,{k+2}],CoefficientList[r,t]};
+Do[
+	a=v[[+1+k-i]];
+	(*a=Coefficient[v,t,k-i];*)
 	
 	ct=Rational`MyCoefficientNew[tower[[;;,1]],a,b];
 	
 	If[ct=!=0,L=B[[k-i+1]];
 	w=Cancel[ct/c];
-	{u,v}={Collect[u+w*L[[1]],t,MyTogether],Collect[v-w*L[[2]],t,MyTogether]};
+	u[[;;Length[L[[1]]]]]+=w L[[1]];v[[;;Length[L[[2]]]]]-=w L[[2]];
+	(*{u,v}={Collect[u+w*L[[1]],t,MyTogether],Collect[v-w*L[[2]],t,MyTogether]};*)
 	
 	];
-];
-{u,v}
+,{i,0,k}];
+Return[{Sum[MyTogether[u[[+1+i]]]t^i,{i,0,k+1}],Sum[MyTogether[v[[+1+i]]]t^i,{i,0,k}]}];
 ];
 
 
@@ -182,7 +183,7 @@ Do[
 	
 	Assert[Rational`MyCoefficientNew[tower[[;;,1]],u-w*betaR,b]===0];
 	
-	pCoeffs[[;;d]]-=MyTSigma[g-w betaS,tower1] Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
+	pCoeffs[[;;d]]-=MyTSigma[g-w betaS,tower1]Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
 	pCoeffs[[;;d]]-=Table[w/(d+1) Binomial[d+1,i] beta^(d+1-i),{i,0,d-1}];
 ,{d,Length[pCoeffs]-1,0,-1}];
 (*r=Sum[pCoeffs[[i]]t^(i-1),{i,Length[pCoeffs]}];*)
@@ -190,8 +191,8 @@ Return[{q,r}];
 ];
 
 
-Clear[AuxiliaryReductionO]
-AuxiliaryReductionO[p_,tower_List]:=Module[{t,d,pCoeffs,beta,pt,q,r,lc,g,u,tower1},
+Clear[AuxiliaryReduction0]
+AuxiliaryReduction0[p_,tower_List]:=Module[{t,d,pCoeffs,beta,pt,q,r,lc,g,u,tower1},
 If[p===0,Return[{0,0}]];
 {t,beta}=tower[[-1,{1,3}]];
 pt =p; {q,r}={0,0};
@@ -247,14 +248,13 @@ v0=H[[2]];
 L=H[[5]];
 m=Length[L];
 Do[
-a=t^(i+1)/(i+1)-lt*t^i;
-b=Collect[MyTSigma[a,1,tower]-a-v0*t^i,{t},MyTogether];
-{q,r}=AuxiliaryReduction[b,tower];
-u = a-q;
-v=r+v0*t^i;
-L=AppendTo[L,{u,v}],
-{i,m,k}
-];
+	a=t^(i+1)/(i+1)-lt*t^i;
+	b=MyTSigma[a,1,tower]-a-v0*t^i;
+	{q,r}=AuxiliaryReduction[b,tower];
+	u = a-q;
+	v=r+v0*t^i;
+	AppendTo[L,MyTogether[CoefficientList[{u,v},t]]]
+,{i,m,k}];
 TowerInfo[t]={H[[1]],H[[2]],H[[3]],H[[4]],L};
 ]
 
@@ -306,6 +306,9 @@ Sow[Timing[
 ][[1]],"AuxiliaryReduction"];
 (*r=Collect[r,t,MyTogether];*)
 Return[{q,r}];
+
+
+
 If[r===0, Return[{q,r}]];
 (*w=RingReduction[tower[[-1]][[3]],Drop[tower,-1]][[2]];*)
 
@@ -334,7 +337,7 @@ TowerPrecomp[tower_]:=Module[{t,beta,g,r,b,c,B},
 Assert[!KeyExistsQ[TowerInfo,t]];
 {g,r}=RingReduction[beta,tower[[;;-2]]];
 {b,c}=Rational`BasisElement[tower[[1;;-2,1]],r];
-B={{t-g,r}};
+B={{{-g,1},{r}}};
 TowerInfo[t]={g,r,b,c,B};
 ]
 
@@ -368,13 +371,13 @@ R=A[[;;,2]];
 clist=Array[c,n];
 coeff=Flatten[CoefficientList[Numerator[MyTogether[clist . R]],tower[[;;,1]]]];
 coeff=Select[coeff,(#=!=0)&];
-If[coeff==={},Return[{Table[1,n],Total[A[[1;;n,1]]]}]];
+If[coeff==={},Return[{Table[1,n],Total[A[[;;,1]]]}]];
 m=Length[coeff];
 B=Table[Coefficient[coeff[[i]],clist[[j]]],{i,m},{j,n}];
 Sol=NullSpace[B];
 If[Sol==={},Return[{}]];
 (*{Sol,MyTogether[Sol . A[[1;;n,1]]]}*)
-MapThread[Append,{Sol,MyTogether[Sol . A[[1;;n,1]]]}]
+MapThread[Append,{Sol,MyTogether[Sol . A[[;;,1]]]}]
 ]
 
 
