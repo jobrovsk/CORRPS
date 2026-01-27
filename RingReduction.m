@@ -13,36 +13,42 @@ AuxiliaryReduction::usage="";
 MyProjection::usage="";
 SigmaRingReduction::usage="";
 RingReduction::usage="TowerInfo must be initialized before using this function 
-(with ReInitTower[tower]; or with information which was produced for this tower)
+(with ReInitTower[tower];)
 In: a basic RPiSigma tower represented by
-{{x,1,1},{p_1,a_1,0},...{p_m,a_m,0},{y,alpha,0},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}}
-(m>=0,n>=0 and with or without R-monomial y)
-g: An element in this ring
-f: An invertible element in this ring. Must be f=1 if n>0
-Out: {gS,gR}, whith \[CapitalDelta]_f(gS)+gR===g";
-ReInitTower::usage="(Re)Initializes TowerInfo";
-(*CollectTowerInfo::usage="";*)
+	{{x,1,1},{p_1,a_1,0},...{p_m,a_m,0},{y,alpha,0},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}}
+	(m>=0,n>=0 and with or without the R-monomial y)
+	g: An element in this ring
+	f: An invertible element in this ring. f must be f=1 if n>0 or if y is in the tower
+Out: {gS,gR}, with \[CapitalDelta]_f(gS)+gR===g, where gR is a remainder";
+ReInitTower::usage="(Re)Initializes TowerInfo. Call at the beginning and whenever a new tower is used";
 PT ::usage="";
 MyTogether::usage="";
 DeltaF::usage="";
+CheckReduction::usage="";
 
 
 (* ::Input::Initialization:: *)
 Begin["`Private`"];
 
 
-(*main scheduler. TowerInfo must be initialized before using this function 
-(with ReInitTower[tower]; or with information which was produced for this tower)
-In: a basic RPiSigma tower represented by
-{{x,1,1},{p_1,a_1,0},...{p_m,a_m,0},{y,alpha,0},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}}
-(m>=0,n>=0 and with or without R-monomial y)
-g: An element in this ring
-f: An invertible element in this ring. Must be f=1 if n>0
-Out: {gS,gR}, whith \[CapitalDelta]_f(gS)+gR===g
-*)
-  
+(* ::Text:: *)
+(*Main scheduler which calls Reduction-function which fits to this tower. *)
+(**)
+(*In : a basic RPiSigma tower represented by*)
+(*	{{x, 1, 1}, {p_ 1, a_ 1, 0}, ... {p_m, a_m, 0}, {y, alpha, 0}, {t_ 1, 1, b_ 1}, {t_ 2, 1, b_ 2}, ... {t_n, 1, b_n}}*)
+(*	(m >= 0, n >= 0 and with or without R - monomial y)*)
+(*	g : An element in this ring*)
+(*	f : An invertible element in this ring . Must be f = 1 if n > 0*)
+(*	TowerInfo must be initialized before using this function *)
+(*	(with ReInitTower[tower]; or with information which was produced for this tower)*)
+(**)
+(*Out : {gS, gR}, with \[CapitalDelta]_f (gS) + gR === g, where gR is a remainder*)
+(**)
+
+
+(*Note: The Sow[Timing[ ][[1]],String] is used for benchmarking*)
 Clear[RingReduction];
-RingReduction::malformedTower="Error: Tower `1` is malformed";
+RingReduction::malformedTower="Error: Tower `1` is malformed and not fit for RingReduction";
 RingReduction[0,_,_?MatrixQ,OptionsPattern[]]:={0,0}
 RingReduction[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=RingReduction[g,1,tower,opts];
 RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{x,alpha,beta,gS,gR},
@@ -90,18 +96,22 @@ MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`Basi
 
 
 Clear[DeltaF];
-DeltaF[g_,f_,tower_]:=f MyTSigma[g,1,tower]-g
+DeltaF[g_,f_,tower_?MatrixQ]:=f MyTSigma[g,1,tower]-g
 
 
 Clear[MyEliminateRootObjects];
 MyEliminateRootObjects[f_]:=If[FreeQ[f,Power[_,Rational[_,_]]|Root[__]],f,ToRadicals[RootReduce[Together[f]]]]
 
 
-(*Nothing for QQ,
-plain MyTogether for QQ(x_1,x_2,...),
-MyEliminateRootObjects for algebraic numbers 
-(Mathematica is really bad at dealing with algebraic numbers like (-1)^(2/3))
-*)
+(* ::Text:: *)
+(**)
+(*Chooses the best way to simplify the given object. The output is canonical w.r.t. the R-extension.*)
+(*Nothing for QQ,*)
+(*plain MyTogether for QQ (x_ 1, x_ 2, ...),*)
+(*MyEliminateRootObjects for algebraic numbers *)
+(* (Mathematica is really bad at dealing with algebraic numbers like (-1)^(2/3))*)
+
+
 Clear[MyTogether]
 MyTogether[f_]:=
 If[Length[Variables[f]]==0,
@@ -124,8 +134,14 @@ f
 (*Sigma*)
 
 
-Clear[AuxiliaryReduction]
-AuxiliaryReduction[p_,tower_List]:=Module[{betaS,betaR,w,ct,b,c,t,d,pCoeffs,beta,q,r,lc,g,u,tower1},
+(* ::Text:: *)
+(*Input/Output: See function SigmaRingReduction. *)
+(*Note: Combines the functionallity of AuxiliaryReduction and MyProjection. *)
+(*For using those functions, the line "Return[AuxiliaryProjectionReduction[pp,tower]];" has to be commented out in SigmaReduction*)
+
+
+Clear[AuxiliaryProjectionReduction]
+AuxiliaryProjectionReduction[p_,tower_?MatrixQ]:=Module[{betaS,betaR,w,ct,b,c,t,d,pCoeffs,beta,q,r,lc,g,u,tower1},
 If[p===0,Return[{0,0}]];
 {t,beta}=tower[[-1,{1,3}]];
 {q,r}={0,0};
@@ -151,14 +167,14 @@ Return[{q,r}];
 ];
 
 
-(* ::Input::Initialization:: *)
-(*Input: a \Sigma tower reperensted by{{x,1,1},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}}
-        For all t in T,TowerInfo=[[\[Phi](b_i), l_t, \[CapitalTheta](t), B_t]  | t in Y], where
-   \[Phi](b_i), the remainder of b_i in the previous tower,
-    l_i, an element in the previous tower s.t. b_i=\[CapitalDelta](l_t)+\[Phi](b_i)
- \[CapitalTheta](t), a basis element effective in \[Phi](b_i)
-    B_t, a basis of the intersection up to certain level
-*)
+(* ::Text:: *)
+(*Input :  An admissable tower (as specified for function RingReduction). *)
+(*    If there is an R - extension in the tower, then denote it with {y, alpha, 0}*)
+(*    Output : Null*)
+(*    Side effect : If there is no R-extension then*)
+(*         TowerInfo=<| |>,*)
+(*           otherwise*)
+(*        TowerInfo = <|"R-Extension" -> {y, lambda}|>,  where lambda = ord (alpha)*)
 
 
 ReInitTower::malformedTower="Error: Tower `1` contains more than one R-extension, this is not implemented";
@@ -173,70 +189,62 @@ If[Length[RExt]>1,Message[ReInitTower::malformedTower,tower];Abort[]];
 ];
 
 
-(* ::Input::Initialization:: *)
-(*Input: a \Sigma tower reperensted by{{x,1,1},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}},
-         r, an element of the auxiliary space,
-         b, an element in the C-basis effective in \[Phi](\[CapitalDelta](t)),
-        c,equal to b^*\circ\[Phi](t');
-  Output:{u,v}, u in K[t] and v in the b-complement such that r=\[CapitalDelta](u)+v
-*)
-
-
-(* ::Input::Initialization:: *)
-(*Input:a \Sigma tower represented by{{x,1,1},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}} and
-        f, an element in the tower
-  Output: {g,r}, two elements in the tower s.t.
-             f=\[CapitalDelta](g)+r
-          is a complete reduction of f
-*)
+(* ::Text:: *)
+(*Input: A tower as required by function RingReduction, where the last extension is a Sigma extension {t,1,beta}*)
+(*        g, an element in the tower (not necessarily simplified or canonocalized)*)
+(*  Output: {gS,gR}, two elements in the tower s.t.*)
+(*             g=\[CapitalDelta](gS)+gR*)
+(*          is a complete reduction of g. gR is simplified (in particular gR === 0 if gR can be simplified to zero)*)
 
 
 SigmaRingReduction[0,_]:={0,0}
-SigmaRingReduction[f_,tower_List]:=Module[{n=Length[tower],t=tower[[-1,1]],pp=f,q,r,b,c,u=0,v},
+SigmaRingReduction[g_,tower_?MatrixQ]:=Module[{n=Length[tower],t=tower[[-1,1]],pp=g,q,r,b,c,u=0,v},
 Assert[tower[[-1,2]]===1];
-If[n===1,Return[CompleteReduction0[f,t]]];
+
+If[n===1,Return[CompleteReduction0[f,t]]];(* <-- this is curently not used*)
 (*{fp,pp}=Rational`ProperAndPolynomialParts[f,t];
 {g,h}=NormalReduction[fp,tower];*)
 (*pp=Collect[f,t,MyTogether];*)
 If[!KeyExistsQ[TowerInfo,t],Sow[Timing[TowerPrecomp[tower]][[1]],"TowerPrecomp"]];
-Sow[Timing[
+
+
+Return[AuxiliaryProjectionReduction[pp,tower]];
+
+
+
 {q,r}=AuxiliaryReduction[pp,tower];
-][[1]],"AuxiliaryReduction"];
-(*r=Collect[r,t,MyTogether];*)
-Return[{q,r}];
-
-
-
 If[r===0, Return[{q,r}]];
-(*w=RingReduction[tower[[-1]][[3]],Drop[tower,-1]][[2]];*)
-
 {b,c}= TowerInfo[t][[3;;4]];
 Sow[Timing[
 {u,v}=MyProjection[r,b,c,tower];
 ][[1]],"MyProjection"];
 {MyTogether[q+u],v}
+
+
 ];
 
 
 
-(* ::Input::Initialization:: *)
-(*Input: a \Sigma tower reperensted by{{x,1,1},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}}
-        For all t in T,TowerInfo=[[\[Phi](b_i), l_t, \[CapitalTheta](t), B_t]  | t in Y], where
-   \[Phi](b_i), the remainder of b_i in the previous tower,
-    l_i, an element in the previous tower s.t. b_i=\[CapitalDelta](l_t)+\[Phi](b_i)
- \[CapitalTheta](t), a basis element effective in \[Phi](b_i)
-    B_t, a basis of the intersection up to certain level
-*)
+(* ::Text:: *)
+(*Input : A tower where the last extension is a Sigma extension {t, 1, beta}*)
+(*	    TowerInfo must be initialized .*)
+(*Output : Null*)
+(*Side effect : TowerInfo[t] is set to [ l_t, \[Phi] (b_i), \[CapitalTheta] (t), B_t]*)
+(*	where *)
+(*	     \[Phi] (b_i), the remainder of beta in the previous tower,*)
+(*	    l_i, an element in the previous tower s . t . b_i = \[CapitalDelta] (l_t) + \[Phi] (b_i)*)
+(*		\[CapitalTheta] (t), a basis element effective in \[Phi] (b_i)*)
+(*	    B_t, a basis of the intersection up to certain level*)
 
 
 Clear[TowerPrecomp];
-TowerPrecomp[tower_]:=Module[{t,beta,g,r,b,c,B},
+TowerPrecomp[tower_?MatrixQ]:=Module[{t,beta,g,r,b,c,B},
 {t,beta}=tower[[-1,{1,3}]];
 Assert[!KeyExistsQ[TowerInfo,t]];
 {g,r}=RingReduction[beta,tower[[;;-2]]];
 {b,c}=Rational`BasisElement[tower[[1;;-2,1]],r];
 B={{{-g,1},{r}}};
-TowerInfo[t]={g,r,b,c,B};
+TowerInfo[t]={MyTogether[g],r,b,c,B};
 ]
 
 
@@ -263,7 +271,72 @@ MapThread[Append,{Sol,MyTogether[Sol . A[[;;,1]]]}]
 
 
 
-(* ::Subsection::Closed:: *)
+(* ::Text:: *)
+(*Input :  A tower as required by function RingReduction, where the last extension is a Sigma extension t*)
+(*         r, an element of the auxiliary space,*)
+(*         b, an element in the C - basis effective in \[Phi] (\[CapitalDelta] (t)),*)
+(*        c, equal to b^*\circ\[Phi] (t');*)
+(*  Output : {u, v}, u in K[t] and v in the b - complement such that r = \[CapitalDelta] (u) + v*)
+
+
+(*not used*)
+MyProjection[r_,b_,c_,tower_?MatrixQ]:=Module[{t,k,B,i,a,ct,L,w,u,v},
+If[r===0,Return[{0,0}]];
+t=tower[[-1]][[1]];
+k=Exponent[r,t];
+Sow[Timing[
+Basis[k,tower];
+][[1]],"Basis"];
+Assert[KeyExistsQ[TowerInfo,t]];
+B=TowerInfo[t][[5]];
+
+{u,v}={Table[0,{k+2}],CoefficientList[r,t]};
+Do[
+	a=v[[+1+k-i]];
+	(*a=Coefficient[v,t,k-i];*)
+	
+	ct=Rational`MyCoefficientNew[tower[[;;,1]],a,b];
+	
+	If[ct=!=0,L=B[[k-i+1]];
+	w=Cancel[ct/c];
+	u[[;;Length[L[[1]]]]]+=w L[[1]];v[[;;Length[L[[2]]]]]-=w L[[2]];
+	(*{u,v}={Collect[u+w*L[[1]],t,MyTogether],Collect[v-w*L[[2]],t,MyTogether]};*)
+	
+	];
+,{i,0,k}];
+Return[{Sum[MyTogether[u[[+1+i]]]t^i,{i,0,k+1}],Sum[MyTogether[v[[+1+i]]]t^i,{i,0,k}]}];
+];
+
+
+(* ::Text:: *)
+(*Input : A tower as required by function RingReduction, where the last extension is a Sigma extension t*)
+(*          a polynomial p in t*)
+(*    Output : {q, r}, r in the auxiliary space such that*)
+(*               p = \[CapitalDelta] (q) + r*)
+
+
+(*not used*)
+Clear[AuxiliaryReduction]
+AuxiliaryReduction[p_,tower_?MatrixQ]:=Module[{t,d,pCoeffs,beta,pt,q,r,lc,g,u,tower1},
+If[p===0,Return[{0,0}]];
+{t,beta}=tower[[-1,{1,3}]];
+pt =p; {q,r}={0,0};
+tower1=Drop[tower,-1];
+
+
+pCoeffs=(MyTogether/@CoefficientList[p,t]);
+Do[
+	If[pCoeffs[[+1+d]]===0,Continue[]];
+	{g,u}=RingReduction[pCoeffs[[+1+d]],tower1];
+	{q,r}+= {g,u}*t^d;
+	pCoeffs[[;;d]]-=MyTSigma[g,tower1] Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
+,{d,Length[pCoeffs]-1,0,-1}];
+(*r=Sum[pCoeffs[[i]]t^(i-1),{i,Length[pCoeffs]}];*)
+Return[{q,r}];
+];
+
+
+(* ::Subsection:: *)
 (*RPi-Case*)
 
 
@@ -276,10 +349,28 @@ If[i==1000,Print["cannot find order of unity of ", alpha];Abort[];,Return[i]];
 ]
 
 
+(* ::Text:: *)
+(*Input: A tower as required by function RingReduction, where the last extension is an R-extension {y,alpha,0}*)
+(*        g, an element in the tower (not necessarily simplified or canonocalized)*)
+(*  Output: {gS,gR}, two elements in the tower s.t.*)
+(*             g=\[CapitalDelta](gS)+gR*)
+(*          is a complete reduction of g. gR is simplified (in particular gR === 0 if gR can be simplified to zero)*)
+
+
 Clear[RReduction]
 Options[RReduction]={"Representatives"->{}};
 RReduction[g_,1,tower_?MatrixQ,OptionsPattern[]]:=Module[{y=tower[[-1,1]],alpha=tower[[-1,2]],AAA},
 PiReduction[Collect[g,y,MyTogether]/.y^(AAA_)->y^Mod[AAA,MyGetOrderOfUnity[alpha]],1,tower]]
+
+
+(* ::Text:: *)
+(*Input: A tower as required by function RingReduction, where the last extension is a Pi-extension {p,a,0}*)
+(*        g, an element in the tower (not necessarily simplified or canonocalized)*)
+(*        s, an invertible element in the tower.*)
+(*  Output: {gS,gR}, two elements in the tower s.t.*)
+(*             g=\[CapitalDelta]_s(gS)+gR*)
+(*          is a complete reduction of g. gR is simplified (in particular gR === 0 if gR can be simplified to zero)*)
+(*   Note: If m != 0, the complementary space is currently F[t]_{< |m|}, the space of polynomials of degree less than the absolute value of m, where m is the degree of p;. *)
 
 
 Clear[PiReduction];
@@ -340,66 +431,7 @@ Return[{gS,gR}];
 
 
 (* ::Subsection::Closed:: *)
-(*Depracated*)
-
-
-(* ::Input::Initialization:: *)
-(*Input:a \Sigma tower reperensted by{{x,1,1},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}} and
-        a polynomial p in t_n
-  Output: {q,r}, r in the auxiliary space such that
-             p=\[CapitalDelta](q)+r
-  Remark: n>=1
-*)
-
-
-(*deprecated*)
-MyProjection[r_,b_,c_,tower_List]:=Module[{t,k,B,i,a,ct,L,w,u,v},
-If[r===0,Return[{0,0}]];
-t=tower[[-1]][[1]];
-k=Exponent[r,t];
-Sow[Timing[
-Basis[k,tower];
-][[1]],"Basis"];
-Assert[KeyExistsQ[TowerInfo,t]];
-B=TowerInfo[t][[5]];
-
-{u,v}={Table[0,{k+2}],CoefficientList[r,t]};
-Do[
-	a=v[[+1+k-i]];
-	(*a=Coefficient[v,t,k-i];*)
-	
-	ct=Rational`MyCoefficientNew[tower[[;;,1]],a,b];
-	
-	If[ct=!=0,L=B[[k-i+1]];
-	w=Cancel[ct/c];
-	u[[;;Length[L[[1]]]]]+=w L[[1]];v[[;;Length[L[[2]]]]]-=w L[[2]];
-	(*{u,v}={Collect[u+w*L[[1]],t,MyTogether],Collect[v-w*L[[2]],t,MyTogether]};*)
-	
-	];
-,{i,0,k}];
-Return[{Sum[MyTogether[u[[+1+i]]]t^i,{i,0,k+1}],Sum[MyTogether[v[[+1+i]]]t^i,{i,0,k}]}];
-];
-
-
-(*deprecated*)
-Clear[AuxiliaryReduction0]
-AuxiliaryReduction0[p_,tower_List]:=Module[{t,d,pCoeffs,beta,pt,q,r,lc,g,u,tower1},
-If[p===0,Return[{0,0}]];
-{t,beta}=tower[[-1,{1,3}]];
-pt =p; {q,r}={0,0};
-tower1=Drop[tower,-1];
-
-
-pCoeffs=(MyTogether/@CoefficientList[p,t]);
-Do[
-	If[pCoeffs[[+1+d]]===0,Continue[]];
-	{g,u}=RingReduction[pCoeffs[[+1+d]],tower1];
-	{q,r}+= {g,u}*t^d;
-	pCoeffs[[;;d]]-=MyTSigma[g,tower1] Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
-,{d,Length[pCoeffs]-1,0,-1}];
-(*r=Sum[pCoeffs[[i]]t^(i-1),{i,Length[pCoeffs]}];*)
-Return[{q,r}];
-];
+(*Depracated (not used)*)
 
 
 (*deprecated*)
@@ -472,7 +504,7 @@ TowerInfo=AssociationThread[tower[[2;;,1]]->TowerInfo]
 
 
 (* ::Subsection::Closed:: *)
-(*Field stuff*)
+(*Field stuff (not used)*)
 
 
 (* ::Input::Initialization:: *)
@@ -627,4 +659,3 @@ End[];
 
 (* ::Input::Initialization:: *)
 EndPackage[];
-
