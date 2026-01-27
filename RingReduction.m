@@ -48,7 +48,7 @@ Begin["`Private`"];
 
 (*Note: The Sow[Timing[ ][[1]],String] is used for benchmarking*)
 Clear[RingReduction];
-RingReduction::malformedTower="Error: Tower `1` is malformed and not fit for RingReduction";
+RingReduction::malformedTower="Error: Tower `1` is malformed and not fit for RingReduction w.r.t Delta `2`";
 RingReduction[0,_,_?MatrixQ,OptionsPattern[]]:={0,0}
 RingReduction[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=RingReduction[g,1,tower,opts];
 RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{x,alpha,beta,gS,gR},
@@ -68,11 +68,10 @@ If[beta===0,
 	,
 		{gS,gR}=PiReduction[g,f,tower];
 	];
-,If[alpha===1,
-	Assert[f===1];
+,If[alpha===1&&f===1,
 	{gS,gR}=SigmaRingReduction[g,tower];
 ,
-	Message[RingReduction::malformedTower,tower];
+	Message[RingReduction::malformedTower,tower,f];
 	Abort[];
 ];]];
 ][[1]],ToString[tower[[-1,1]]]<>" combined"];
@@ -104,7 +103,6 @@ MyEliminateRootObjects[f_]:=If[FreeQ[f,Power[_,Rational[_,_]]|Root[__]],f,ToRadi
 
 
 (* ::Text:: *)
-(**)
 (*Chooses the best way to simplify the given object. The output is canonical w.r.t. the R-extension.*)
 (*Nothing for QQ,*)
 (*plain MyTogether for QQ (x_ 1, x_ 2, ...),*)
@@ -119,7 +117,7 @@ f
 ,If[KeyExistsQ[TowerInfo,"R-Extension"],
    With[{y=TowerInfo["R-Extension"][[1]],l=TowerInfo["R-Extension"][[2]]},
 	If[!FreeQ[f,y]&&Exponent[f,y]>=l,
-	Together[MyEliminateRootObjects[(Collect[f,y]/.y^(AAA12_)->y^Mod[AAA12,l])]]
+	Together[MyEliminateRootObjects[(Collect[f,y]/.y^(AAA121212_)->y^Mod[AAA121212,l])]]
 ,
 	Together[MyEliminateRootObjects[f]]
 	]]
@@ -169,17 +167,16 @@ Return[{q,r}];
 
 (* ::Text:: *)
 (*Input :  An admissable tower (as specified for function RingReduction). *)
-(*    If there is an R - extension in the tower, then denote it with {y, alpha, 0}*)
 (*    Output : Null*)
 (*    Side effect : If there is no R-extension then*)
 (*         TowerInfo=<| |>,*)
-(*           otherwise*)
+(*           otherwise if there is an R - extension {y, alpha, 0} in the tower*)
 (*        TowerInfo = <|"R-Extension" -> {y, lambda}|>,  where lambda = ord (alpha)*)
 
 
 ReInitTower::malformedTower="Error: Tower `1` contains more than one R-extension, this is not implemented";
 Clear[ReInitTower]
-ReInitTower[tower_]:=Module[{},
+ReInitTower[tower_?MatrixQ]:=Module[{},
 TowerInfo=<||>;
 RExt=Select[tower,(#[[3]]===0 && RootOfUnityQ[#[[2]]])&];
 If[Length[RExt]==1,
@@ -198,10 +195,10 @@ If[Length[RExt]>1,Message[ReInitTower::malformedTower,tower];Abort[]];
 
 
 SigmaRingReduction[0,_]:={0,0}
-SigmaRingReduction[g_,tower_?MatrixQ]:=Module[{n=Length[tower],t=tower[[-1,1]],pp=g,q,r,b,c,u=0,v},
+SigmaRingReduction[g_,tower_?MatrixQ]:=Module[{t=tower[[-1,1]],pp=g,q,r,b,c,u=0,v},
 Assert[tower[[-1,2]]===1];
 
-If[n===1,Return[CompleteReduction0[f,t]]];(* <-- this is curently not used*)
+If[Length[tower]===1,Return[CompleteReduction0[f,t]]];(* <-- this is curently not used*)
 (*{fp,pp}=Rational`ProperAndPolynomialParts[f,t];
 {g,h}=NormalReduction[fp,tower];*)
 (*pp=Collect[f,t,MyTogether];*)
@@ -211,7 +208,6 @@ If[!KeyExistsQ[TowerInfo,t],Sow[Timing[TowerPrecomp[tower]][[1]],"TowerPrecomp"]
 Return[AuxiliaryProjectionReduction[pp,tower]];
 
 
-
 {q,r}=AuxiliaryReduction[pp,tower];
 If[r===0, Return[{q,r}]];
 {b,c}= TowerInfo[t][[3;;4]];
@@ -219,7 +215,6 @@ Sow[Timing[
 {u,v}=MyProjection[r,b,c,tower];
 ][[1]],"MyProjection"];
 {MyTogether[q+u],v}
-
 
 ];
 
@@ -280,8 +275,8 @@ MapThread[Append,{Sol,MyTogether[Sol . A[[;;,1]]]}]
 
 
 (*not used*)
+MyProjection[0,_,_,_]:={0,0}
 MyProjection[r_,b_,c_,tower_?MatrixQ]:=Module[{t,k,B,i,a,ct,L,w,u,v},
-If[r===0,Return[{0,0}]];
 t=tower[[-1]][[1]];
 k=Exponent[r,t];
 Sow[Timing[
@@ -340,12 +335,13 @@ Return[{q,r}];
 (*RPi-Case*)
 
 
-Clear[MyGetOrderOfUnity]
+MyGetOrderOfUnity::donotrecognizerot="Error: Failed to find order of `1`. Are you sure this is a root of unity in Complex? (of order <1000)";
+Clear[MyGetOrderOfUnity];
 MyGetOrderOfUnity[alpha_]:=Module[{i=1,alphaj=1}
 ,While[!PossibleZeroQ[1-(alphaj*=alpha),Method->"ExactAlgebraics"]&&i<1000,
 i++;
 ];
-If[i==1000,Print["cannot find order of unity of ", alpha];Abort[];,Return[i]];
+If[i==1000,Message[MyGetOrderOfUnity::donotrecognizerot,alpha];Abort[];,Return[i]];
 ]
 
 
@@ -358,8 +354,7 @@ If[i==1000,Print["cannot find order of unity of ", alpha];Abort[];,Return[i]];
 
 
 Clear[RReduction]
-Options[RReduction]={"Representatives"->{}};
-RReduction[g_,1,tower_?MatrixQ,OptionsPattern[]]:=Module[{y=tower[[-1,1]],alpha=tower[[-1,2]],AAA},
+RReduction[g_,1,tower_?MatrixQ]:=Module[{y=tower[[-1,1]],alpha=tower[[-1,2]],AAA},
 PiReduction[Collect[g,y,MyTogether]/.y^(AAA_)->y^Mod[AAA,MyGetOrderOfUnity[alpha]],1,tower]]
 
 
@@ -374,7 +369,6 @@ PiReduction[Collect[g,y,MyTogether]/.y^(AAA_)->y^Mod[AAA,MyGetOrderOfUnity[alpha
 
 
 Clear[PiReduction];
-Options[PiReduction]={"Representatives"->{}};
 PiReduction[0,_,tower_?MatrixQ]:={0,0}
 PiReduction[gIn_,s_,towerIn_?MatrixQ]:=Module[
 {g,st,sc,i,degG,gS,gR,gcS,gcR,tdegG,gCoeffs,t,h,a,m,tower=Most[towerIn]},
@@ -503,7 +497,7 @@ TowerInfo=AssociationThread[tower[[2;;,1]]->TowerInfo]
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Field stuff (not used)*)
 
 
