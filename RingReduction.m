@@ -25,6 +25,7 @@ PT ::usage="";
 MyTogether::usage="";
 DeltaF::usage="";
 CheckReduction::usage="";
+MyGetOrderOfUnity::usage="";
 
 
 (* ::Input::Initialization:: *)
@@ -55,8 +56,7 @@ RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{x,alpha,beta,gS,gR
 Assert[Head[TowerInfo]===Association];
 Sow[Timing[
 (*If[Head[TowerInfo]=!=List,TowerInfo={}];*)
-If[Length[tower]==1,
-	Assert[tower[[1,2;;3]]==={1,1}];
+If[Length[tower]==1&&tower[[1,2;;3]]==={1,1},
 	x=tower[[1,1]];
 	If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]={}];
 	{{gS,gR},TowerInfo[x]}=RationalReduction`RationalReduction[g,f,tower,"Representatives"->TowerInfo[x]];
@@ -80,7 +80,7 @@ Return[{gS,gR}];
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Re-used*)
 
 
@@ -139,26 +139,28 @@ f
 
 
 Clear[AuxiliaryProjectionReduction]
-AuxiliaryProjectionReduction[p_,tower_?MatrixQ]:=Module[{betaS,betaR,w,ct,b,c,t,d,pCoeffs,beta,q,r,lc,g,u,tower1},
-If[p===0,Return[{0,0}]];
+AuxiliaryProjectionReduction[0,_?MatrixQ]:={0,0}
+AuxiliaryProjectionReduction[p_,tower_?MatrixQ]:=Module[{betaS,betaR,w,ct,b,c,t,d,pCoeffs,beta,q,r,lc,g,u,tower1,sub},
 {t,beta}=tower[[-1,{1,3}]];
 {q,r}={0,0};
 tower1=Drop[tower,-1];
 {betaS,betaR,b,c}= TowerInfo[t][[;;4]];
 Assert[CheckReduction[{beta,1},{betaS,betaR},tower]];
 
-pCoeffs=(MyTogether/@CoefficientList[p,t]);
+pCoeffs=CoefficientList[p,t];
 Do[
 	If[pCoeffs[[+1+d]]===0,Continue[]];
 	{g,u}=RingReduction[pCoeffs[[+1+d]],tower1];
+	If[g===0 && u===0,Continue[]];
 	ct=Rational`MyCoefficientNew[tower[[;;,1]],u,b];
 	w=MyTogether[ct/c];
-	{q,r}+= {w/(d+1) t^(d+1)+(g-w betaS)*t^d,(u-w*betaR)t^d};
+	{q,r}+= {w/(d+1) t^(d+1)+(g-w betaS)*t^d,MyTogether[u-w*betaR]t^d};
 	
 	Assert[Rational`MyCoefficientNew[tower[[;;,1]],u-w*betaR,b]===0];
-	
-	pCoeffs[[;;d]]-=MyTSigma[g-w betaS,tower1]Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
+	sub=If[Length[tower]>1,Collect[MyTSigma[g-w betaS,tower1],tower[[-2,1]],MyTogether],MyTogether[MyTSigma[g-w betaS,tower1]]];
+	pCoeffs[[;;d]]-=sub Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
 	pCoeffs[[;;d]]-=Table[w/(d+1) Binomial[d+1,i] beta^(d+1-i),{i,0,d-1}];
+	
 ,{d,Length[pCoeffs]-1,0,-1}];
 (*r=Sum[pCoeffs[[i]]t^(i-1),{i,Length[pCoeffs]}];*)
 Return[{q,r}];
@@ -294,7 +296,8 @@ Do[
 	
 	If[ct=!=0,L=B[[k-i+1]];
 	w=Cancel[ct/c];
-	u[[;;Length[L[[1]]]]]+=w L[[1]];v[[;;Length[L[[2]]]]]-=w L[[2]];
+	u[[;;Length[L[[1]]]]]+=w L[[1]];
+	v[[;;Length[L[[2]]]]]-=w L[[2]];
 	(*{u,v}={Collect[u+w*L[[1]],t,MyTogether],Collect[v-w*L[[2]],t,MyTogether]};*)
 	
 	];
@@ -497,7 +500,7 @@ TowerInfo=AssociationThread[tower[[2;;,1]]->TowerInfo]
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Field stuff (not used)*)
 
 
