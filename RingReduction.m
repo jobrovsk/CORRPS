@@ -80,7 +80,7 @@ Return[{gS,gR}];
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Re-used*)
 
 
@@ -111,6 +111,7 @@ MyEliminateRootObjects[f_]:=If[FreeQ[f,Power[_,Rational[_,_]]|Root[__]],f,ToRadi
 
 
 Clear[MyTogether]
+Attributes[MyTogether]={Listable}
 MyTogether[f_]:=
 If[Length[Variables[f]]==0,
 f
@@ -357,8 +358,8 @@ If[i==1000,Message[MyGetOrderOfUnity::donotrecognizerot,alpha];Abort[];,Return[i
 
 
 Clear[RReduction]
-RReduction[g_,1,tower_?MatrixQ]:=Module[{y=tower[[-1,1]],alpha=tower[[-1,2]],AAA},
-PiReduction[Collect[g,y,MyTogether]/.y^(AAA_)->y^Mod[AAA,MyGetOrderOfUnity[alpha]],1,tower]]
+RReduction[g_,1,tower_?MatrixQ]:=Module[{y=tower[[-1,1]],AAA},
+PiReduction[Collect[g,y]/.y^(AAA_)->y^Mod[AAA,TowerInfo["R-Extension"][[2]]],1,tower]]
 
 
 (* ::Text:: *)
@@ -373,17 +374,20 @@ PiReduction[Collect[g,y,MyTogether]/.y^(AAA_)->y^Mod[AAA,MyGetOrderOfUnity[alpha
 
 Clear[PiReduction];
 PiReduction[0,_,tower_?MatrixQ]:={0,0}
-PiReduction[gIn_,s_,towerIn_?MatrixQ]:=Module[
-{g,st,sc,i,degG,gS,gR,gcS,gcR,tdegG,gCoeffs,t,h,a,m,tower=Most[towerIn]},
+PiReduction[g_,s_,towerIn_?MatrixQ]:=Module[
+{st,sc,i,degG,gS,gR,gcS,gcR,tdegG,gCoeffs,t,h,a,m,tower=Most[towerIn]},
 Assert[towerIn[[-1,3]]===0];
 {t,a}=towerIn[[-1,1;;2]];
-g=Collect[gIn,t,MyTogether];
-Assert[Exponent[s,t]==-Exponent[s,t^-1]];
+(*g=Collect[gIn,t,MyTogether];*)
 m=Exponent[s,t];
+Assert[m==-Exponent[s,t^-1]];
 tdegG=-Exponent[g,t^(-1)];
-degG=Exponent[g,t];
-If[tdegG>degG,Return[{0,0}]];
+(*degG=Exponent[g,t];*)
+(*If[tdegG>degG,Return[{0,0}]];*)
+If[tdegG===\[Infinity],Return[{0,0}]];
 gCoeffs=CoefficientList[g t^(-tdegG),t];
+If[Length[gCoeffs]==0,Return[{0,0}]];
+degG=Length[gCoeffs]+tdegG-1;
 If[m==0,
 	{gS,gR}=Sum[
 	RingReduction[gCoeffs[[i-tdegG+1]],s a^i,tower]t^i
@@ -425,6 +429,9 @@ gR=Sum[MyTogether[gCoeffs[[i-st]]] t^i,{i,0,Abs[m]-1}];
 Assert[MyTogether[DeltaF[gS,s,towerIn]+gR-g]===0];
 Return[{gS,gR}];
 ];
+
+
+Attributes
 
 
 (* ::Subsection::Closed:: *)
