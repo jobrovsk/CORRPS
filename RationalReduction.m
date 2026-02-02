@@ -418,7 +418,7 @@ Return[{MyTogether[{eta^(-1)gS,eta^(-1)gR}],CurrentS}]
 
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Rational*)
 
 
@@ -441,9 +441,9 @@ If[Length[Variables[{div}]]>1,
 Clear[ProperAndPolynomialPartsAlt];
 ProperAndPolynomialPartsAlt[f_,var_Symbol]:=Module[{rNum,rDen,num,den,r,pp,fp},
 {num,den}=NumeratorDenominator[MyTogether[f]];
-
+Sow[Timing[
 {pp,r}=MyTogether[MyPolynomialQuotientRemainder[num,den,var]];
-
+][[1]],"MyPolynomialQuotientRemainder"];
 {rNum,rDen}=NumeratorDenominator[r];
 Assert[PolynomialQ[pp,var]];
 Assert[Exponent[rNum,var]<Exponent[rDen den,var]];
