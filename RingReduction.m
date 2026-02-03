@@ -138,7 +138,7 @@ f
 
 (* ::Text:: *)
 (*Input/Output: See function SigmaRingReduction. *)
-(*Note: Combines the functionallity of AuxiliaryReduction and MyProjection. *)
+(*Note: Combines the functionality of AuxiliaryReduction and MyProjection. *)
 (*For using those functions, the line "Return[AuxiliaryProjectionReduction[pp,tower]];" has to be commented out in SigmaReduction*)
 
 
