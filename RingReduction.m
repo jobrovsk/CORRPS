@@ -14,11 +14,14 @@ MyProjection::usage="";
 SigmaRingReduction::usage="";
 RingReduction::usage="TowerInfo must be initialized before using this function 
 (with ReInitTower[tower];)
-In: a basic RPiSigma tower represented by
+Call: RingReduction[g,f,tower]
+where:
+	tower: A basic RPiSigma tower represented by
 	{{x,1,1},{p_1,a_1,0},...{p_m,a_m,0},{y,alpha,0},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}}
 	(m>=0,n>=0 and with or without the R-monomial y)
 	g: An element in this ring
-	f: An invertible element in this ring. f must be f=1 if n>0 or if y is in the tower
+	f: An invertible element in this ring. f must be f=1 if n>0 or if y is in the tower.
+       Can be left out, in this case f=1
 Out: {gS,gR}, with \[CapitalDelta]_f(gS)+gR===g, where gR is a remainder";
 ReInitTower::usage="(Re)Initializes TowerInfo. Call at the beginning and whenever a new tower is used";
 PT ::usage="";
