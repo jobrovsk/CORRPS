@@ -161,6 +161,7 @@ Clear[PolynomialReduction]
 PolynomialReduction[0,u_,v_,tower_]:={0,0}
 PolynomialReduction[b_,u_,v_,tower:{{x_,_,_}}]:=Module[{du,dv,dp,lu,lv,a=0,p=b,d,i,g,pg,lp,cu,cv,m,bm,pm,r,gr,dr,lr,pr},
 {du,dv,dp}=Exponent[{u,v,p},x];
+JEcho["PolynomialReduction: {u,v}=",{u,v}];
 lu=Coefficient[u,x,du];lv=Coefficient[v,x,dv];
 Assert[PolynomialQ[b,x]];Assert[PolynomialQ[u,x]];Assert[PolynomialQ[v,x]];
 If[du!=dv || MyTogether[lu-lv]=!=0, (*Case I*)
@@ -218,7 +219,7 @@ If[IntegerQ[m]&&m>=0 ,  (*Case IV*)
 	dr=Exponent[r,x];
 	i=dr-du+1;
 	While[i>=0,
-		g=Coefficient[r,x,dr]x^i/(i lu+cu+cv);
+		g=Coefficient[r,x,dr]x^i/(i lu+cu-cv);
 		gr-=g;
 		r=Collect[r-u MyTSigma[g,tower]+v g, x,MyTogether];	
 		dr=Exponent[r,x];
