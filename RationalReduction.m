@@ -9,6 +9,7 @@ ClearAll@@Names["RationalReduction`*"];
 
 (* ::Input::Initialization:: *)
 RationalReduction::usage=""
+RationalReductionRNF::usage=""
 
 
 (* ::Input::Initialization:: *)
@@ -412,6 +413,7 @@ Sow[Timing[
 {{xi,eta},CurrentS}=RationalRNF[f,tower,"Representatives"->OptionValue["Representatives"]];
 ][[1]],"RationalRNF"];
 {{gS,gR},CurrentS}=RationalReductionRNF[eta g,xi,tower,"Representatives"->CurrentS];
+(*Print["{eta,xi}=",{eta,xi}];Pause[0.1];*)
 Return[{MyTogether[{eta^(-1)gS,eta^(-1)gR}],CurrentS}]
 ]
 
@@ -419,7 +421,7 @@ Return[{MyTogether[{eta^(-1)gS,eta^(-1)gR}],CurrentS}]
 
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Rational*)
 
 

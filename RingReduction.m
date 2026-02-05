@@ -55,14 +55,18 @@ Clear[RingReduction];
 RingReduction::malformedTower="Error: Tower `1` is malformed and not fit for RingReduction w.r.t Delta `2`";
 RingReduction[0,_,_?MatrixQ,OptionsPattern[]]:={0,0}
 RingReduction[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=RingReduction[g,1,tower,opts];
-RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{x,alpha,beta,gS,gR},
+RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{found,x,alpha,beta,gS,gR},
 Assert[Head[TowerInfo]===Association];
 Sow[Timing[
-(*If[Head[TowerInfo]=!=List,TowerInfo={}];*)
 If[Length[tower]==1&&tower[[1,2;;3]]==={1,1},
 	x=tower[[1,1]];
-	If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]={}];
-	{{gS,gR},TowerInfo[x]}=RationalReduction`RationalReduction[g,f,tower,"Representatives"->TowerInfo[x]];
+(*	If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]={}];
+	{{gS,gR},TowerInfo[x]}=RationalReduction`RationalReduction[g,f,tower,"Representatives"->TowerInfo[x]];	*)
+	
+	If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]=<||>];
+	found=MyLookupPoly[Keys[TowerInfo[x]],f];
+	If[Head[found]===Missing,TowerInfo[x][f]={};found=f;];
+	{{gS,gR},TowerInfo[x][found]}=RationalReduction`RationalReduction[g,f,tower,"Representatives"->TowerInfo[x][found]];
 ,
 {alpha,beta}=tower[[-1,2;;3]];
 If[beta===0,
@@ -83,7 +87,25 @@ Return[{gS,gR}];
 ]
 
 
-(* ::Subsection:: *)
+Clear[MyLookupPoly];
+MyLookupPoly[polList_List,poly_]:=Module[{polother,result,polyMod,repRules},
+repRules=Dispatch[Thread[Variables[polList]->RandomInteger[{Floor[Developer`$MaxMachineInteger/12],Developer`$MaxMachineInteger},Length[Variables[polList]]]]];
+polyMod=poly/.repRules;
+result=Missing[];
+Do[
+	If[MyTogether[(polother/.repRules)-polyMod]===0,
+		If[MyTogether[(poly-polother)]===0,
+			result=polother;
+			Break[];
+		]
+	]
+,{polother,polList}];
+Return[result];
+
+]
+
+
+(* ::Subsection::Closed:: *)
 (*Re-used*)
 
 
@@ -338,7 +360,7 @@ Return[{q,r}];
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*RPi-Case*)
 
 
@@ -432,9 +454,6 @@ gR=Sum[MyTogether[gCoeffs[[i-st]]] t^i,{i,0,Abs[m]-1}];
 Assert[MyTogether[DeltaF[gS,s,towerIn]+gR-g]===0];
 Return[{gS,gR}];
 ];
-
-
-Attributes
 
 
 (* ::Subsection::Closed:: *)
