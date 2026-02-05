@@ -31,6 +31,9 @@ CheckReduction::usage="";
 MyGetOrderOfUnity::usage="";
 
 
+usenewversionForRepresentatives=True;
+
+
 (* ::Input::Initialization:: *)
 Begin["`Private`"];
 
@@ -60,13 +63,19 @@ Assert[Head[TowerInfo]===Association];
 Sow[Timing[
 If[Length[tower]==1&&tower[[1,2;;3]]==={1,1},
 	x=tower[[1,1]];
-(*	If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]={}];
-	{{gS,gR},TowerInfo[x]}=RationalReduction`RationalReduction[g,f,tower,"Representatives"->TowerInfo[x]];	*)
 	
+If[!usenewversionForRepresentatives,
+	If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]={}];
+	{{gS,gR},TowerInfo[x]}=RationalReduction`RationalReduction[g,f,tower,"Representatives"->TowerInfo[x]];	
+	
+,	
 	If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]=<||>];
 	found=MyLookupPoly[Keys[TowerInfo[x]],f];
 	If[Head[found]===Missing,TowerInfo[x][f]={};found=f;];
 	{{gS,gR},TowerInfo[x][found]}=RationalReduction`RationalReduction[g,f,tower,"Representatives"->TowerInfo[x][found]];
+]
+	
+	
 ,
 {alpha,beta}=tower[[-1,2;;3]];
 If[beta===0,
@@ -105,7 +114,7 @@ Return[result];
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Re-used*)
 
 
