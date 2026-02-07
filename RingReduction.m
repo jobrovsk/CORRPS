@@ -38,6 +38,10 @@ usenewversionForRepresentatives=True;
 Begin["`Private`"];
 
 
+(* ::Subsection:: *)
+(*Main*)
+
+
 (* ::Text:: *)
 (*Main scheduler which calls Reduction-function which fits to this tower. *)
 (**)
@@ -58,23 +62,31 @@ Clear[RingReduction];
 RingReduction::malformedTower="Error: Tower `1` is malformed and not fit for RingReduction w.r.t Delta `2`";
 RingReduction[0,_,_?MatrixQ,OptionsPattern[]]:={0,0}
 RingReduction[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=RingReduction[g,1,tower,opts];
-RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{found,x,alpha,beta,gS,gR},
+RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{gTrans,fTrans,step,found,x,alpha,beta,gS,gR},
 Assert[Head[TowerInfo]===Association];
 Sow[Timing[
-If[Length[tower]==1&&tower[[1,2;;3]]==={1,1},
-	x=tower[[1,1]];
-	
-If[!usenewversionForRepresentatives,
-	If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]={}];
-	{{gS,gR},TowerInfo[x]}=RationalReduction`RationalReduction[g,f,tower,"Representatives"->TowerInfo[x]];	
-	
-,	
-	If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]=<||>];
-	found=MyLookupPoly[Keys[TowerInfo[x]],f];
-	If[Head[found]===Missing,TowerInfo[x][f]={};found=f;];
-	{{gS,gR},TowerInfo[x][found]}=RationalReduction`RationalReduction[g,f,tower,"Representatives"->TowerInfo[x][found]];
-]
-	
+If[Length[tower]==1&&tower[[1,2]]===1,
+	{x,step}=tower[[1,{1,3}]];
+	If[step=!=1,
+		gTrans=(g/.x->step x);
+		fTrans=MyTogether[(f/.x->step x)];
+	,
+		{gTrans,fTrans}={f,g};
+	];
+	If[!usenewversionForRepresentatives,
+		If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]={}];
+		{{gS,gR},TowerInfo[x]}=RationalReduction`RationalReduction[gTrans,fTrans,{{x,1,1}},"Representatives"->TowerInfo[x]];	
+		
+	,	
+		If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]=<||>];
+		found=MyLookupPoly[Keys[TowerInfo[x]],fTrans];
+		If[Head[found]===Missing,TowerInfo[x][fTrans]={};found=fTrans;];
+		{{gS,gR},TowerInfo[x][found]}=RationalReduction`RationalReduction[gTrans,fTrans,{{x,1,1}},"Representatives"->TowerInfo[x][found]];
+	];
+	If[step=!=1,
+		gS=(gS/.x-> x/step);
+		gR=MyTogether[gR/.x-> x/step];
+	];
 	
 ,
 {alpha,beta}=tower[[-1,2;;3]];
@@ -96,6 +108,10 @@ Return[{gS,gR}];
 ]
 
 
+(* ::Subsection::Closed:: *)
+(*Auxiliary Functions*)
+
+
 Clear[MyLookupPoly];
 MyLookupPoly[polList_List,poly_]:=Module[{polother,result,polyMod,repRules},
 repRules=Dispatch[Thread[Variables[polList]->RandomInteger[{Floor[Developer`$MaxMachineInteger/12],Developer`$MaxMachineInteger},Length[Variables[polList]]]]];
@@ -112,28 +128,6 @@ Do[
 Return[result];
 
 ]
-
-
-(* ::Subsection:: *)
-(*Re-used*)
-
-
-$activateEcho=False;
-Clear[myEcho];
-myEcho[args___]:=If[$activateEcho,Echo[args]];
-
-
-Clear[MyTSigma]
-MyTSigma[expr_,0,___]:=expr
-MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
-
-
-Clear[DeltaF];
-DeltaF[g_,f_,tower_?MatrixQ]:=f MyTSigma[g,1,tower]-g
-
-
-Clear[MyEliminateRootObjects];
-MyEliminateRootObjects[f_]:=If[FreeQ[f,Power[_,Rational[_,_]]|Root[__]],f,ToRadicals[RootReduce[Together[f]]]]
 
 
 (* ::Text:: *)
@@ -163,7 +157,29 @@ f
 
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
+(*Re-used*)
+
+
+$activateEcho=False;
+Clear[myEcho];
+myEcho[args___]:=If[$activateEcho,Echo[args]];
+
+
+Clear[MyTSigma]
+MyTSigma[expr_,0,___]:=expr
+MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
+
+
+Clear[DeltaF];
+DeltaF[g_,f_,tower_?MatrixQ]:=f MyTSigma[g,1,tower]-g
+
+
+Clear[MyEliminateRootObjects];
+MyEliminateRootObjects[f_]:=If[FreeQ[f,Power[_,Rational[_,_]]|Root[__]],f,ToRadicals[RootReduce[Together[f]]]]
+
+
+(* ::Subsection::Closed:: *)
 (*Sigma*)
 
 
@@ -465,8 +481,57 @@ Return[{gS,gR}];
 ];
 
 
+(* ::Subsection:: *)
+(*Idempotent*)
+
+
+Project[f_,a_List,k_List,y_List]:=With[{alphas=Table[((-1)^(2/a[[i]]))^(a[[i]]-1-k[[i]]),{i,1,Length[y]}]},
+MyTogether[f/.Thread[Rule[y,alphas]]]]//ToRadicals
+
+
+Clear[MyChangeShiftTower]; 
+MyChangeShiftTower[expr__]:=
+(Sigma`DifferenceFields`BasicTools`DFInterface`ChangeShiftTower[expr]/.Sigma`Algebra`CompAlgSigma`II->I);
+
+
+Clear[RemoveRMonomials];
+RemoveRMonomials::NotAnRExtension="Error: Tower `1` extends the constants";
+RemoveRMonomials::malformedTower="Error: Tower `1` is malformed or does not fit to list of R-monomials to remove";
+RemoveRMonomials[tower_?MatrixQ,yList_List]:=Module[{curOrd,ord,alphas,alphasProj,newtower},
+alphas=Lookup[AssociationThread[tower[[;;,1]]->tower[[;;,2]]],yList];
+ord=1;
+newtower=tower;
+Do[
+	If[!MemberQ[yList,tower[[i,1]]],Continue[]];
+	curOrd=MyGetOrderOfUnity[newtower[[i,2]]];
+	If[curOrd==1,Message[RemoveRMonomials::NotAnRExtension,tower];Abort[]];
+	 newtower=MyChangeShiftTower[newtower,curOrd];
+	newtower[[;;,2;;]]=(newtower[[;;,2;;]]/.tower[[i,1]]->1);
+	ord*=curOrd;
+,{i,Length[tower]}];
+newtower[[;;,2;;]]=MyTogether[newtower[[;;,2;;]]];
+ newtower=Select[newtower,(Rest[#]=!={1,0})&];
+If[Length[newtower]+Length[yList]!=Length[tower],
+Message[RemoveRMonomials::malformedTower,tower];Abort[]];
+Return[{newtower,ord}];
+]
+
+
+Clear[IdempotentReduction];
+IdempotentReduction::NotRExtension="No R-monomial in tower `1`"
+IdempotentReduction[g_,f:1,tower_?MatrixQ]:=Module[{gm,yList,newtower,ord},
+If[!KeyExistsQ[TowerInfo["R-Extension"]],Message[IdempotentReduction::NotRExtension,tower];Abort[];];
+yList= {TowerInfo["R-Extension"]}\[Intersection] tower[[;;,1]];
+{newtower,ord}=RemoveRMonomials[tower,yList];
+gm=Sum[MyTSigma[g,k,tower]/.Thread[yList->1],{k,0,ord-1}];
+
+{gSn,gRn}=RingReduction[gm,1,newtower];
+
+]
+
+
 (* ::Subsection::Closed:: *)
-(*Depracated (not used)*)
+(*Deprecated (not used)*)
 
 
 (*deprecated*)
