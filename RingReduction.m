@@ -124,17 +124,28 @@ Return[{gS,gR}];
 
 ReInitTower::malformedTower="Error: Tower `1` contains more than one R-extension, this is not implemented";
 Clear[ReInitTower]
-ReInitTower[tower_?MatrixQ]:=Module[{},
+ReInitTower[tower_?MatrixQ]:=Module[{newtower,ordList,alphas,yList,RExt},
 TowerInfo=<||>;
-RExt=Select[tower,(#[[3]]===0 && RootOfUnityQ[#[[2]]])&];
-If[Length[RExt]==1,
-	TowerInfo["R-Extension"]=Table[{RExt[[i,1]],MyGetOrderOfUnity[RExt[[i,2]]]},{i,Length[RExt]}];
-];
 (*If[Length[RExt]>1,Message[ReInitTower::malformedTower,tower];Abort[]];*)
+newtower=tower;
+While[True,
+	RExt=Select[newtower,(#[[3]]===0 && RootOfUnityQ[#[[2]]])&];
+	If[Length[RExt]==0,Break[]];
+	yList=RExt[[;;,1]];
+	alphas=(MyGetOrderOfUnity/@RExt[[;;,2]]);
+	Assert[Union[MyTogether[Select[tower,MemberQ[yList,#[[1]]]& ][[;;,2]]^alphas]][[1]]===1];
+	If[!KeyExistsQ[TowerInfo,"R-Extension"],TowerInfo["R-Extension"]={}];
+	TowerInfo["R-Extension"]=
+	SortBy[Join[TowerInfo["R-Extension"],Transpose[{yList,alphas}]],FirstPosition[tower[[;;,1]],#[[1]]][[1]]&];
+	{newtower,ordList}=RemoveRMonomials[newtower,yList];
+	Assert[ordList===alphas];
+	Assert[Length[newtower]+Length[TowerInfo["R-Extension"]]==Length[tower]];
+]
+
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Auxiliary Functions*)
 
 
@@ -168,7 +179,7 @@ Clear[MyTogether]
 Attributes[MyTogether]={Listable}
 MyTogether[f_]:=
 If[Length[Variables[f]]==0,
-f
+MyEliminateRootObjects[f]
 ,If[KeyExistsQ[TowerInfo,"R-Extension"],
    With[{yL=TowerInfo["R-Extension"][[;;,1]],l=TowerInfo["R-Extension"][[;;,2]]},
 	If[(Intersection[Variables[f],yL]=!={})(*&&Exponent[f,y]>=l*),
@@ -183,7 +194,7 @@ f
 
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Re-used*)
 
 
@@ -202,10 +213,11 @@ DeltaF[g_,f_,tower_?MatrixQ]:=f MyTSigma[g,1,tower]-g
 
 
 Clear[MyEliminateRootObjects];
+Attributes[MyEliminateRootObjects]={Listable}
 MyEliminateRootObjects[f_]:=If[FreeQ[f,Power[_,Rational[_,_]]|Root[__]],f,ToRadicals[RootReduce[Together[f]]]]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Sigma*)
 
 
@@ -509,9 +521,8 @@ MyChangeShiftTower[expr__]:=
 Clear[RemoveRMonomials];
 RemoveRMonomials::NotAnRExtension="Error: Tower `1` extends the constants";
 RemoveRMonomials::malformedTower="Error: Tower `1` is malformed or does not fit to list of R-monomials to remove";
-RemoveRMonomials[tower_?MatrixQ,yList_List]:=Module[{curOrd,ord,alphas,alphasProj,newtower},
-alphas=Lookup[AssociationThread[tower[[;;,1]]->tower[[;;,2]]],yList];
-ord=1;
+RemoveRMonomials[tower_?MatrixQ,yList_List]:=Module[{curOrd,ordList,alphasProj,newtower},
+ordList={};
 newtower=tower;
 Do[
 	If[!MemberQ[yList,tower[[i,1]]],Continue[]];
@@ -519,24 +530,25 @@ Do[
 	If[curOrd==1,Message[RemoveRMonomials::NotAnRExtension,tower];Abort[]];
 	 newtower=MyChangeShiftTower[newtower,curOrd];
 	newtower[[;;,2;;]]=(newtower[[;;,2;;]]/.tower[[i,1]]->1);
-	ord*=curOrd;
+	AppendTo[ordList,curOrd];
 ,{i,Length[tower]}];
 newtower[[;;,2;;]]=MyTogether[newtower[[;;,2;;]]];
  newtower=Select[newtower,(Rest[#]=!={1,0})&];
 If[Length[newtower]+Length[yList]!=Length[tower],
 Message[RemoveRMonomials::malformedTower,tower];Abort[]];
-Return[{newtower,ord}];
+Return[{newtower,ordList}];
 ]
 
 
 Clear[IdempotentReduction];
 IdempotentReduction::NotRExtension="No R-monomial in tower `1`"
-IdempotentReduction[g_,f:1,tower_?MatrixQ]:=Module[{fm,numR,orders,gm,yList,newtower,ord,gS,gR,gSn,gRn},
+IdempotentReduction[g_,f:1,tower_?MatrixQ]:=Module[{ordList,fm,numR,orders,gm,yList,newtower,ord,gS,gR,gSn,gRn},
 If[!KeyExistsQ[TowerInfo["R-Extension"]],Message[IdempotentReduction::NotRExtension,tower];Abort[];];
 Sow[Timing[
 numR=Length[TowerInfo["R-Extension"][[;;,1]]\[Intersection] tower[[;;,1]]];
 {yList,orders}=Transpose[TowerInfo["R-Extension"][[;;numR]]];
-{newtower,ord}=RemoveRMonomials[tower,yList];
+{newtower,ordList}=RemoveRMonomials[tower,yList];
+ord=Times@@ordList;
 gS=-Sum[Sum[MyTSigma[e[orders,orders-1,yList],j,tower],{j,k+1,ord-1}]MyTSigma[g,k,tower],{k,0,ord-1}];
 (*Print[{gS,e[orders,orders-1,yList]Sum[MyTSigma[g,k,tower],{k,0,ord-1}]}];*)
 
