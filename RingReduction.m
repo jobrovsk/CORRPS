@@ -23,12 +23,17 @@ where:
 	f: An invertible element in this ring. f must be f=1 if n>0 or if y is in the tower.
        Can be left out, in this case f=1
 Out: {gS,gR}, with \[CapitalDelta]_f(gS)+gR===g, where gR is a remainder";
+IdempotentReduction::usage=""
 ReInitTower::usage="(Re)Initializes TowerInfo. Call at the beginning and whenever a new tower is used";
 PT ::usage="";
 MyTogether::usage="";
 DeltaF::usage="";
 CheckReduction::usage="";
 MyGetOrderOfUnity::usage="";
+RemoveRMonomials::usage="";
+
+
+$UseIdempotentReduction=True;
 
 
 usenewversionForRepresentatives=True;
@@ -71,7 +76,7 @@ If[Length[tower]==1&&tower[[1,2]]===1,
 		gTrans=(g/.x->step x);
 		fTrans=MyTogether[(f/.x->step x)];
 	,
-		{gTrans,fTrans}={f,g};
+		{fTrans,gTrans}={f,g};
 	];
 	If[!usenewversionForRepresentatives,
 		If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]={}];
@@ -108,7 +113,28 @@ Return[{gS,gR}];
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Text:: *)
+(*Input :  An admissible tower (as specified for function RingReduction). *)
+(*    Output : Null*)
+(*    Side effect : If there is no R-extension then*)
+(*         TowerInfo=<| |>,*)
+(*           otherwise if there is an R - extension {y, alpha, 0} in the tower*)
+(*        TowerInfo = <|"R-Extension" -> {y, lambda}|>,  where lambda = ord (alpha)*)
+
+
+ReInitTower::malformedTower="Error: Tower `1` contains more than one R-extension, this is not implemented";
+Clear[ReInitTower]
+ReInitTower[tower_?MatrixQ]:=Module[{},
+TowerInfo=<||>;
+RExt=Select[tower,(#[[3]]===0 && RootOfUnityQ[#[[2]]])&];
+If[Length[RExt]==1,
+	TowerInfo["R-Extension"]=Table[{RExt[[i,1]],MyGetOrderOfUnity[RExt[[i,2]]]},{i,Length[RExt]}];
+];
+(*If[Length[RExt]>1,Message[ReInitTower::malformedTower,tower];Abort[]];*)
+];
+
+
+(* ::Subsection:: *)
 (*Auxiliary Functions*)
 
 
@@ -144,9 +170,9 @@ MyTogether[f_]:=
 If[Length[Variables[f]]==0,
 f
 ,If[KeyExistsQ[TowerInfo,"R-Extension"],
-   With[{y=TowerInfo["R-Extension"][[1]],l=TowerInfo["R-Extension"][[2]]},
-	If[!FreeQ[f,y]&&Exponent[f,y]>=l,
-	Together[MyEliminateRootObjects[(Collect[f,y]/.y^(AAA121212_)->y^Mod[AAA121212,l])]]
+   With[{yL=TowerInfo["R-Extension"][[;;,1]],l=TowerInfo["R-Extension"][[;;,2]]},
+	If[(Intersection[Variables[f],yL]=!={})(*&&Exponent[f,y]>=l*),
+	Together[MyEliminateRootObjects[(Collect[f,yL]/.Thread[yL^(AAA121212_)->yL^Mod[AAA121212,l]])]]
 ,
 	Together[MyEliminateRootObjects[f]]
 	]]
@@ -179,7 +205,7 @@ Clear[MyEliminateRootObjects];
 MyEliminateRootObjects[f_]:=If[FreeQ[f,Power[_,Rational[_,_]]|Root[__]],f,ToRadicals[RootReduce[Together[f]]]]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Sigma*)
 
 
@@ -215,27 +241,6 @@ Do[
 ,{d,Length[pCoeffs]-1,0,-1}];
 (*r=Sum[pCoeffs[[i]]t^(i-1),{i,Length[pCoeffs]}];*)
 Return[{q,r}];
-];
-
-
-(* ::Text:: *)
-(*Input :  An admissable tower (as specified for function RingReduction). *)
-(*    Output : Null*)
-(*    Side effect : If there is no R-extension then*)
-(*         TowerInfo=<| |>,*)
-(*           otherwise if there is an R - extension {y, alpha, 0} in the tower*)
-(*        TowerInfo = <|"R-Extension" -> {y, lambda}|>,  where lambda = ord (alpha)*)
-
-
-ReInitTower::malformedTower="Error: Tower `1` contains more than one R-extension, this is not implemented";
-Clear[ReInitTower]
-ReInitTower[tower_?MatrixQ]:=Module[{},
-TowerInfo=<||>;
-RExt=Select[tower,(#[[3]]===0 && RootOfUnityQ[#[[2]]])&];
-If[Length[RExt]==1,
-	TowerInfo["R-Extension"]={RExt[[1,1]],MyGetOrderOfUnity[RExt[[1,2]]]};
-];
-If[Length[RExt]>1,Message[ReInitTower::malformedTower,tower];Abort[]];
 ];
 
 
@@ -409,7 +414,7 @@ If[i==1000,Message[MyGetOrderOfUnity::donotrecognizerot,alpha];Abort[];,Return[i
 
 Clear[RReduction]
 RReduction[g_,1,tower_?MatrixQ]:=Module[{y=tower[[-1,1]],AAA},
-PiReduction[Collect[g,y]/.y^(AAA_)->y^Mod[AAA,TowerInfo["R-Extension"][[2]]],1,tower]]
+PiReduction[Collect[g,y]/.y^(AAA_)->y^Mod[AAA,TowerInfo["R-Extension"][[1,2]]],1,tower]]
 
 
 (* ::Text:: *)
@@ -485,8 +490,15 @@ Return[{gS,gR}];
 (*Idempotent*)
 
 
+Clear[Project];
 Project[f_,a_List,k_List,y_List]:=With[{alphas=Table[((-1)^(2/a[[i]]))^(a[[i]]-1-k[[i]]),{i,1,Length[y]}]},
-MyTogether[f/.Thread[Rule[y,alphas]]]]//ToRadicals
+	MyTogether[f/.Thread[Rule[y,alphas]]]]//ToRadicals
+
+
+Clear[e];
+e[l_List,k_List,y_List]:=Product[e[l[[i]],k[[i]],y[[i]]],{i,Length[l]}]
+e[l_,kIn_,y_]:=e[l,Mod[kIn,l],y]=Module[{j,k=Mod[kIn,l]},(Times@@Drop[Table[y-((-1)^(2/l))^j,{j,0,l-1}],{l-1-k+1}])
+/(Times@@Drop[Table[((-1)^(2/l))^(l-1-k)-((-1)^(2/l))^j,{j,0,l-1}],{l-1-k+1}])//RootReduce//ToRadicals];
 
 
 Clear[MyChangeShiftTower]; 
@@ -519,14 +531,25 @@ Return[{newtower,ord}];
 
 Clear[IdempotentReduction];
 IdempotentReduction::NotRExtension="No R-monomial in tower `1`"
-IdempotentReduction[g_,f:1,tower_?MatrixQ]:=Module[{gm,yList,newtower,ord},
+IdempotentReduction[g_,f:1,tower_?MatrixQ]:=Module[{fm,numR,orders,gm,yList,newtower,ord,gS,gR,gSn,gRn},
 If[!KeyExistsQ[TowerInfo["R-Extension"]],Message[IdempotentReduction::NotRExtension,tower];Abort[];];
-yList= {TowerInfo["R-Extension"]}\[Intersection] tower[[;;,1]];
+Sow[Timing[
+numR=Length[TowerInfo["R-Extension"][[;;,1]]\[Intersection] tower[[;;,1]]];
+{yList,orders}=Transpose[TowerInfo["R-Extension"][[;;numR]]];
 {newtower,ord}=RemoveRMonomials[tower,yList];
+gS=-Sum[Sum[MyTSigma[e[orders,orders-1,yList],j,tower],{j,k+1,ord-1}]MyTSigma[g,k,tower],{k,0,ord-1}];
+(*Print[{gS,e[orders,orders-1,yList]Sum[MyTSigma[g,k,tower],{k,0,ord-1}]}];*)
+
 gm=Sum[MyTSigma[g,k,tower]/.Thread[yList->1],{k,0,ord-1}];
-
-{gSn,gRn}=RingReduction[gm,1,newtower];
-
+Assert[CheckReduction[{g,f},{gS,e[orders,orders-1,yList]Sum[MyTSigma[g,k,tower],{k,0,ord-1}]},tower]];
+fm=1;
+(*Print[newtower];*)
+{gSn,gRn}=RingReduction[gm,fm,newtower];
+gR=e[orders,orders-1,yList]gRn;
+gS+=Sum[MyTSigma[e[orders,orders-1,yList]gSn,k,tower],{k,0,ord-1}];
+][[1]],"IdempotentReduction"];
+Assert[CheckReduction[{g,f},{gS,gR},tower]];
+Return[{gS,gR}];
 ]
 
 
