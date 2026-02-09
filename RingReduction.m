@@ -136,7 +136,7 @@ While[True,
 	Assert[Union[MyTogether[Select[tower,MemberQ[yList,#[[1]]]& ][[;;,2]]^alphas]][[1]]===1];
 	If[!KeyExistsQ[TowerInfo,"R-Extension"],TowerInfo["R-Extension"]={}];
 	TowerInfo["R-Extension"]=
-	SortBy[Join[TowerInfo["R-Extension"],Transpose[{yList,alphas}]],FirstPosition[tower[[;;,1]],#[[1]]][[1]]&];
+		SortBy[Join[TowerInfo["R-Extension"],Transpose[{yList,alphas}]],FirstPosition[tower[[;;,1]],#[[1]]][[1]]&];
 	{newtower,ordList}=RemoveRMonomials[newtower,yList];
 	Assert[ordList===alphas];
 	Assert[Length[newtower]+Length[TowerInfo["R-Extension"]]==Length[tower]];
