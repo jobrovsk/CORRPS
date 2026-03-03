@@ -96,8 +96,8 @@ If[Length[tower]==1&&tower[[1,2]]===1,
 ,
 {alpha,beta}=tower[[-1,2;;3]];
 If[beta===0,
-	If[RootOfUnityQ[alpha],
-		{gS,gR}=RReduction[g,f,tower];
+	If[MemberQ[TowerInfo["R-Extension"][[;;,1]],tower[[-1,1]]],
+		{gS,gR}=SimpleRReduction[g,f,tower];
 	,
 		{gS,gR}=PiReduction[g,f,tower];
 	];
@@ -402,7 +402,7 @@ Return[{q,r}];
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*RPi-Case*)
 
 
@@ -424,8 +424,8 @@ If[i==1000,Message[MyGetOrderOfUnity::donotrecognizerot,alpha];Abort[];,Return[i
 (*          is a complete reduction of g. gR is simplified (in particular gR === 0 if gR can be simplified to zero)*)
 
 
-Clear[RReduction]
-RReduction[g_,1,tower_?MatrixQ]:=Module[{y=tower[[-1,1]],AAA},
+Clear[BasicRReduction]
+BasicRReduction[g_,1,tower_?MatrixQ]:=Module[{y=tower[[-1,1]],AAA},
 PiReduction[Collect[g,y]/.y^(AAA_)->y^Mod[AAA,TowerInfo["R-Extension"][[1,2]]],1,tower]]
 
 
@@ -496,6 +496,56 @@ gR=Sum[MyTogether[gCoeffs[[i-st]]] t^i,{i,0,Abs[m]-1}];
 Assert[MyTogether[DeltaF[gS,s,towerIn]+gR-g]===0];
 Return[{gS,gR}];
 ];
+
+
+Clear[SimpleRReduction]
+SimpleRReduction[g_,f_,tower_?MatrixQ]:=Module[{t=tower[[-1,1]],a=tower[[-1,2]],s,mu,m,d,lambda,AAA,p,gCoeffs,gProj,i,gS,iPrime,k,u,v,towerMu,gR},
+Assert[tower[[-1,3]]===0];
+lambda=(t/.(Rule@@@TowerInfo["R-Extension"]));Assert[IntegerQ[lambda]];
+m=Exponent[f,t];
+s=Coefficient[f,t,m];
+Assert[MyTogether[f-s t^m]===0];
+d=GCD[lambda,m];
+mu=lambda/d;
+p[i_,k_]:=p[i,k]=MyTogether[Product[MyTSigma[s a^i,l,tower],{l,0,k-1}]Product[Product[MyTSigma[ a^m,l,tower],{l,0,ll-1}],{ll,1,k-1}]];
+gCoeffs=CoefficientList[MyTogether[g] ,t];
+Assert[Length[gCoeffs]<=lambda];
+gProj=PadRight[gCoeffs[[;;UpTo[d]]],d];
+gS=0;
+Do[
+u=gCoeffs[[+1+i]];
+iPrime=Mod[i,d];
+k=MyExtendedGCD[m,lambda,iPrime-i];
+gS+=Sum[MyTSigma[u,j,tower]p[i,j]t^(i+j m),{j,0,k-1}];
+gProj[[+1+iPrime]]+=MyTSigma[u,k,tower]p[i,k];
+,{i,d,Length[gCoeffs]-1}];
+Assert[MyTogether[DeltaF[gS,f,tower]+Sum[gProj[[+1+i]]t^i,{i,0,d-1}]-g]===0];
+
+towerMu=If[mu>1,MyTogether[MyChangeShiftTower[tower[[;;-2]],mu]],tower[[;;-2]]];
+Do[
+v=gProj[[+1+i]];
+{u,gProj[[+1+i]]}=RingReduction[v,p[i,mu],towerMu];
+gS+=Sum[MyTSigma[u,j,tower]p[i,j]t^(i+j m),{j,0,mu-1}];
+,{i,0,d-1}];
+gR=Sum[gProj[[+1+i]]t^i,{i,0,d-1}];
+Assert[MyTogether[DeltaF[gS,f,tower]+gR-g]===0];
+Return[{gS,gR}];
+
+];
+
+
+
+Clear[MyExtendedGCD];
+MyExtendedGCD[a_,b_,c_]:=Module[{g,ag,bg,aC,bC},
+Assert[Divisible[c, GCD[a,b]]];
+{g,{ag,bg}}=ExtendedGCD[a,b];
+{aC,bC}={ag,bg}*c/g;
+{k,aC}=QuotientRemainder[aC,b];
+bC+=a k;
+Assert[aC a+bC b===c];
+Assert[0<=aC<b];
+Return[{aC,bC}]
+]
 
 
 (* ::Subsection:: *)
