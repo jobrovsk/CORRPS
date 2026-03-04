@@ -35,7 +35,7 @@ DeltaF[g_,f_,tower_]:=f MyTSigma[g,1,tower]-g
 
 
 Clear[MyEliminateRootObjects];
-MyEliminateRootObjects[f_]:=If[FreeQ[f,Power[_,Rational[_,_]]|Root[__]],f,ToRadicals[RootReduce[Together[f]]]]
+MyEliminateRootObjects[f_]:=If[FreeQ[f,Power[_,Rational[_,_]]|Root[__]],f,ToRadicals[RootReduce[Together[f,Extension->Automatic]]]]
 
 
 (*Nothing for QQ,
@@ -46,7 +46,7 @@ MyEliminateRootObjects for algebraic numbers
 Clear[MyTogether]
 MyTogether[f_]:=
 If[!FreeQ[f,Power[_,Rational[_,_]]|Root[__]],
-	Together[MyEliminateRootObjects[f]]
+	Together[MyEliminateRootObjects[f],Extension->Automatic]
 ,If[Length[Variables[f]]>0,
 	Together[f]
 ,
@@ -421,7 +421,7 @@ Return[{MyTogether[{eta^(-1)gS,eta^(-1)gR}],CurrentS}]
 
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Rational*)
 
 

@@ -145,7 +145,7 @@ While[True,
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Auxiliary Functions*)
 
 
@@ -183,12 +183,12 @@ MyEliminateRootObjects[f]
 ,If[KeyExistsQ[TowerInfo,"R-Extension"],
    With[{yL=TowerInfo["R-Extension"][[;;,1]],l=TowerInfo["R-Extension"][[;;,2]]},
 	If[(Intersection[Variables[f],yL]=!={})(*&&Exponent[f,y]>=l*),
-	Together[MyEliminateRootObjects[(Collect[f,yL]/.Thread[yL^(AAA121212_)->yL^Mod[AAA121212,l]])]]
+	Together[MyEliminateRootObjects[(Collect[f,yL]/.Thread[yL^(AAA121212_)->yL^Mod[AAA121212,l]])],Extension->Automatic]
 ,
-	Together[MyEliminateRootObjects[f]]
+	Together[MyEliminateRootObjects[f],Extension->Automatic]
 	]]
 ,
-	Together[MyEliminateRootObjects[f]]
+	Together[MyEliminateRootObjects[f],Extension->Automatic]
 ]
 ]
 
@@ -442,7 +442,7 @@ PiReduction[Collect[g,y]/.y^(AAA_)->y^Mod[AAA,TowerInfo["R-Extension"][[1,2]]],1
 Clear[PiReduction];
 PiReduction[0,_,tower_?MatrixQ]:={0,0}
 PiReduction[g_,s_,towerIn_?MatrixQ]:=Module[
-{st,sc,i,degG,gS,gR,gcS,gcR,tdegG,gCoeffs,t,h,a,m,tower=Most[towerIn]},
+{st,sc,i,degG,gS,gR,gcS,gcR,tdegG,gCoeffs,t,h,a,m,tower=Most[towerIn],lo,up},
 Assert[towerIn[[-1,3]]===0];
 {t,a}=towerIn[[-1,1;;2]];
 (*g=Collect[gIn,t,MyTogether];*)
@@ -464,20 +464,27 @@ If[m==0,
 ];
 sc=(s/.t->1);
 (*Print["g= ",g];*)
-gCoeffs=PadRight[gCoeffs,Max[degG,Abs[m]-1]-Min[tdegG,0]+1,0,Max[tdegG,0]];
+{lo,up}=If[m>0,{0,m-1},{m,-1}];
+If[degG<up,gCoeffs=Join[gCoeffs,Table[0,up-degG]]];
+If[tdegG>lo,gCoeffs=Join[Table[0,tdegG-lo],gCoeffs]];
+(*gCoeffs=If[m>0,
+	PadRight[gCoeffs,Max[degG,Abs[m]-1]-Min[tdegG,0]+1,0,Max[tdegG,0]]
+,
+	PadRight[gCoeffs,Max[degG,-1]-Min[tdegG-m,0]+1,0,Max[tdegG-m,0]]
+];*)
 (*Print["gCoeffs= ",gCoeffs];*)
-st=Min[tdegG,0]-1; (*exponent of first entry in gCoeffs*)
+st=Min[tdegG,lo]-1; (*exponent of first entry in gCoeffs*)
 gS=0;
 If[m>0,
 	Do[
 		gCoeffs[[i+m-st]]+=sc a^i MyTSigma[gCoeffs[[i-st]],tower];
 		gS-=gCoeffs[[i-st]]t^i;	
-	,{i,tdegG,-1}];
+	,{i,tdegG,lo-1}];
 	Do[
 		h=MyTSigma[gCoeffs[[i-st]]/(sc a^(i-m)),-1,tower];
 		gCoeffs[[i-m-st]]+=h;
 		gS+=h t^(i-m);	
-	,{i,degG,m,-1}];
+	,{i,degG,up+1,-1}];
 	
 ];
 If[m<0,
@@ -485,13 +492,13 @@ If[m<0,
 		h=MyTSigma[gCoeffs[[i-st]]/(sc a^(i-m)),-1,tower];
 		gCoeffs[[i-m-st]]+=h;
 		gS+=h t^(i-m);	
-	,{i,tdegG,-1}];
+	,{i,tdegG,lo-1}];
 	Do[
 		gCoeffs[[i+m-st]]+=sc a^i MyTSigma[gCoeffs[[i-st]],tower];
 		gS-=gCoeffs[[i-st]]t^i;	
-	,{i,degG,-m,-1}];
+	,{i,degG,up+1,-1}];
 ];
-gR=Sum[MyTogether[gCoeffs[[i-st]]] t^i,{i,0,Abs[m]-1}];
+gR=Sum[MyTogether[gCoeffs[[i-st]]] t^i,{i,lo,up}];
 (*Print[{m,gR//Factor}];*)
 Assert[MyTogether[DeltaF[gS,s,towerIn]+gR-g]===0];
 Return[{gS,gR}];
@@ -506,6 +513,7 @@ m=Exponent[f,t];
 s=Coefficient[f,t,m];
 Assert[MyTogether[f-s t^m]===0];
 d=GCD[lambda,m];
+(*Print["d=  ",d];*)
 mu=lambda/d;
 p[i_,k_]:=p[i,k]=MyTogether[Product[MyTSigma[s a^i,l,tower],{l,0,k-1}]Product[Product[MyTSigma[ a^m,l,tower],{l,0,ll-1}],{ll,1,k-1}]];
 gCoeffs=CoefficientList[MyTogether[g] ,t];
@@ -515,8 +523,8 @@ gS=0;
 Do[
 u=gCoeffs[[+1+i]];
 iPrime=Mod[i,d];
-k=MyExtendedGCD[m,lambda,iPrime-i];
-gS+=Sum[MyTSigma[u,j,tower]p[i,j]t^(i+j m),{j,0,k-1}];
+k=MyExtendedGCD[m,lambda,iPrime-i][[1]];
+gS+=-Sum[MyTSigma[u,j,tower]p[i,j]t^(i+j m),{j,0,k-1}];
 gProj[[+1+iPrime]]+=MyTSigma[u,k,tower]p[i,k];
 ,{i,d,Length[gCoeffs]-1}];
 Assert[MyTogether[DeltaF[gS,f,tower]+Sum[gProj[[+1+i]]t^i,{i,0,d-1}]-g]===0];
@@ -528,6 +536,7 @@ v=gProj[[+1+i]];
 gS+=Sum[MyTSigma[u,j,tower]p[i,j]t^(i+j m),{j,0,mu-1}];
 ,{i,0,d-1}];
 gR=Sum[gProj[[+1+i]]t^i,{i,0,d-1}];
+(*Print[{gS,f,tower,gR,g}];*)
 Assert[MyTogether[DeltaF[gS,f,tower]+gR-g]===0];
 Return[{gS,gR}];
 
@@ -590,7 +599,7 @@ Return[{newtower,ordList}];
 ]
 
 
-Clear[IdempotentReduction];
+(*Clear[IdempotentReduction];
 IdempotentReduction::NotRExtension="No R-monomial in tower `1`"
 IdempotentReduction[g_,f:1,tower_?MatrixQ]:=Module[{ordList,fm,numR,orders,gm,yList,newtower,ord,gS,gR,gSn,gRn},
 If[!KeyExistsQ[TowerInfo["R-Extension"]],Message[IdempotentReduction::NotRExtension,tower];Abort[];];
@@ -612,7 +621,7 @@ gS+=Sum[MyTSigma[e[orders,orders-1,yList]gSn,k,tower],{k,0,ord-1}];
 ][[1]],"IdempotentReduction"];
 Assert[CheckReduction[{g,f},{gS,gR},tower]];
 Return[{gS,gR}];
-]
+]*)
 
 
 (* ::Subsection::Closed:: *)
