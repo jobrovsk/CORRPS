@@ -96,7 +96,7 @@ If[Length[tower]==1&&tower[[1,2]]===1,
 ,
 {alpha,beta}=tower[[-1,2;;3]];
 If[beta===0,
-	If[MemberQ[TowerInfo["R-Extension"][[;;,1]],tower[[-1,1]]],
+	If[KeyExistsQ[TowerInfo,"R-Extension"]&&MemberQ[TowerInfo["R-Extension"][[;;,1]],tower[[-1,1]]],
 		{gS,gR}=SimpleRReduction[g,f,tower];
 	,
 		{gS,gR}=PiReduction[g,f,tower];
