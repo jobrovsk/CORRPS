@@ -16,6 +16,9 @@ RationalReductionRNF::usage=""
 Begin["`Private`"];
 
 
+RationalReduction`Private`PolynomialReduction
+
+
 (* ::Subsection:: *)
 (*MISC*)
 
@@ -255,17 +258,17 @@ Sow[Timing[
 ][[1]],"MySigmaFactorization"];
 shiftgoal=Table[0,{Length[factors]}];
 Do[
-multi=Total[sigmaFac[[1,-1,i,;;,2]]];
-If[multi==0,Continue[]];
-Sow[Timing[
-	k=LookupShiftEq[factors[[i]],CurrentS,tower];
-][[1]],"LookupShiftEq"];
-If[Head[k]===Missing,	
-	AppendTo[NewS,MyTogether[MyTSigma[factors[[i]],If[multi>0,1,-1],tower]]];
-	shiftgoal[[i]]=0;
-,
-	shiftgoal[[i]]=If[multi>0,k-1,k+1];
-]
+	multi=Total[sigmaFac[[1,-1,i,;;,2]]];
+	If[multi==0,Continue[]];
+	Sow[Timing[
+		k=LookupShiftEq[factors[[i]],CurrentS,tower];
+	][[1]],"LookupShiftEq"];
+	If[Head[k]===Missing,	
+		AppendTo[NewS,MyTogether[MyTSigma[factors[[i]],If[multi>0,1,-1],tower]]];
+		shiftgoal[[i]]=0;
+	,
+		shiftgoal[[i]]=If[multi>0,k-1,k+1];
+	]
 ,{i,Length[factors]}];
 xi=MyTogether[sigmaFac[[1,1]]Product[MyTSigma[factors[[i]],shiftgoal[[i]],tower]^Total[sigmaFac[[1,-1,i,;;,2]]],{i,Length[factors]}]];
 JEcho["xi:",xi];
