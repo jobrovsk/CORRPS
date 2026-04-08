@@ -124,51 +124,34 @@ Return[{factors,{{xFreePart,1,sigmafactors}}}];
 
 
 Clear[LookupShiftEq]
-LookupShiftEq[g_,CurrentS_List,tower_]:=Module[{key=Missing[],f,k,i},
+LookupShiftEq[g_,CurrentS_List,tower_]:=Module[{key=Missing[],f,k},
 Do[
-	f=CurrentS[[i]];
 	k=MyGetSpecification[g,f,tower];
 	Assert[k===Sigma`DifferenceFields`BasicTools`DFInterface`GetSpecification[g,f,tower]];
 	If[k=!=Null,
 		key=f;
 		Break[];
 	]
-,{i,Length[CurrentS]}];
-If[Head[key]===Missing,Return[{Missing,Undefined}],Return[{i,k}]];
+,{f,CurrentS}];
+If[Head[key]===Missing,Return[key],Return[k]];
 ]
 
 
 Clear[AdjustSigmaFactorization]
-AdjustSigmaFactorization[sigmaFactorization_,CurrentS_List,tower_List]:=Module[{j,NewS={},factors,sigmafac,i,k},
+AdjustSigmaFactorization[sigmaFactorization_,CurrentS_List,tower_List]:=Module[{NewS={},factors,sigmafac,i,k},
 {factors,sigmafac}=sigmaFactorization;
 Do[
 Sow[Timing[
-{j,k}=LookupShiftEq[factors[[i]],CurrentS["S"],tower][[2]];
+k=LookupShiftEq[factors[[i]],CurrentS,tower];
 ][[1]],"LookupShiftEq"];
-If[k===Undefined,
-	{j,k}=LookupShiftEq[factors[[i]],CurrentS["Numerator"],tower];
-	If[k===Undefined,
-		{j,k}=LookupShiftEq[factors[[i]],CurrentS["Denominator"],tower];
-		If[k===Undefined,
-			AppendTo[NewS,factors[[i]]];
-			Continue[];
-		,
-			shift=;
-			AppendTo[NewS,factors[[i]]=MyTogether[MyTSigma[factors[[i]],shift,tower]]];
-			CurrentS["Denominator"]=Delete[CurrentS["Denominator"],j];
-		];
-	,
-		shift=;
-		AppendTo[NewS,factors[[i]]=MyTogether[MyTSigma[factors[[i]],shift,tower]]];
-		CurrentS["Numerator"]=Delete[CurrentS["Numerator"],j];
-	];
+If[Head[k]===Missing,
+	AppendTo[NewS,factors[[i]]];
 ,
-	shift=k;
-];
-sigmafac[[1,-1,i,;;,1]]-=shift;
-
+	factors[[i]]=MyTogether[MyTSigma[factors[[i]],k,tower]];
+	sigmafac[[1,-1,i,;;,1]]-=k;
+]
 ,{i,Length[factors]}];
-CurrentS["S"]=Join[CurrentS["S"],NewS];
+
 Return[{{factors,sigmafac},Join[CurrentS,NewS]}];
 ]
 
@@ -268,44 +251,7 @@ Return[{a,p}];
 
 Clear[RationalRNF]
 Options[RationalRNF]={"Representatives"->{}};
-RationalRNF[f_,tower_List,OptionsPattern[]]:=Module[{CurrentS,factors,sigmaFac,shiftgoal={},multi,xi,eta,k,i,NewS},
-CurrentS=OptionValue["Representatives"];
-NewS=<|"S"->CurrentS,"Numerator"->{},"Denominator"->{}|>;
-Sow[Timing[
-{factors,sigmaFac}=MyGetSigmaFactorization[{f},tower];
-][[1]],"MySigmaFactorization"];
-shiftgoal=Table[0,{Length[factors]}];
-Do[
-	multi=Total[sigmaFac[[1,-1,i,;;,2]]];
-	If[multi==0,Continue[]];
-	Sow[Timing[
-		k=LookupShiftEq[factors[[i]],NewS["S"],tower][[2]];
-	][[1]],"LookupShiftEq"];
-	If[k===Undefined,
-		If[multi>0,
-			AppendTo[NewS["Numerator"],factors[[i]]];
-		,
-			AppendTo[NewS["Denominator"],factors[[i]]];
-		]
-			
-	,
-		shiftgoal[[i]]=If[multi>0,Min[k-1,0],Max[0,k+1]];
-		Assert[shiftgoal[[i]]==0];
-	]
-,{i,Length[factors]}];
-xi=MyTogether[sigmaFac[[1,1]]Product[MyTSigma[factors[[i]],shiftgoal[[i]],tower]^Total[sigmaFac[[1,-1,i,;;,2]]],{i,Length[factors]}]];
-JEcho["xi:",xi];
-eta=Product[Product[MyTSigma[factors[[i]],j,tower]^-Total[Select[sigmaFac[[1,-1,i]],(#[[1]]<=j)&][[;;,2]]],{j,Min[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]-1}] ,{i,Length[factors]}]
-	Product[Product[MyTSigma[factors[[i]],j-1,tower]^Total[Select[sigmaFac[[1,-1,i]],(#[[1]]>=j)&][[;;,2]]],{j,Max[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]+1,-1}] ,{i,Length[factors]}];
-JEcho["eta:",eta];
-Assert[MyTogether[(xi MyTSigma[eta,tower]/eta-f)]===0];
-Return[{{xi,eta},NewS}];
-]
-
-
-Clear[RationalRNFOld]
-Options[RationalRNFOld]={"Representatives"->{}};
-RationalRNFOld[f_,tower_List,OptionsPattern[]]:=Module[{CurrentS,factors,sigmaFac,shiftgoal={},multi,xi,eta,k,i,NewS={}},
+RationalRNF[f_,tower_List,OptionsPattern[]]:=Module[{CurrentS,factors,sigmaFac,shiftgoal={},multi,xi,eta,k,i,NewS={}},
 CurrentS=OptionValue["Representatives"];
 Sow[Timing[
 {factors,sigmaFac}=MyGetSigmaFactorization[{f},tower];
@@ -315,9 +261,9 @@ Do[
 	multi=Total[sigmaFac[[1,-1,i,;;,2]]];
 	If[multi==0,Continue[]];
 	Sow[Timing[
-		k=LookupShiftEq[factors[[i]],CurrentS,tower][[2]];
+		k=LookupShiftEq[factors[[i]],CurrentS,tower];
 	][[1]],"LookupShiftEq"];
-	If[k===Undefined,	
+	If[Head[k]===Missing,	
 		AppendTo[NewS,MyTogether[MyTSigma[factors[[i]],If[multi>0,1,-1],tower]]];
 		shiftgoal[[i]]=0;
 	,
@@ -478,7 +424,7 @@ Return[{MyTogether[{eta^(-1)gS,eta^(-1)gR}],CurrentS}]
 
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Rational*)
 
 
