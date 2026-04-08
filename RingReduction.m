@@ -43,7 +43,7 @@ usenewversionForRepresentatives=True;
 Begin["`Private`"];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Main*)
 
 
@@ -145,7 +145,7 @@ While[True,
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Auxiliary Functions*)
 
 
@@ -194,7 +194,7 @@ MyEliminateRootObjects[f]
 
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Re-used*)
 
 
@@ -317,25 +317,6 @@ Clear[CheckReduction]
 CheckReduction[{g_,f_},{gS_,gR_},tower_]:=(MyTogether[DeltaF[gS,f,tower]+gR-g]===0)
 
 
-(* ::Input::Initialization:: *)
-PT [tower_List,F_List]:= Module[{n,A,R,c,clist,coeff,m,B,i,j,Sol},
-n=Length[F];
-A=RingReduction[#,tower]&/@F;
-R=A[[;;,2]];
-clist=Array[c,n];
-coeff=Flatten[CoefficientList[Numerator[MyTogether[clist . R]],tower[[;;,1]]]];
-coeff=Select[coeff,(#=!=0)&];
-If[coeff==={},Return[{Table[1,n],Total[A[[;;,1]]]}]];
-m=Length[coeff];
-B=Table[Coefficient[coeff[[i]],clist[[j]]],{i,m},{j,n}];
-Sol=NullSpace[B];
-If[Sol==={},Return[{}]];
-(*{Sol,MyTogether[Sol . A[[1;;n,1]]]}*)
-MapThread[Append,{Sol,MyTogether[Sol . A[[;;,1]]]}]
-]
-
-
-
 (* ::Text:: *)
 (*Input :  A tower as required by function RingReduction, where the last extension is a Sigma extension t*)
 (*         r, an element of the auxiliary space,*)
@@ -402,7 +383,7 @@ Return[{q,r}];
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*RPi-Case*)
 
 
@@ -557,7 +538,7 @@ Return[{aC,bC}]
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Idempotent*)
 
 
@@ -622,6 +603,57 @@ gS+=Sum[MyTSigma[e[orders,orders-1,yList]gSn,k,tower],{k,0,ord-1}];
 Assert[CheckReduction[{g,f},{gS,gR},tower]];
 Return[{gS,gR}];
 ]*)
+
+
+(* ::Subsection:: *)
+(*Creative/Parametric Teleskoping *)
+
+
+Clear[FindSummableCombination]
+FindSummableCombination[SigmaPairList_?MatrixQ]:=Module[{R,clist,c,coeff,m,B,i,j,Sol,n},
+R=SigmaPairList[[;;,2]];
+n=Length[SigmaPairList];
+clist=Array[c,n];
+coeff=Flatten[CoefficientList[Numerator[MyTogether[clist . R]],Variables[R]]];
+coeff=Select[coeff,(#=!=0)&];
+If[coeff==={},Return[{Table[1,n],Total[SigmaPairList[[;;,1]]]}]];
+m=Length[coeff];
+B=Table[Coefficient[coeff[[i]],clist[[j]]],{i,m},{j,n}];
+Sol=NullSpace[B];
+If[Sol==={},Return[{}]];
+(*{Sol,MyTogether[Sol . SigmaPairList[[1;;n,1]]]}*)
+MapThread[Append,{Sol,Sol . SigmaPairList[[;;,1]]}]
+]
+
+
+(* ::Input::Initialization:: *)
+Clear[PT];
+PT [tower_List,F_List]:= Module[{n,A,R,c,clist,coeff,m,B,i,j,Sol},
+n=Length[F];
+A=RingReduction[#,tower]&/@F;
+Return[FindSummableCombination[A,tower]];
+]
+
+
+
+Clear[FindTeleskopingRecurrence]
+Options[FindTeleskopingRecurrence]={"MaxOrder"->20}
+FindTeleskopingRecurrence[g_,{towerN_,towerK_},OptionsPattern[]]:=Module[{comb,gPairList,curPair,m},
+gPairList={};
+ReInitTower[towerK];
+curPair=RingReduction[g,towerK];
+Do[
+	AppendTo[gPairList,curPair];
+	comb=FindSummableCombination[gPairList];
+	If[comb=!={},
+		Break[]
+	,
+		curPair=RingReduction[MyTSigma[curPair[[2]],towerN],towerK]+{MyTSigma[curPair[[1]],towerN],0};
+	];
+	Print["m:",m,"Current Pair: ",curPair];
+,{m,0,OptionValue["MaxOrder"]}];
+Return[comb];
+]
 
 
 (* ::Subsection::Closed:: *)
@@ -697,7 +729,7 @@ TowerInfo=AssociationThread[tower[[2;;,1]]->TowerInfo]
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Field stuff (not used)*)
 
 
