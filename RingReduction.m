@@ -28,9 +28,11 @@ ReInitTower::usage="(Re)Initializes TowerInfo. Call at the beginning and wheneve
 PT ::usage="";
 MyTogether::usage="";
 DeltaF::usage="";
+MyTSigma::usage="";
 CheckReduction::usage="";
 MyGetOrderOfUnity::usage="";
 RemoveRMonomials::usage="";
+FindTeleskopingRecurrence::usage="";
 
 
 $UseIdempotentReduction=True;
@@ -194,7 +196,7 @@ MyEliminateRootObjects[f]
 
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Re-used*)
 
 
@@ -215,6 +217,18 @@ DeltaF[g_,f_,tower_?MatrixQ]:=f MyTSigma[g,1,tower]-g
 Clear[MyEliminateRootObjects];
 Attributes[MyEliminateRootObjects]={Listable}
 MyEliminateRootObjects[f_]:=If[FreeQ[f,Power[_,Rational[_,_]]|Root[__]],f,ToRadicals[RootReduce[Together[f]]]]
+
+
+Clear[MatrixRankHeuristic]
+MatrixRankHeuristic[matIn_]:=Module[{matMod,repRules},
+repRules=Thread[Variables[matIn]->RandomInteger[{Floor[Developer`$MaxMachineInteger/12],Developer`$MaxMachineInteger},Length[Variables[matIn]]]];
+matMod=matIn/.Dispatch[repRules];
+If[ArrayQ[matMod,_,IntegerQ],
+	Return[MatrixRank[matMod,Modulus->NextPrime[RandomInteger[{Floor[Developer`$MaxMachineInteger/12],Developer`$MaxMachineInteger}],-1]]]
+,
+	Return[MatrixRank[matMod]]
+]
+]
 
 
 (* ::Subsection::Closed:: *)
@@ -610,49 +624,81 @@ Return[{gS,gR}];
 
 
 Clear[FindSummableCombination]
-FindSummableCombination[SigmaPairList_?MatrixQ]:=Module[{R,clist,c,coeff,m,B,i,j,Sol,n},
+FindSummableCombination[SigmaPairList_?MatrixQ,nonConsts_List]:=Module[{commonDen,R,c,m,B,i,j,Sol,n,sol},
 R=SigmaPairList[[;;,2]];
 n=Length[SigmaPairList];
-clist=Array[c,n];
-coeff=Flatten[CoefficientList[Numerator[MyTogether[clist . R]],Variables[R]]];
-coeff=Select[coeff,(#=!=0)&];
-If[coeff==={},Return[{Table[1,n],Total[SigmaPairList[[;;,1]]]}]];
-m=Length[coeff];
-B=Table[Coefficient[coeff[[i]],clist[[j]]],{i,m},{j,n}];
-Sol=NullSpace[B];
+If[MatchQ[R,{0..}],Return[{Table[1,n],Total[SigmaPairList[[;;,1]]]}]];
+commonDen=PolynomialLCM@@Denominator/@R;
+B=Flatten/@PadRight[CoefficientList[Table[Numerator[R[[i]]]Cancel[commonDen/Denominator[R[[i]]]],{i,n}],nonConsts]];
+Sol=If[MatrixRankHeuristic[B]<n,NullSpace[Transpose[B]],{}];
 If[Sol==={},Return[{}]];
 (*{Sol,MyTogether[Sol . SigmaPairList[[1;;n,1]]]}*)
-MapThread[Append,{Sol,Sol . SigmaPairList[[;;,1]]}]
+Return[Table[{sol,sol . SigmaPairList[[;;,1]]},{sol,Sol}]]
 ]
 
 
-(* ::Input::Initialization:: *)
+(* ::Code::Initialization:: *)
 Clear[PT];
-PT [tower_List,F_List]:= Module[{n,A,R,c,clist,coeff,m,B,i,j,Sol},
+PT[tower_List,F_List]:= Module[{n,A,R,c,clist,coeff,m,B,i,j,Sol},
 n=Length[F];
+ReInitTower[tower];
 A=RingReduction[#,tower]&/@F;
-Return[FindSummableCombination[A,tower]];
+A=MapAt[MyTogether,A,{All,2}];
+Return[FindSummableCombination[A,tower[[;;,1]]]];
 ]
 
 
 
 Clear[FindTeleskopingRecurrence]
-Options[FindTeleskopingRecurrence]={"MaxOrder"->20}
-FindTeleskopingRecurrence[g_,{towerN_,towerK_},OptionsPattern[]]:=Module[{comb,gPairList,curPair,m},
+FindTeleskopingRecurrence::norecfound="No recurrence of order <= `1` exists, increase value of option \"MaxOrder\"";
+
+Options[FindTeleskopingRecurrence]={"MaxOrder"->30,"WithNegativeShifts"->False};
+FindTeleskopingRecurrence[g_,{towerN_,towerK_},opts:OptionsPattern[]]:=FindTeleskopingRecurrence[g,{towerN,towerK},OptionValue["WithNegativeShifts"],opts]
+FindTeleskopingRecurrence[g_,{towerN_,towerK_},False,OptionsPattern[]]:=Module[{comb,gPairList,m,gmS,gmR},
 gPairList={};
 ReInitTower[towerK];
-curPair=RingReduction[g,towerK];
+{gmS,gmR}={0,0};
 Do[
-	AppendTo[gPairList,curPair];
-	comb=FindSummableCombination[gPairList];
-	If[comb=!={},
-		Break[]
-	,
-		curPair=RingReduction[MyTSigma[curPair[[2]],towerN],towerK]+{MyTSigma[curPair[[1]],towerN],0};
-	];
-	Print["m:",m,"Current Pair: ",curPair];
+	{gmS,gmR}=RingReduction[If[m==0,g,MyTSigma[gmR,towerN]],towerK]+{MyTSigma[gmS,towerN],0};
+	gmR=MyTogether[gmR];(* for FindSummableCombination it should be together*)
+	Assert[MyTogether[DeltaF[gmS,1,towerK]+gmR-MyTSigma[g,m,towerN]]===0];
+	AppendTo[gPairList,{gmS,gmR}];
+	Sow[Timing[
+	comb=FindSummableCombination[gPairList,towerK[[;;,1]]];
+	][[1]],"FindSummableCombination"];
+	If[comb=!={},Assert[MyTogether[Sum[comb[[1,1,i]]MyTSigma[g,i-1,towerN],{i,Length[comb[[1,1]]]}]-DeltaF[comb[[1,-1]],1,towerK]]===0];Break[]];
+	(*Print["m:",m," New Remainder: ",gmR];*)
 ,{m,0,OptionValue["MaxOrder"]}];
-Return[comb];
+If[comb==={},Message[FindTeleskopingRecurrence::norecfound,OptionValue["MaxOrder"]]];
+Return[comb[[1]]];
+]
+
+FindTeleskopingRecurrence[g_,{towerN_,towerK_},True,OptionsPattern[]]:=Module[{result,comb,gPairList,m,gmS,gmR,shift,sign,lastP},
+gPairList={};
+ReInitTower[towerK];
+{gmS,gmR}={0,0};
+lastP={0,g};
+Do[
+	sign=If[EvenQ[m],-1,1];
+	shift=sign Ceiling[m/2];	
+	{gmS,gmR}=RingReduction[If[m==0,g,MyTSigma[lastP[[2]],sign,towerN]],towerK]+{MyTSigma[lastP[[1]],sign,towerN],0};
+	gmR=MyTogether[gmR];(* for FindSummableCombination it should be together*)
+	Assert[MyTogether[DeltaF[gmS,1,towerK]+gmR-MyTSigma[g,shift,towerN]]===0];
+	If[sign>0,AppendTo[gPairList,{gmS,gmR}],PrependTo[gPairList,{gmS,gmR}]];
+	Sow[Timing[
+	comb=FindSummableCombination[gPairList,towerK[[;;,1]]];
+	][[1]],"FindSummableCombination"];
+	If[comb=!={},
+		result=MyTSigma[comb[[1]],Floor[m/2],towerN];
+		result[[1]]=MyTogether[result[[1]]];
+		Assert[MyTogether[Sum[result[[1,i]]MyTSigma[g,i-1,towerN],{i,Length[result[[1]]]}]-DeltaF[result[[-1]],1,towerK]]===0];
+		Break[]
+	];
+	lastP=gPairList[[sign]];
+	(*Print["m:",m," New Remainder: ",gmR];*)
+,{m,0,OptionValue["MaxOrder"]}];
+If[comb==={},Message[FindTeleskopingRecurrence::norecfound,OptionValue["MaxOrder"]]];
+Return[result];
 ]
 
 
@@ -729,7 +775,7 @@ TowerInfo=AssociationThread[tower[[2;;,1]]->TowerInfo]
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Field stuff (not used)*)
 
 
