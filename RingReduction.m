@@ -23,7 +23,7 @@ where:
 	f: An invertible element in this ring. f must be f=1 if n>0 or if y is in the tower.
        Can be left out, in this case f=1
 Out: {gS,gR}, with \[CapitalDelta]_f(gS)+gR===g, where gR is a remainder";
-IdempotentReduction::usage=""
+IdempotentReduction::usage="";
 ReInitTower::usage="(Re)Initializes TowerInfo. Call at the beginning and whenever a new tower is used";
 PT ::usage="";
 MyTogether::usage="";
@@ -32,10 +32,13 @@ MyTSigma::usage="";
 CheckReduction::usage="";
 MyGetOrderOfUnity::usage="";
 RemoveRMonomials::usage="";
-FindTeleskopingRecurrence::usage="";
+FindTeleskopingRecurrence::usage="FindTeleskopingRecurrence[g,{towerN,towerK}] finds the a recurrence 
+\!\(\*SubscriptBox[\(c\), \(0\)]\) g + ... +  \!\(\*SubscriptBox[\(c\), \(m\(\\\ \)\)]\)\!\(\*SubscriptBox[\(\[Sigma]\), \(m\)]\)(g)=\!\(\*SubscriptBox[\(\[CapitalDelta]\), \(k\)]\)(h)
+of minimal order m. The output is given as {{\!\(\*SubscriptBox[\(c\), \(0\)]\),...,\!\(\*SubscriptBox[\(c\), \(m\)]\)},h}. h is not simplified by any means. If no recurrence of order OptionValue[\"MaxOrder\"] (default: 30) exists, then the output is {}. If OptionValue[\"WithNegativeShifts\"] is True, then also negative shifts are used internally in the computation (Default: False).
+";
 
 
-$UseIdempotentReduction=True;
+(*$UseIdempotentReduction=True;*)
 
 
 usenewversionForRepresentatives=True;
