@@ -32,7 +32,7 @@ MyTSigma::usage="";
 CheckReduction::usage="";
 MyGetOrderOfUnity::usage="";
 RemoveRMonomials::usage="";
-FindTeleskopingRecurrence::usage="FindTeleskopingRecurrence[g,{towerN,towerK}] finds the a recurrence 
+FindTelescopingRecurrence::usage="FindTelescopingRecurrence[g,{towerN,towerK}] finds the a recurrence 
 \!\(\*SubscriptBox[\(c\), \(0\)]\) g + ... +  \!\(\*SubscriptBox[\(c\), \(m\(\\\ \)\)]\)\!\(\*SubscriptBox[\(\[Sigma]\), \(m\)]\)(g)=\!\(\*SubscriptBox[\(\[CapitalDelta]\), \(k\)]\)(h)
 of minimal order m. The output is given as {{\!\(\*SubscriptBox[\(c\), \(0\)]\),...,\!\(\*SubscriptBox[\(c\), \(m\)]\)},h}. h is not simplified by any means. If no recurrence of order OptionValue[\"MaxOrder\"] (default: 30) exists, then the output is {}. If OptionValue[\"WithNegativeShifts\"] is True, then also negative shifts are used internally in the computation (Default: False).
 ";
@@ -623,7 +623,7 @@ Return[{gS,gR}];
 
 
 (* ::Subsection:: *)
-(*Creative/Parametric Teleskoping *)
+(*Creative/Parametric Telescoping *)
 
 
 Clear[FindSummableCombination]
@@ -635,12 +635,10 @@ commonDen=PolynomialLCM@@Denominator/@R;
 B=Flatten/@PadRight[CoefficientList[Table[Numerator[R[[i]]]Cancel[commonDen/Denominator[R[[i]]]],{i,n}],nonConsts]];
 Sol=If[MatrixRankHeuristic[B]<n,NullSpace[Transpose[B]],{}];
 If[Sol==={},Return[{}]];
-(*{Sol,MyTogether[Sol . SigmaPairList[[1;;n,1]]]}*)
 Return[Table[{sol,sol . SigmaPairList[[;;,1]]},{sol,Sol}]]
 ]
 
 
-(* ::Code::Initialization:: *)
 Clear[PT];
 PT[tower_List,F_List]:= Module[{n,A,R,c,clist,coeff,m,B,i,j,Sol},
 n=Length[F];
@@ -652,12 +650,12 @@ Return[FindSummableCombination[A,tower[[;;,1]]]];
 
 
 
-Clear[FindTeleskopingRecurrence]
-FindTeleskopingRecurrence::norecfound="No recurrence of order <= `1` exists, increase value of option \"MaxOrder\"";
+Clear[FindTelescopingRecurrence]
+FindTelescopingRecurrence::norecfound="No recurrence of order <= `1` exists, increase value of option \"MaxOrder\"";
 
-Options[FindTeleskopingRecurrence]={"MaxOrder"->30,"WithNegativeShifts"->False};
-FindTeleskopingRecurrence[g_,{towerN_List,towerK_List},opts:OptionsPattern[]]:=FindTeleskopingRecurrence[g,{towerN,towerK},OptionValue["WithNegativeShifts"],opts]
-FindTeleskopingRecurrence[g_,{towerN_List,towerK_List},False,OptionsPattern[]]:=Module[{comb,gPairList,m,gmS,gmR},
+Options[FindTelescopingRecurrence]={"MaxOrder"->30,"WithNegativeShifts"->False};
+FindTelescopingRecurrence[g_,{towerN_List,towerK_List},opts:OptionsPattern[]]:=FindTelescopingRecurrence[g,{towerN,towerK},OptionValue["WithNegativeShifts"],opts]
+FindTelescopingRecurrence[g_,{towerN_List,towerK_List},False,OptionsPattern[]]:=Module[{comb,gPairList,m,gmS,gmR},
 gPairList={};
 ReInitTower[towerK];
 {gmS,gmR}={0,0};
@@ -672,11 +670,11 @@ Do[
 	If[comb=!={},Assert[MyTogether[Sum[comb[[1,1,i]]MyTSigma[g,i-1,towerN],{i,Length[comb[[1,1]]]}]-DeltaF[comb[[1,-1]],1,towerK]]===0];Break[]];
 	(*Print["m:",m," New Remainder: ",gmR];*)
 ,{m,0,OptionValue["MaxOrder"]}];
-If[comb==={},Message[FindTeleskopingRecurrence::norecfound,OptionValue["MaxOrder"]]];
+If[comb==={},Message[FindTelescopingRecurrence::norecfound,OptionValue["MaxOrder"]]];
 Return[comb[[1]]];
 ]
 
-FindTeleskopingRecurrence[g_,{towerN_List,towerK_List},True,OptionsPattern[]]:=Module[{result,comb,gPairList,m,gmS,gmR,shift,sign,lastP},
+FindTelescopingRecurrence[g_,{towerN_List,towerK_List},True,OptionsPattern[]]:=Module[{result,comb,gPairList,m,gmS,gmR,shift,sign,lastP},
 gPairList={};
 ReInitTower[towerK];
 {gmS,gmR}={0,0};
@@ -700,7 +698,7 @@ Do[
 	lastP=gPairList[[sign]];
 	(*Print["m:",m," New Remainder: ",gmR];*)
 ,{m,0,OptionValue["MaxOrder"]}];
-If[comb==={},Message[FindTeleskopingRecurrence::norecfound,OptionValue["MaxOrder"]]];
+If[comb==={},Message[FindTelescopingRecurrence::norecfound,OptionValue["MaxOrder"]]];
 Return[result];
 ]
 
