@@ -407,7 +407,7 @@ Return[{q,r}];
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*RPi-Case*)
 
 
@@ -513,7 +513,7 @@ Return[{gS,gR}];
 Clear[SimpleRReduction]
 SimpleRReduction[g_,f_,tower_?MatrixQ]:=Module[{t=tower[[-1,1]],a=tower[[-1,2]],s,mu,m,d,lambda,AAA,p,gCoeffs,gProj,i,gS,iPrime,k,u,v,towerMu,gR},
 Assert[tower[[-1,3]]===0];
-lambda=(t/.(Rule[#[[1]],#[[3]]]&@@@TowerInfo["R-Extension"]));Assert[IntegerQ[lambda]];
+lambda=(t/.(Rule@@@(TowerInfo["R-Extension"][[;;,{1,3}]])));Assert[IntegerQ[lambda]];
 m=Exponent[f,t];
 s=Coefficient[f,t,m];
 Assert[MyTogether[f-s t^m]===0];
@@ -562,7 +562,7 @@ Return[{aC,bC}]
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Idempotent*)
 
 
