@@ -129,7 +129,7 @@ Return[{gS,gR}];
 
 ReInitTower::malformedTower="Error: Tower `1` contains more than one R-extension, this is not implemented";
 Clear[ReInitTower]
-ReInitTower[tower_?MatrixQ]:=Module[{newtower,ordList,alphas,yList,RExt},
+ReInitTower[tower_?MatrixQ]:=Module[{newtower,ordList,orders,yList,RExt,alphas},
 TowerInfo=<||>;
 (*If[Length[RExt]>1,Message[ReInitTower::malformedTower,tower];Abort[]];*)
 newtower=tower;
@@ -137,20 +137,21 @@ While[True,
 	RExt=Select[newtower,(#[[3]]===0 && RootOfUnityQ[#[[2]]])&];
 	If[Length[RExt]==0,Break[]];
 	yList=RExt[[;;,1]];
-	alphas=(MyGetOrderOfUnity/@RExt[[;;,2]]);
-	Assert[Union[MyTogether[Select[tower,MemberQ[yList,#[[1]]]& ][[;;,2]]^alphas]][[1]]===1];
+	orders=(MyGetOrderOfUnity/@RExt[[;;,2]]);
+	alphas=Table[RExt[[i,2]]^(Times@@RExt[[;;i-1,2]]),{i,Length[RExt]}];
+	Assert[Union[MyTogether[Select[tower,MemberQ[yList,#[[1]]]& ][[;;,2]]^orders]][[1]]===1];
 	If[!KeyExistsQ[TowerInfo,"R-Extension"],TowerInfo["R-Extension"]={}];
 	TowerInfo["R-Extension"]=
-		SortBy[Join[TowerInfo["R-Extension"],Transpose[{yList,alphas}]],FirstPosition[tower[[;;,1]],#[[1]]][[1]]&];
-	{newtower,ordList}=RemoveRMonomials[newtower,yList];
-	Assert[ordList===alphas];
+		SortBy[Join[TowerInfo["R-Extension"],Transpose[{yList,alphas,orders}]],FirstPosition[tower[[;;,1]],#[[1]]][[1]]&];
+	{newtower,ordList}=RemoveRMonomials[newtower,yList,0];
+	Assert[ordList===orders];
 	Assert[Length[newtower]+Length[TowerInfo["R-Extension"]]==Length[tower]];
 ]
 
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Auxiliary Functions*)
 
 
@@ -173,7 +174,7 @@ Return[result];
 
 
 (* ::Text:: *)
-(*Chooses the best way to simplify the given object. The output is canonical w.r.t. the R-extension.*)
+(*Chooses an efficient way to simplify the given object. The output is canonical w.r.t. the R-extension, i.e. it is explicitely 0 if f is equal to zero in the given tower.*)
 (*Nothing for QQ,*)
 (*plain MyTogether for QQ (x_ 1, x_ 2, ...),*)
 (*MyEliminateRootObjects for algebraic numbers *)
@@ -186,9 +187,15 @@ MyTogether[f_]:=
 If[Length[Variables[f]]==0,
 MyEliminateRootObjects[f]
 ,If[KeyExistsQ[TowerInfo,"R-Extension"],
-   With[{yL=TowerInfo["R-Extension"][[;;,1]],l=TowerInfo["R-Extension"][[;;,2]]},
+   With[{yL=TowerInfo["R-Extension"][[;;,1]],l=TowerInfo["R-Extension"][[;;,-1]]},
 	If[(Intersection[Variables[f],yL]=!={})(*&&Exponent[f,y]>=l*),
-	Together[MyEliminateRootObjects[(Collect[f,yL]/.Thread[yL^(AAA121212_)->yL^Mod[AAA121212,l]])],Extension->Automatic]
+		With[{prel=Together[MyEliminateRootObjects[(Collect[f,yL]/.Thread[yL^(AAA121212_)->yL^Mod[AAA121212,l]])],Extension->Automatic]},
+		If[Intersection[Variables[Denominator[prel]],yL]=!={},
+			Together[MyEliminateRootObjects[(Collect[Numerator[prel],yL]/.Thread[yL^(AAA121212_)->yL^Mod[AAA121212,l]])],Extension->Automatic]/Denominator[prel]
+		,
+			prel
+		]
+		]
 ,
 	Together[MyEliminateRootObjects[f],Extension->Automatic]
 	]]
@@ -199,7 +206,7 @@ MyEliminateRootObjects[f]
 
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Re-used*)
 
 
@@ -214,7 +221,7 @@ MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`Basi
 
 
 Clear[DeltaF];
-DeltaF[g_,f_,tower_?MatrixQ]:=f MyTSigma[g,1,tower]-g
+DeltaF[g_,f_:1,tower_?MatrixQ]:=f MyTSigma[g,1,tower]-g
 
 
 Clear[MyEliminateRootObjects];
@@ -404,13 +411,13 @@ Return[{q,r}];
 (*RPi-Case*)
 
 
-MyGetOrderOfUnity::donotrecognizerot="Error: Failed to find order of `1`. Are you sure this is a root of unity in Complex? (of order <1000)";
+MyGetOrderOfUnity::donotrecognizeroot="Error: Failed to find order of `1`. Are you sure this is a root of unity in Complex? (of order <1000)";
 Clear[MyGetOrderOfUnity];
 MyGetOrderOfUnity[alpha_]:=Module[{i=1,alphaj=1}
 ,While[!PossibleZeroQ[1-(alphaj*=alpha),Method->"ExactAlgebraics"]&&i<1000,
 i++;
 ];
-If[i==1000,Message[MyGetOrderOfUnity::donotrecognizerot,alpha];Abort[];,Return[i]];
+If[i==1000,Message[MyGetOrderOfUnity::donotrecognizeroot,alpha];Abort[];,Return[i]];
 ]
 
 
@@ -424,7 +431,7 @@ If[i==1000,Message[MyGetOrderOfUnity::donotrecognizerot,alpha];Abort[];,Return[i
 
 Clear[BasicRReduction]
 BasicRReduction[g_,1,tower_?MatrixQ]:=Module[{y=tower[[-1,1]],AAA},
-PiReduction[Collect[g,y]/.y^(AAA_)->y^Mod[AAA,TowerInfo["R-Extension"][[1,2]]],1,tower]]
+PiReduction[Collect[g,y]/.y^(AAA_)->y^Mod[AAA,TowerInfo["R-Extension"][[1,3]]],1,tower]]
 
 
 (* ::Text:: *)
@@ -506,7 +513,7 @@ Return[{gS,gR}];
 Clear[SimpleRReduction]
 SimpleRReduction[g_,f_,tower_?MatrixQ]:=Module[{t=tower[[-1,1]],a=tower[[-1,2]],s,mu,m,d,lambda,AAA,p,gCoeffs,gProj,i,gS,iPrime,k,u,v,towerMu,gR},
 Assert[tower[[-1,3]]===0];
-lambda=(t/.(Rule@@@TowerInfo["R-Extension"]));Assert[IntegerQ[lambda]];
+lambda=(t/.(Rule[#[[1]],#[[3]]]&@@@TowerInfo["R-Extension"]));Assert[IntegerQ[lambda]];
 m=Exponent[f,t];
 s=Coefficient[f,t,m];
 Assert[MyTogether[f-s t^m]===0];
@@ -543,7 +550,7 @@ Return[{gS,gR}];
 
 
 Clear[MyExtendedGCD];
-MyExtendedGCD[a_,b_,c_]:=Module[{g,ag,bg,aC,bC},
+MyExtendedGCD[a_,b_,c_]:=Module[{g,ag,bg,aC,bC,k},
 Assert[Divisible[c, GCD[a,b]]];
 {g,{ag,bg}}=ExtendedGCD[a,b];
 {aC,bC}={ag,bg}*c/g;
@@ -555,7 +562,7 @@ Return[{aC,bC}]
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Idempotent*)
 
 
@@ -565,9 +572,11 @@ Project[f_,a_List,k_List,y_List]:=With[{alphas=Table[((-1)^(2/a[[i]]))^(a[[i]]-1
 
 
 Clear[e];
-e[l_List,k_List,y_List]:=Product[e[l[[i]],k[[i]],y[[i]]],{i,Length[l]}]
-e[l_,kIn_,y_]:=e[l,Mod[kIn,l],y]=Module[{j,k=Mod[kIn,l]},(Times@@Drop[Table[y-((-1)^(2/l))^j,{j,0,l-1}],{l-1-k+1}])
-/(Times@@Drop[Table[((-1)^(2/l))^(l-1-k)-((-1)^(2/l))^j,{j,0,l-1}],{l-1-k+1}])//RootReduce//ToRadicals];
+e[l_List,k_List,y_List,alphas_]:=Times@@MapThread[e,{l,k,y,alphas}]
+e[l_List,k_List,y_List]:=Times@@MapThread[e,{l,k,y}]
+e[l_,kIn_,y_]:=e[l,kIn,y,(-1)^(2/l)]
+e[l_,kIn_,y_,alpha_]:=e[l,Mod[kIn,l],y]=Module[{j,k=Mod[kIn,l]},(Times@@Drop[Table[y-(alpha)^j,{j,0,l-1}],{l-1-k+1}])
+/(Times@@Drop[Table[(alpha)^(l-1-k)-(alpha)^j,{j,0,l-1}],{l-1-k+1}])//RootReduce//ToRadicals];
 
 
 Clear[MyChangeShiftTower]; 
@@ -578,15 +587,16 @@ MyChangeShiftTower[expr__]:=
 Clear[RemoveRMonomials];
 RemoveRMonomials::NotAnRExtension="Error: Tower `1` extends the constants";
 RemoveRMonomials::malformedTower="Error: Tower `1` is malformed or does not fit to list of R-monomials to remove";
-RemoveRMonomials[tower_?MatrixQ,yList_List]:=Module[{curOrd,ordList,alphasProj,newtower},
+RemoveRMonomials[tower_?MatrixQ,yList_List,proj_Integer:-1]:=Module[{curOrd,ordList,alphasProj,newtower,alpha},
 ordList={};
 newtower=tower;
 Do[
 	If[!MemberQ[yList,tower[[i,1]]],Continue[]];
 	curOrd=MyGetOrderOfUnity[newtower[[i,2]]];
 	If[curOrd==1,Message[RemoveRMonomials::NotAnRExtension,tower];Abort[]];
+	alpha=newtower[[i,2]];
 	 newtower=MyChangeShiftTower[newtower,curOrd];
-	newtower[[;;,2;;]]=(newtower[[;;,2;;]]/.tower[[i,1]]->1);
+	newtower[[;;,2;;]]=(newtower[[;;,2;;]]/.tower[[i,1]]->alpha^Mod[curOrd-1-proj,curOrd]);
 	AppendTo[ordList,curOrd];
 ,{i,Length[tower]}];
 newtower[[;;,2;;]]=MyTogether[newtower[[;;,2;;]]];
@@ -597,32 +607,35 @@ Return[{newtower,ordList}];
 ]
 
 
-(*Clear[IdempotentReduction];
+Clear[IdempotentReduction];
 IdempotentReduction::NotRExtension="No R-monomial in tower `1`"
-IdempotentReduction[g_,f:1,tower_?MatrixQ]:=Module[{ordList,fm,numR,orders,gm,yList,newtower,ord,gS,gR,gSn,gRn},
+IdempotentReduction[g_,f:1,tower_?MatrixQ]:=Module[{ordList,fm,numR,orders,gm,yList,newtower,ord,gS,gR,gSn,gRn,alphas,k,myE},
 If[!KeyExistsQ[TowerInfo["R-Extension"]],Message[IdempotentReduction::NotRExtension,tower];Abort[];];
+Assert[f===1];
+
 Sow[Timing[
 numR=Length[TowerInfo["R-Extension"][[;;,1]]\[Intersection] tower[[;;,1]]];
-{yList,orders}=Transpose[TowerInfo["R-Extension"][[;;numR]]];
-{newtower,ordList}=RemoveRMonomials[tower,yList];
+{yList,alphas,orders}=Transpose[TowerInfo["R-Extension"][[;;numR]]];
+myE=e[orders,orders*0,yList,alphas];
+{newtower,ordList}=RemoveRMonomials[tower,yList,0];
 ord=Times@@ordList;
-gS=-Sum[Sum[MyTSigma[e[orders,orders-1,yList],j,tower],{j,k+1,ord-1}]MyTSigma[g,k,tower],{k,0,ord-1}];
+gS=-Sum[Sum[MyTSigma[myE,j,tower],{j,k+1,ord-1}]MyTSigma[g,k,tower],{k,0,ord-1}]/.Thread[yList^(AAA121212_)->yList^Mod[AAA121212,orders]];
 (*Print[{gS,e[orders,orders-1,yList]Sum[MyTSigma[g,k,tower],{k,0,ord-1}]}];*)
 
-gm=Sum[MyTSigma[g,k,tower]/.Thread[yList->1],{k,0,ord-1}];
-Assert[CheckReduction[{g,f},{gS,e[orders,orders-1,yList]Sum[MyTSigma[g,k,tower],{k,0,ord-1}]},tower]];
+gm=Sum[MyTSigma[g,k,tower]/.Thread[yList->1/alphas],{k,0,ord-1}];
+Assert[CheckReduction[{g,f},{gS,myE gm},tower]];
 fm=1;
 (*Print[newtower];*)
 {gSn,gRn}=RingReduction[gm,fm,newtower];
-gR=e[orders,orders-1,yList]gRn;
-gS+=Sum[MyTSigma[e[orders,orders-1,yList]gSn,k,tower],{k,0,ord-1}];
+gR=myE gRn;
+gS+=Sum[MyTSigma[myE gSn,k,tower],{k,0,ord-1}];
 ][[1]],"IdempotentReduction"];
 Assert[CheckReduction[{g,f},{gS,gR},tower]];
 Return[{gS,gR}];
-]*)
+]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Creative/Parametric Telescoping *)
 
 
