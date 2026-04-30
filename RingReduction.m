@@ -562,7 +562,7 @@ Return[{aC,bC}]
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Idempotent*)
 
 
@@ -609,7 +609,7 @@ Return[{newtower,ordList}];
 
 Clear[IdempotentReduction];
 IdempotentReduction::NotRExtension="No R-monomial in tower `1`"
-IdempotentReduction[g_,f:1,tower_?MatrixQ]:=Module[{ordList,fm,numR,orders,gm,yList,newtower,ord,gS,gR,gSn,gRn,alphas,k,myE},
+IdempotentReduction[g_,f_,tower_?MatrixQ]:=Module[{ordList,fm,numR,orders,gm,yList,newtower,ord,gS,gR,gSn,gRn,alphas,k,myE},
 If[!KeyExistsQ[TowerInfo["R-Extension"]],Message[IdempotentReduction::NotRExtension,tower];Abort[];];
 Assert[f===1];
 
@@ -618,15 +618,19 @@ numR=Length[TowerInfo["R-Extension"][[;;,1]]\[Intersection] tower[[;;,1]]];
 {yList,alphas,orders}=Transpose[TowerInfo["R-Extension"][[;;numR]]];
 myE=e[orders,orders*0,yList,alphas];
 {newtower,ordList}=RemoveRMonomials[tower,yList,0];
+(*Print["newtower=",newtower];*)
 ord=Times@@ordList;
-gS=-Sum[Sum[MyTSigma[myE,j,tower],{j,k+1,ord-1}]MyTSigma[g,k,tower],{k,0,ord-1}]/.Thread[yList^(AAA121212_)->yList^Mod[AAA121212,orders]];
+(*gS=-Sum[Sum[MyTSigma[myE,j,tower],{j,k+1,ord-1}]MyTSigma[g,k,tower],{k,0,ord-1}]/.Thread[yList^(AAA121212_)->yList^Mod[AAA121212,orders]];*)
+gS=Sum[Sum[MyTSigma[myE,i-j,tower]MyTSigma[g,-j,tower],{j,1,i}],{i,1,ord-1}]/.Thread[yList^(AAA121212_)->yList^Mod[AAA121212,orders]];
 (*Print[{gS,e[orders,orders-1,yList]Sum[MyTSigma[g,k,tower],{k,0,ord-1}]}];*)
-
-gm=Sum[MyTSigma[g,k,tower]/.Thread[yList->1/alphas],{k,0,ord-1}];
+(*Print["gS= ",Together[gS]];*)
+gm=Sum[MyTSigma[g,-k,tower]/.Thread[yList->1/alphas],{k,0,ord-1}];
+(*Print["gm = ",MyTogether[gm]];*)
 Assert[CheckReduction[{g,f},{gS,myE gm},tower]];
 fm=1;
 (*Print[newtower];*)
 {gSn,gRn}=RingReduction[gm,fm,newtower];
+(*Print["{gSn,gRn}= ",{gSn,gRn}];*)
 gR=myE gRn;
 gS+=Sum[MyTSigma[myE gSn,k,tower],{k,0,ord-1}];
 ][[1]],"IdempotentReduction"];
