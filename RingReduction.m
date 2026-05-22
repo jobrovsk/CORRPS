@@ -48,6 +48,36 @@ usenewversionForRepresentatives=True;
 Begin["`Private`"];
 
 
+(* ::Input::Initialization:: *)
+CellPrint[Cell[BoxData[RowBox[{RowBox[{"RPiSigmaRingReduction by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyright] RISC \[LongDash] Version 0.1 (May 21, 2026)"}], 
+               ButtonBox[StyleBox["Help", "Hyperlink", FontVariations -> {"Underline" -> True}],
+					ButtonFunction :> RingReductionHelp[], ButtonEvaluator -> Automatic, ButtonData :> {"", ""}, 
+					ButtonFrame -> "None"]}]], "Print", CellFrame -> 0.5`, FontColor -> GrayLevel[0.`], 
+				Background -> RGBColor[102/256,139/256, 232/256], ButtonBoxOptions -> {Active -> True}]]
+
+
+(* ::Input::Initialization:: *)
+ (*****************************************************************************************************)
+(***********************************************Help notebook*****************************************)
+(*****************************************************************************************************)
+Clear[RingReductionHelp]
+RingReductionHelp[]:=Module[{outnb},
+    outnb = NotebookCreate[];
+    SetOptions[SelectedNotebook[], WindowSize -> {1100, 900}, Magnification -> 1];
+    NotebookWrite[outnb, Cell["RingReduction Help", "Title"], AutoScroll -> False];
+(*    NotebookWrite[outnb,Cell["PLDESolverFunctionsList is a list of the available functions in PLDESolverList. Enter", "Text"], AutoScroll -> False];
+    NotebookWrite[outnb, Cell["PLDESolverFunctionsList", "Input"], AutoScroll -> False];
+    NotebookWrite[outnb,Cell["to list the available functions.", "Text"], AutoScroll -> False];
+    NotebookWrite[outnb,Cell["To get details for one function execute e.g.:", "Text"], AutoScroll -> False];
+    NotebookWrite[outnb, Cell["?SolvePLDE", "Input"], AutoScroll -> False];
+    NotebookWrite[outnb,Cell[TextData[{
+        "For more details, we refer to ",
+        Cell[TextData[ButtonBox["https://risc.jku.at/sw/PLDESolver.", BaseStyle -> "Hyperlink",ButtonData -> {URL["https://risc.jku.at/sw/PLDESolver"],None}]],"Text"]
+        }],"Text"]
+    , AutoScroll -> False];*)
+];
+
+
 (* ::Subsection::Closed:: *)
 (*Main*)
 
@@ -151,7 +181,7 @@ While[True,
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Auxiliary Functions*)
 
 
@@ -407,7 +437,7 @@ Return[{q,r}];
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*RPi-Case*)
 
 
@@ -562,7 +592,7 @@ Return[{aC,bC}]
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Idempotent*)
 
 
