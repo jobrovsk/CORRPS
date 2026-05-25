@@ -256,6 +256,13 @@ CurrentS=OptionValue["Representatives"];
 Sow[Timing[
 {factors,sigmaFac}=MyGetSigmaFactorization[{f},tower];
 ][[1]],"MySigmaFactorization"];
+
+(*(*shift factors in the denominator back by one *)
+Sow[Timing[
+{factors,sigmaFac}=AdjustSigmaFactorization[{factors,sigmaFac},MyTSigma[Pick[factors,Thread[(Total/@sigmaFac[[1,-1,;;,;;,2]])<0]],-1,tower],tower][[1]];
+][[1]],"SecondAdjust"];*)
+
+
 shiftgoal=Table[0,{Length[factors]}];
 Do[
 	multi=Total[sigmaFac[[1,-1,i,;;,2]]];
@@ -421,10 +428,7 @@ Return[{MyTogether[{eta^(-1)gS,eta^(-1)gR}],CurrentS}]
 ]
 
 
-
-
-
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Rational*)
 
 
