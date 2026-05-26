@@ -27,8 +27,9 @@ IdempotentReduction::usage="";
 ReInitTower::usage="(Re)Initializes TowerInfo. Call at the beginning and whenever a new tower is used";
 PT ::usage="";
 MyTogether::usage="";
+MyChangeShiftTower::usage="";
 DeltaF::usage="";
-MyTSigma::usage="";
+MySigma::usage="";
 CheckReduction::usage="";
 MyGetOrderOfUnity::usage="";
 RemoveRMonomials::usage="";
@@ -78,7 +79,7 @@ RingReductionHelp[]:=Module[{outnb},
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Main*)
 
 
@@ -162,6 +163,10 @@ Clear[ReInitTower]
 ReInitTower[tower_?MatrixQ]:=Module[{newtower,ordList,orders,yList,RExt,alphas},
 TowerInfo=<||>;
 (*If[Length[RExt]>1,Message[ReInitTower::malformedTower,tower];Abort[]];*)
+
+(*Delete precomputed higher towers*)
+ReleaseHold[MapAt[Unset,Select[DownValues[MyChangeShiftTower],(Head[#[[1,1,1]]]===List && IntegerQ[#[[1,1,2]]])&][[;;,1]],{All,1}]];
+
 newtower=tower;
 While[True,
 	RExt=Select[newtower,(#[[3]]===0 && RootOfUnityQ[#[[2]]])&];
@@ -181,7 +186,7 @@ While[True,
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Auxiliary Functions*)
 
 
@@ -245,43 +250,49 @@ Clear[myEcho];
 myEcho[args___]:=If[$activateEcho,Echo[args]];
 
 
-Clear[MyTSigma]
-MyTSigma[expr_,0,___]:=expr
-MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
+Clear[MySigma]
+MySigma[expr_,0,___]:=expr
+MySigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
 
 
-Clear
-
-
-MyChangeShiftTower[{{x,1,1},{p,x,0},{h,1,1/x}},2]
+Clear[MySigma]
+MySigma[expr_,0,___]:=expr
+MySigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
 
 
 Clear[MyChangeShiftTower];
-MyChangeShiftTower[tower_List,k_]:=MyChangeShiftTower[AssociationThread[tower[[;;,1]],tower[[;;,2]]tower[[;;,1]]+tower[[;;,3]]],k]
-
 MyChangeShiftTower[tower_List,1]:=tower
-MyChangeShiftTower[tower_List,k_]/;(k>1):=Module[{resminus,resbare},
-resminus=MyChangeShiftTower[tower,k-1];
-resbare=MySigma[tower[[;;,2]]tower[[;;,1]]+tower[[;;,3]],resminus];
-Return[Table[{tower[[i,1]] ,Together[Coefficient[resbare[[i]],tower[[i,1]]]],Together[Coefficient[resbare[[i]],tower[[i,1]],0]]},{i,Length[tower]}]];
-](*Change Together to MyTogether*)
+MyChangeShiftTower[tower_List,k_]/;(k<-1):=MyChangeShiftTower[tower,k]=MyChangeShiftTower[MyChangeShiftTower[tower,-1],-k]
+MyChangeShiftTower[tower_List,k_]/;(k> 1):=MyChangeShiftTower[tower,k]=Module[{resminus,resbare},
+	resminus=MyChangeShiftTower[tower,k-1];
+	resbare=MySigma[tower[[;;,2]]tower[[;;,1]]+tower[[;;,3]],resminus];
+	Return[Table[{tower[[i,1]],MyTogether@Coefficient[resbare[[i]],tower[[i,1]]],MyTogether@Coefficient[resbare[[i]],tower[[i,1]],0]},{i,Length[tower]}]];
+]
+MyChangeShiftTower[{},_]:={}
+MyChangeShiftTower[tower_List,-1]:=MyChangeShiftTower[tower,-1]=Module[{trunktower=MyChangeShiftTower[tower[[;;-2]],-1],t,alpha,beta},
+	{t,alpha,beta}=tower[[-1]];
+	Return[Append[trunktower,{t,MyTogether@MySigma[1/alpha,trunktower],MyTogether@MySigma[-beta,trunktower]}]]
+]
 
 
-Clear[MyTSigma]
+
+Clear[MySigma]
+MySigma[expr_,0,___]:=expr
+MySigma[expr_,1,tower]:=expr/.Thread[tower[[;;,1]]->tower[[;;,2]]tower[[;;,1]]+tower[[;;,3]]]
+MySigma[expr_,k_,tower]/;(k> 1):=MySigma[MySigma[expr,k-1,tower],1,tower];
+MySigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
+
+
+Clear[MySigma]
 MySigma[expr_,0,___]:=expr
 MySigma[expr_,tower_]:=expr/.Thread[tower[[;;,1]]->tower[[;;,2]]tower[[;;,1]]+tower[[;;,3]]]
 MySigma[expr_,1,tower_]:=expr/.Thread[tower[[;;,1]]->tower[[;;,2]]tower[[;;,1]]+tower[[;;,3]]]
-
-MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
-
-
-Clear[MyTSigma]
-MyTSigma[expr_,0,___]:=expr
-MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
+MySigma[expr_,k_,tower_]:=MySigma[expr,1,MyChangeShiftTower[tower,k]]; 
+(*MySigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;*)
 
 
 Clear[DeltaF];
-DeltaF[g_,f_:1,tower_?MatrixQ]:=f MyTSigma[g,1,tower]-g
+DeltaF[g_,f_:1,tower_?MatrixQ]:=f MySigma[g,1,tower]-g
 
 
 Clear[MyEliminateRootObjects];
@@ -301,7 +312,7 @@ If[ArrayQ[matMod,_,IntegerQ],
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Sigma*)
 
 
@@ -330,7 +341,7 @@ Do[
 	{q,r}+= {w/(d+1) t^(d+1)+(g-w betaS)*t^d,MyTogether[u-w*betaR]t^d};
 	
 	Assert[Rational`MyCoefficientNew[tower[[;;,1]],u-w*betaR,b]===0];
-	sub=If[Length[tower]>1,Collect[MyTSigma[g-w betaS,tower1],tower[[-2,1]],MyTogether],MyTogether[MyTSigma[g-w betaS,tower1]]];
+	sub=If[Length[tower]>1,Collect[MySigma[g-w betaS,tower1],tower[[-2,1]],MyTogether],MyTogether[MySigma[g-w betaS,tower1]]];
 	pCoeffs[[;;d]]-=sub Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
 	pCoeffs[[;;d]]-=Table[w/(d+1) Binomial[d+1,i] beta^(d+1-i),{i,0,d-1}];
 	
@@ -423,8 +434,7 @@ B=TowerInfo[t][[5]];
 {u,v}={Table[0,{k+2}],CoefficientList[r,t]};
 Do[
 	a=v[[+1+k-i]];
-	(*a=Coefficient[v,t,k-i];*)
-	
+	(*a=Coefficient[v,t,k-i];*)\.b4
 	ct=Rational`MyCoefficientNew[tower[[;;,1]],a,b];
 	
 	If[ct=!=0,L=B[[k-i+1]];
@@ -460,14 +470,14 @@ Do[
 	If[pCoeffs[[+1+d]]===0,Continue[]];
 	{g,u}=RingReduction[pCoeffs[[+1+d]],tower1];
 	{q,r}+= {g,u}*t^d;
-	pCoeffs[[;;d]]-=MyTSigma[g,tower1] Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
+	pCoeffs[[;;d]]-=MySigma[g,tower1] Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
 ,{d,Length[pCoeffs]-1,0,-1}];
 (*r=Sum[pCoeffs[[i]]t^(i-1),{i,Length[pCoeffs]}];*)
 Return[{q,r}];
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*RPi-Case*)
 
 
@@ -542,11 +552,11 @@ st=Min[tdegG,lo]-1; (*exponent of first entry in gCoeffs*)
 gS=0;
 If[m>0,
 	Do[
-		gCoeffs[[i+m-st]]+=sc a^i MyTSigma[gCoeffs[[i-st]],tower];
+		gCoeffs[[i+m-st]]+=sc a^i MySigma[gCoeffs[[i-st]],tower];
 		gS-=gCoeffs[[i-st]]t^i;	
 	,{i,tdegG,lo-1}];
 	Do[
-		h=MyTSigma[gCoeffs[[i-st]]/(sc a^(i-m)),-1,tower];
+		h=MySigma[gCoeffs[[i-st]]/(sc a^(i-m)),-1,tower];
 		gCoeffs[[i-m-st]]+=h;
 		gS+=h t^(i-m);	
 	,{i,degG,up+1,-1}];
@@ -554,12 +564,12 @@ If[m>0,
 ];
 If[m<0,
 	Do[
-		h=MyTSigma[gCoeffs[[i-st]]/(sc a^(i-m)),-1,tower];
+		h=MySigma[gCoeffs[[i-st]]/(sc a^(i-m)),-1,tower];
 		gCoeffs[[i-m-st]]+=h;
 		gS+=h t^(i-m);	
 	,{i,tdegG,lo-1}];
 	Do[
-		gCoeffs[[i+m-st]]+=sc a^i MyTSigma[gCoeffs[[i-st]],tower];
+		gCoeffs[[i+m-st]]+=sc a^i MySigma[gCoeffs[[i-st]],tower];
 		gS-=gCoeffs[[i-st]]t^i;	
 	,{i,degG,up+1,-1}];
 ];
@@ -580,7 +590,7 @@ Assert[MyTogether[f-s t^m]===0];
 d=GCD[lambda,m];
 (*Print["d=  ",d];*)
 mu=lambda/d;
-p[i_,k_]:=p[i,k]=MyTogether[Product[MyTSigma[s a^i,l,tower],{l,0,k-1}]Product[Product[MyTSigma[ a^m,l,tower],{l,0,ll-1}],{ll,1,k-1}]];
+p[i_,k_]:=p[i,k]=MyTogether[Product[MySigma[s a^i,l,tower],{l,0,k-1}]Product[Product[MySigma[ a^m,l,tower],{l,0,ll-1}],{ll,1,k-1}]];
 gCoeffs=CoefficientList[MyTogether[g] ,t];
 Assert[Length[gCoeffs]<=lambda];
 gProj=PadRight[gCoeffs[[;;UpTo[d]]],d];
@@ -589,8 +599,8 @@ Do[
 u=gCoeffs[[+1+i]];
 iPrime=Mod[i,d];
 k=MyExtendedGCD[m,lambda,iPrime-i][[1]];
-gS+=-Sum[MyTSigma[u,j,tower]p[i,j]t^(i+j m),{j,0,k-1}];
-gProj[[+1+iPrime]]+=MyTSigma[u,k,tower]p[i,k];
+gS+=-Sum[MySigma[u,j,tower]p[i,j]t^(i+j m),{j,0,k-1}];
+gProj[[+1+iPrime]]+=MySigma[u,k,tower]p[i,k];
 ,{i,d,Length[gCoeffs]-1}];
 Assert[MyTogether[DeltaF[gS,f,tower]+Sum[gProj[[+1+i]]t^i,{i,0,d-1}]-g]===0];
 
@@ -598,7 +608,7 @@ towerMu=If[mu>1,MyTogether[MyChangeShiftTower[tower[[;;-2]],mu]],tower[[;;-2]]];
 Do[
 v=gProj[[+1+i]];
 {u,gProj[[+1+i]]}=RingReduction[v,p[i,mu],towerMu];
-gS+=Sum[MyTSigma[u,j,tower]p[i,j]t^(i+j m),{j,0,mu-1}];
+gS+=Sum[MySigma[u,j,tower]p[i,j]t^(i+j m),{j,0,mu-1}];
 ,{i,0,d-1}];
 gR=Sum[gProj[[+1+i]]t^i,{i,0,d-1}];
 (*Print[{gS,f,tower,gR,g}];*)
@@ -622,7 +632,7 @@ Return[{aC,bC}]
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Idempotent*)
 
 
@@ -639,9 +649,9 @@ e[l_,kIn_,y_,alpha_]:=e[l,Mod[kIn,l],y]=Module[{j,k=Mod[kIn,l]},(Times@@Drop[Tab
 /(Times@@Drop[Table[(alpha)^(l-1-k)-(alpha)^j,{j,0,l-1}],{l-1-k+1}])//RootReduce//ToRadicals];
 
 
-Clear[MyChangeShiftTower]; 
+(*Clear[MyChangeShiftTower]; 
 MyChangeShiftTower[expr__]:=
-(Sigma`DifferenceFields`BasicTools`DFInterface`ChangeShiftTower[expr]/.Sigma`Algebra`CompAlgSigma`II->I);
+(Sigma`DifferenceFields`BasicTools`DFInterface`ChangeShiftTower[expr]/.Sigma`Algebra`CompAlgSigma`II->I);*)
 
 
 Clear[RemoveRMonomials];
@@ -680,11 +690,11 @@ myE=e[orders,orders*0,yList,alphas];
 {newtower,ordList}=RemoveRMonomials[tower,yList,0];
 (*Print["newtower=",newtower];*)
 ord=Times@@ordList;
-(*gS=-Sum[Sum[MyTSigma[myE,j,tower],{j,k+1,ord-1}]MyTSigma[g,k,tower],{k,0,ord-1}]/.Thread[yList^(AAA121212_)->yList^Mod[AAA121212,orders]];*)
-gS=Sum[Sum[MyTSigma[myE,i-j,tower]MyTSigma[g,-j,tower],{j,1,i}],{i,1,ord-1}]/.Thread[yList^(AAA121212_)->yList^Mod[AAA121212,orders]];
-(*Print[{gS,e[orders,orders-1,yList]Sum[MyTSigma[g,k,tower],{k,0,ord-1}]}];*)
+(*gS=-Sum[Sum[MySigma[myE,j,tower],{j,k+1,ord-1}]MySigma[g,k,tower],{k,0,ord-1}]/.Thread[yList^(AAA121212_)->yList^Mod[AAA121212,orders]];*)
+gS=Sum[Sum[MySigma[myE,i-j,tower]MySigma[g,-j,tower],{j,1,i}],{i,1,ord-1}]/.Thread[yList^(AAA121212_)->yList^Mod[AAA121212,orders]];
+(*Print[{gS,e[orders,orders-1,yList]Sum[MySigma[g,k,tower],{k,0,ord-1}]}];*)
 (*Print["gS= ",Together[gS]];*)
-gm=Sum[MyTSigma[g,-k,tower]/.Thread[yList->1/alphas],{k,0,ord-1}];
+gm=Sum[MySigma[g,-k,tower]/.Thread[yList->1/alphas],{k,0,ord-1}];
 (*Print["gm = ",MyTogether[gm]];*)
 Assert[CheckReduction[{g,f},{gS,myE gm},tower]];
 fm=1;
@@ -692,7 +702,7 @@ fm=1;
 {gSn,gRn}=RingReduction[gm,fm,newtower];
 (*Print["{gSn,gRn}= ",{gSn,gRn}];*)
 gR=myE gRn;
-gS+=Sum[MyTSigma[myE gSn,k,tower],{k,0,ord-1}];
+gS+=Sum[MySigma[myE gSn,k,tower],{k,0,ord-1}];
 ][[1]],"IdempotentReduction"];
 Assert[CheckReduction[{g,f},{gS,gR},tower]];
 Return[{gS,gR}];
@@ -737,14 +747,14 @@ gPairList={};
 ReInitTower[towerK];
 {gmS,gmR}={0,0};
 Do[
-	{gmS,gmR}=RingReduction[If[m==0,g,MyTSigma[gmR,towerN]],towerK]+{MyTSigma[gmS,towerN],0};
+	{gmS,gmR}=RingReduction[If[m==0,g,MySigma[gmR,towerN]],towerK]+{MySigma[gmS,towerN],0};
 	gmR=MyTogether[gmR];(* for FindSummableCombination it should be together*)
-	Assert[MyTogether[DeltaF[gmS,1,towerK]+gmR-MyTSigma[g,m,towerN]]===0];
+	Assert[MyTogether[DeltaF[gmS,1,towerK]+gmR-MySigma[g,m,towerN]]===0];
 	AppendTo[gPairList,{gmS,gmR}];
 	Sow[Timing[
 	comb=FindSummableCombination[gPairList,towerK[[;;,1]]];
 	][[1]],"FindSummableCombination"];
-	If[comb=!={},Assert[MyTogether[Sum[comb[[1,1,i]]MyTSigma[g,i-1,towerN],{i,Length[comb[[1,1]]]}]-DeltaF[comb[[1,-1]],1,towerK]]===0];Break[]];
+	If[comb=!={},Assert[MyTogether[Sum[comb[[1,1,i]]MySigma[g,i-1,towerN],{i,Length[comb[[1,1]]]}]-DeltaF[comb[[1,-1]],1,towerK]]===0];Break[]];
 	(*Print["m:",m," New Remainder: ",gmR];*)
 ,{m,0,OptionValue["MaxOrder"]}];
 If[comb==={},Message[FindTelescopingRecurrence::norecfound,OptionValue["MaxOrder"]]];
@@ -759,17 +769,17 @@ lastP={0,g};
 Do[
 	sign=If[EvenQ[m],-1,1];
 	shift=sign Ceiling[m/2];
-	{gmS,gmR}=RingReduction[If[m==0,g,MyTSigma[lastP[[2]],sign,towerN]],towerK]+{MyTSigma[lastP[[1]],sign,towerN],0};
+	{gmS,gmR}=RingReduction[If[m==0,g,MySigma[lastP[[2]],sign,towerN]],towerK]+{MySigma[lastP[[1]],sign,towerN],0};
 	gmR=MyTogether[gmR];(* for FindSummableCombination it should be together*)
-	Assert[MyTogether[DeltaF[gmS,1,towerK]+gmR-MyTSigma[g,shift,towerN]]===0];
+	Assert[MyTogether[DeltaF[gmS,1,towerK]+gmR-MySigma[g,shift,towerN]]===0];
 	If[sign>0,AppendTo[gPairList,{gmS,gmR}],PrependTo[gPairList,{gmS,gmR}]];
 	Sow[Timing[
 	comb=FindSummableCombination[gPairList,towerK[[;;,1]]];
 	][[1]],"FindSummableCombination"];
 	If[comb=!={},
-		result=MyTSigma[comb[[1]],Floor[m/2],towerN];
+		result=MySigma[comb[[1]],Floor[m/2],towerN];
 		result[[1]]=MyTogether[result[[1]]];
-		Assert[MyTogether[Sum[result[[1,i]]MyTSigma[g,i-1,towerN],{i,Length[result[[1]]]}]-DeltaF[result[[-1]],1,towerK]]===0];
+		Assert[MyTogether[Sum[result[[1,i]]MySigma[g,i-1,towerN],{i,Length[result[[1]]]}]-DeltaF[result[[-1]],1,towerK]]===0];
 		Break[]
 	];
 	lastP=gPairList[[sign]];
@@ -797,7 +807,7 @@ lc=Coefficient[pt,t,d];
 {g,u}=RingReduction[lc,tower1];
 q+= g*t^d;
 r+= u*t^d;
-pt=Collect[pt-MyTSigma[g*t^d,1,tower]+g*t^d-u*t^d,t,MyTogether];
+pt=Collect[pt-MySigma[g*t^d,1,tower]+g*t^d-u*t^d,t,MyTogether];
 Assert[Exponent[pt,t]<d];
 ];
 {q,r}
@@ -823,7 +833,7 @@ L=H[[5]];
 m=Length[L];
 Do[
 	a=t^(i+1)/(i+1)-lt*t^i;
-	b=MyTSigma[a,1,tower]-a-v0*t^i;
+	b=MySigma[a,1,tower]-a-v0*t^i;
 	{q,r}=AuxiliaryReduction[b,tower];
 	u = a-q;
 	v=r+v0*t^i;
@@ -875,8 +885,8 @@ DenomSeq=Table[{},n]
 v/\[Sigma]^l(p)=\[CapitalDelta](g)+h/p. *)
 LocalNormalReduction[v_,p_,l_Integer,tower_List]:=Module[{i,g, h},
    If[l===0,Return[{0,v}]];
-If[ l>0, g=Sum[MyTSigma[v,-i,tower]/MyTSigma[p,l-i,tower],{i,1,l}],g=Sum[-MyTSigma[v,i,tower]/MyTSigma[p,l+i,tower],{i,0,-l-1}]];
-h=MyTSigma[v,-l,tower];
+If[ l>0, g=Sum[MySigma[v,-i,tower]/MySigma[p,l-i,tower],{i,1,l}],g=Sum[-MySigma[v,i,tower]/MySigma[p,l+i,tower],{i,0,-l-1}]];
+h=MySigma[v,-l,tower];
 {g,h}];
 
 
@@ -905,7 +915,7 @@ time2=TimeUsed[];
 Do[
 m=Length[A[[2]][[1]][[3]][[i]]];
 Do[
-w=MyTSigma[A[[1]][[i]]^A[[2]][[1]][[3]][[i]][[j]][[2]],A[[2]][[1]][[3]][[i]][[j]][[1]],tower];
+w=MySigma[A[[1]][[i]]^A[[2]][[1]][[3]][[i]][[j]][[2]],A[[2]][[1]][[3]][[i]][[j]][[1]],tower];
 
 L=AppendTo[L,{A[[1]][[i]]^A[[2]][[1]][[3]][[i]][[j]][[2]],A[[2]][[1]][[3]][[i]][[j]][[1]]}];
 B=AppendTo[B,w],{j,1,m}],
