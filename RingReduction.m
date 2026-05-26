@@ -181,7 +181,7 @@ While[True,
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Auxiliary Functions*)
 
 
@@ -236,7 +236,7 @@ MyEliminateRootObjects[f]
 
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Re-used*)
 
 
@@ -250,12 +250,42 @@ MyTSigma[expr_,0,___]:=expr
 MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
 
 
+Clear
+
+
+MyChangeShiftTower[{{x,1,1},{p,x,0},{h,1,1/x}},2]
+
+
+Clear[MyChangeShiftTower];
+MyChangeShiftTower[tower_List,k_]:=MyChangeShiftTower[AssociationThread[tower[[;;,1]],tower[[;;,2]]tower[[;;,1]]+tower[[;;,3]]],k]
+
+MyChangeShiftTower[tower_List,1]:=tower
+MyChangeShiftTower[tower_List,k_]/;(k>1):=Module[{resminus,resbare},
+resminus=MyChangeShiftTower[tower,k-1];
+resbare=MySigma[tower[[;;,2]]tower[[;;,1]]+tower[[;;,3]],resminus];
+Return[Table[{tower[[i,1]] ,Together[Coefficient[resbare[[i]],tower[[i,1]]]],Together[Coefficient[resbare[[i]],tower[[i,1]],0]]},{i,Length[tower]}]];
+](*Change Together to MyTogether*)
+
+
+Clear[MyTSigma]
+MySigma[expr_,0,___]:=expr
+MySigma[expr_,tower_]:=expr/.Thread[tower[[;;,1]]->tower[[;;,2]]tower[[;;,1]]+tower[[;;,3]]]
+MySigma[expr_,1,tower_]:=expr/.Thread[tower[[;;,1]]->tower[[;;,2]]tower[[;;,1]]+tower[[;;,3]]]
+
+MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
+
+
+Clear[MyTSigma]
+MyTSigma[expr_,0,___]:=expr
+MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
+
+
 Clear[DeltaF];
 DeltaF[g_,f_:1,tower_?MatrixQ]:=f MyTSigma[g,1,tower]-g
 
 
 Clear[MyEliminateRootObjects];
-Attributes[MyEliminateRootObjects]={Listable}
+Attributes[MyEliminateRootObjects]={Listable};
 MyEliminateRootObjects[f_]:=If[FreeQ[f,Power[_,Rational[_,_]]|Root[__]],f,ToRadicals[RootReduce[Together[f]]]]
 
 

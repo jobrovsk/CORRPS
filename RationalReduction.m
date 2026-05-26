@@ -28,13 +28,18 @@ Clear[JEcho];
 JEcho[strings___,arg_]:=If[$activateJEcho,If[Length[{strings}]>0,Print[strings]];Echo[arg],arg]
 
 
+Clear[RatSigma]
+RatSigma[expr_,{{x_,1,beta_}}]:=expr/.x->x+beta
+RatSigma[expr_,k_,{{x_,1,beta_}}]:=expr/.x->x+k beta
+
+
 Clear[MyTSigma]
 MyTSigma[expr_,0,___]:=expr
 MyTSigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
 
 
 Clear[DeltaF];
-DeltaF[g_,f_,tower_]:=f MyTSigma[g,1,tower]-g
+DeltaF[g_,f_,tower_]:=f RatSigma[g,tower]-g
 
 
 Clear[MyEliminateRootObjects];
@@ -77,7 +82,7 @@ Do[
  Break[];
  ]
 ,{i,dg-2,Max[dg-shiftListNumber,0],-1}];
-If[k=!=Null && shiftListNumber<dg && MyTogether[MyTSigma[g,k,tower]-f]=!=0,
+If[k=!=Null && shiftListNumber<dg && MyTogether[RatSigma[g,k,tower]-f]=!=0,
 	k=Null;
 ];
 Return[k];
@@ -117,8 +122,8 @@ Do[
 (*Shift do the middle*)
 shiftgoal=Floor/@Mean/@sigmafactors[[;;,;;,1]];
 Do[sigmafactors[[i,;;,1]]-=shiftgoal[[i]],{i,Length[factors]}];
-factors=Table[If[shiftgoal[[i]]!=0,MyTogether[MyTSigma[factors[[i]],shiftgoal[[i]],tower]],factors[[i]]],{i,Length[factors]}];
-Assert[MyTogether[xFreePart Product[MyTSigma[factors[[i]],sigmafactors[[i,j,1]],tower]^sigmafactors[[i,j,2]] ,{i,Length[factors]},{j,Length[sigmafactors[[i]]]}]-f]===0];
+factors=Table[If[shiftgoal[[i]]!=0,MyTogether[RatSigma[factors[[i]],shiftgoal[[i]],tower]],factors[[i]]],{i,Length[factors]}];
+Assert[MyTogether[xFreePart Product[RatSigma[factors[[i]],sigmafactors[[i,j,1]],tower]^sigmafactors[[i,j,2]] ,{i,Length[factors]},{j,Length[sigmafactors[[i]]]}]-f]===0];
 Return[{factors,{{xFreePart,1,sigmafactors}}}];
 ]
 
@@ -137,6 +142,50 @@ If[Head[key]===Missing,Return[key],Return[k]];
 ]
 
 
+Clear[LookupShiftEqAlt]
+LookupShiftEqAlt[g_,InCurrentS_List,tower_]:=Module[{key=Missing[],f,k,CurrentS=InCurrentS,i,annot},
+Do[
+	{f,annot}=CurrentS[[i]];
+	k=MyGetSpecification[g,f,tower];
+	Assert[k===Sigma`DifferenceFields`BasicTools`DFInterface`GetSpecification[g,f,tower]];
+	If[k=!=Null,
+		If[annot===">=",
+			CurrentS[[i,2]]="==";
+			If[k<0,k=0;CurrentS[[i,1]]=g;]
+		];
+		If[annot==="<=",
+			CurrentS[[i,2]]="==";
+			If[k>0,k=0;CurrentS[[i,1]]=g;]
+		];
+		key=k;
+		Break[];
+	]
+,{i,Length[CurrentS]}];
+If[Head[key]===Missing,Return[{key,CurrentS}],Return[{k,CurrentS}]];
+]
+
+
+Clear[AdjustSigmaFactorizationAlt]
+AdjustSigmaFactorizationAlt[sigmaFactorization_,InCurrentS_List,tower_List]:=Module[{NewS={},CurrentS=InCurrentS,factors,sigmafac,i,k},
+{factors,sigmafac}=sigmaFactorization;
+Do[
+Sow[Timing[
+{k,CurrentS}=LookupShiftEqAlt[factors[[i]],CurrentS,tower];
+][[1]],"LookupShiftEq"];
+If[Head[k]===Missing,
+	AppendTo[NewS,{factors[[i]],"=="}];
+,
+	If[k!=0,
+		factors[[i]]=MyTogether[RatSigma[factors[[i]],k,tower]];
+		sigmafac[[1,-1,i,;;,1]]-=k;
+	];
+]
+,{i,Length[factors]}];
+
+Return[{{factors,sigmafac},Join[CurrentS,NewS]}];
+]
+
+
 Clear[AdjustSigmaFactorization]
 AdjustSigmaFactorization[sigmaFactorization_,CurrentS_List,tower_List]:=Module[{NewS={},factors,sigmafac,i,k},
 {factors,sigmafac}=sigmaFactorization;
@@ -147,7 +196,7 @@ k=LookupShiftEq[factors[[i]],CurrentS,tower];
 If[Head[k]===Missing,
 	AppendTo[NewS,factors[[i]]];
 ,
-	factors[[i]]=MyTogether[MyTSigma[factors[[i]],k,tower]];
+	factors[[i]]=MyTogether[RatSigma[factors[[i]],k,tower]];
 	sigmafac[[1,-1,i,;;,1]]-=k;
 ]
 ,{i,Length[factors]}];
@@ -174,7 +223,7 @@ If[du!=dv || MyTogether[lu-lv]=!=0, (*Case I*)
 	i=dp-d;
 	While[i>=0,
 		g=x^i/(lu-lv);
-		pg=u MyTSigma[g,tower]-v g;
+		pg=u RatSigma[g,tower]-v g;
 		lp=Coefficient[p,x,dp];
 		a+=lp g;
 		p=Collect[p-lp pg,x,Together];
@@ -206,7 +255,7 @@ If[IntegerQ[m]&&m>=0 ,  (*Case IV*)
 	i=dp-du+1;
 	While[i>=0,
 		g=x^i/(i lu+cu-cv);
-		pg=Collect[u MyTSigma[g,tower]-v g, x,MyTogether];
+		pg=Collect[u RatSigma[g,tower]-v g, x,MyTogether];
 		lp=Coefficient[p,x,dp];
 		a+=lp g;
 		p=Collect[p-lp pg, x,MyTogether] ;
@@ -225,7 +274,7 @@ If[IntegerQ[m]&&m>=0 ,  (*Case IV*)
 	While[i>=0,
 		g=Coefficient[r,x,dr]x^i/(i lu+cu-cv);
 		gr-=g;
-		r=Collect[r-u MyTSigma[g,tower]+v g, x,MyTogether];	
+		r=Collect[r-u RatSigma[g,tower]+v g, x,MyTogether];	
 		dr=Exponent[r,x];
 		Assert[i>dr-du+1];
 		i=dr-du+1;	
@@ -236,7 +285,7 @@ If[IntegerQ[m]&&m>=0 ,  (*Case IV*)
 	i=dp-du+1;
 	While[i>=0,
 		g=x^i/(i lu + cu-cv);
-		pg=Collect[u MyTSigma[g,tower]-v g, x,MyTogether];
+		pg=Collect[u RatSigma[g,tower]-v g, x,MyTogether];
 		lp=Coefficient[p,x,dp];
 		a+=lp g;
 		p=Collect[p-lp pg, x,MyTogether];
@@ -246,6 +295,38 @@ If[IntegerQ[m]&&m>=0 ,  (*Case IV*)
 	];
 ];
 Return[{a,p}];
+]
+
+
+Clear[RationalRNFAlt]
+Options[RationalRNFAlt]={"Representatives"->{}};
+RationalRNFAlt[f_,tower_List,OptionsPattern[]]:=Module[{CurrentS,factors,sigmaFac,shiftgoal={},multi,xi,eta,k,i,NewS={}},
+CurrentS=OptionValue["Representatives"];
+Sow[Timing[
+{factors,sigmaFac}=MyGetSigmaFactorization[{f},tower];
+][[1]],"MySigmaFactorization"];
+
+shiftgoal=Table[0,{Length[factors]}];
+Do[
+	multi=Total[sigmaFac[[1,-1,i,;;,2]]];
+	If[multi==0,Continue[]];
+	Sow[Timing[
+		{k,CurrentS}=LookupShiftEqAlt[factors[[i]],CurrentS,tower];
+	][[1]],"LookupShiftEq"];
+	If[Head[k]===Missing,	
+		AppendTo[NewS,{MyTogether[RatSigma[factors[[i]],If[multi>0,0,-1],tower]],If[multi>0,">=","<="]}];
+		shiftgoal[[i]]=If[multi>0,0,0];
+	,
+		shiftgoal[[i]]=If[multi>0,k,k+1];
+	]
+,{i,Length[factors]}];
+xi=MyTogether[sigmaFac[[1,1]]Product[RatSigma[factors[[i]],shiftgoal[[i]],tower]^Total[sigmaFac[[1,-1,i,;;,2]]],{i,Length[factors]}]];
+JEcho["xi:",xi];
+eta=Product[Product[RatSigma[factors[[i]],j,tower]^-Total[Select[sigmaFac[[1,-1,i]],(#[[1]]<=j)&][[;;,2]]],{j,Min[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]-1}],{i,Length[factors]}]*
+	Product[Product[RatSigma[factors[[i]],j-1,tower]^Total[Select[sigmaFac[[1,-1,i]],(#[[1]]>=j)&][[;;,2]]],{j,Max[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]+1,-1}],{i,Length[factors]}];
+JEcho["eta:",eta];
+Assert[MyTogether[(xi RatSigma[eta,tower]/eta-f)]===0];
+Return[{{xi,eta},Join[CurrentS,NewS]}];
 ]
 
 
@@ -259,7 +340,7 @@ Sow[Timing[
 
 (*(*shift factors in the denominator back by one *)
 Sow[Timing[
-{factors,sigmaFac}=AdjustSigmaFactorization[{factors,sigmaFac},MyTSigma[Pick[factors,Thread[(Total/@sigmaFac[[1,-1,;;,;;,2]])<0]],-1,tower],tower][[1]];
+{factors,sigmaFac}=AdjustSigmaFactorization[{factors,sigmaFac},RatSigma[Pick[factors,Thread[(Total/@sigmaFac[[1,-1,;;,;;,2]])<0]],-1,tower],tower][[1]];
 ][[1]],"SecondAdjust"];*)
 
 
@@ -271,18 +352,18 @@ Do[
 		k=LookupShiftEq[factors[[i]],CurrentS,tower];
 	][[1]],"LookupShiftEq"];
 	If[Head[k]===Missing,	
-		AppendTo[NewS,MyTogether[MyTSigma[factors[[i]],If[multi>0,1,-1],tower]]];
+		AppendTo[NewS,MyTogether[RatSigma[factors[[i]],If[multi>0,0,-1],tower]]];
 		shiftgoal[[i]]=0;
 	,
-		shiftgoal[[i]]=If[multi>0,k-1,k+1];
+		shiftgoal[[i]]=If[multi>0,k,k+1];
 	]
 ,{i,Length[factors]}];
-xi=MyTogether[sigmaFac[[1,1]]Product[MyTSigma[factors[[i]],shiftgoal[[i]],tower]^Total[sigmaFac[[1,-1,i,;;,2]]],{i,Length[factors]}]];
+xi=MyTogether[sigmaFac[[1,1]]Product[RatSigma[factors[[i]],shiftgoal[[i]],tower]^Total[sigmaFac[[1,-1,i,;;,2]]],{i,Length[factors]}]];
 JEcho["xi:",xi];
-eta=Product[Product[MyTSigma[factors[[i]],j,tower]^-Total[Select[sigmaFac[[1,-1,i]],(#[[1]]<=j)&][[;;,2]]],{j,Min[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]-1}] ,{i,Length[factors]}]
-	Product[Product[MyTSigma[factors[[i]],j-1,tower]^Total[Select[sigmaFac[[1,-1,i]],(#[[1]]>=j)&][[;;,2]]],{j,Max[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]+1,-1}] ,{i,Length[factors]}];
+eta=Product[Product[RatSigma[factors[[i]],j,tower]^-Total[Select[sigmaFac[[1,-1,i]],(#[[1]]<=j)&][[;;,2]]],{j,Min[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]-1}],{i,Length[factors]}]*
+	Product[Product[RatSigma[factors[[i]],j-1,tower]^Total[Select[sigmaFac[[1,-1,i]],(#[[1]]>=j)&][[;;,2]]],{j,Max[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]+1,-1}],{i,Length[factors]}];
 JEcho["eta:",eta];
-Assert[MyTogether[(xi MyTSigma[eta,tower]/eta-f)]===0];
+Assert[MyTogether[(xi RatSigma[eta,tower]/eta-f)]===0];
 Return[{{xi,eta},Join[CurrentS,NewS]}];
 ]
 
@@ -297,24 +378,24 @@ If[l>0,
 	If[s===0,
 		result={0,0,t}; (*i.e. fTilde===0*)
 	,
-		dksM1=MyTogether[MyTSigma[dks,-1,tower]];
-		{gTilde,a,bTilde}=ShiftDenominatorToS[MyTSigma[s,-1,tower],dksM1,l-1,K,tower];
-		(*<-- There might be theoretically some cancellation in MyTSigma[s,-1,tower]/dksM1 *)
-		result={MyTSigma[s,-1,tower]/dksM1+gTilde,a,t+bTilde};
+		dksM1=MyTogether[RatSigma[dks,-1,tower]];
+		{gTilde,a,bTilde}=ShiftDenominatorToS[RatSigma[s,-1,tower],dksM1,l-1,K,tower];
+		(*<-- There might be theoretically some cancellation in RatSigma[s,-1,tower]/dksM1 *)
+		result={RatSigma[s,-1,tower]/dksM1+gTilde,a,t+bTilde};
 	];
 ,
-	{s,t}=ExtendedEuclidean[v,MyTSigma[dks,1,tower],u MyTSigma[c,1,tower],x];
+	{s,t}=ExtendedEuclidean[v,RatSigma[dks,1,tower],u RatSigma[c,1,tower],x];
 	g0=-c/dks;
 	If[s===0,
 		result={g0,0,t}; (*i.e. fTilde===0*)
 	,
-		dksP1=MyTogether[MyTSigma[dks,1,tower]];
+		dksP1=MyTogether[RatSigma[dks,1,tower]];
 		{gTilde,a,bTilde}=ShiftDenominatorToS[s,dksP1,l+1,K,tower];
 		(*<-- There might be theoretically some cancellation in s/dksP1 *)
 		result={g0+gTilde,a,t+bTilde};
 	];		
 ];
-Assert[MyTogether[c/dks -(DeltaF[result[[1]],K,tower]+result[[2]]/MyTSigma[dks,-l,tower]+result[[3]]/v)]===0];
+Assert[MyTogether[c/dks -(DeltaF[result[[1]],K,tower]+result[[2]]/RatSigma[dks,-l,tower]+result[[3]]/v)]===0];
 Return[result];
 ]
 
@@ -332,14 +413,14 @@ unsigmaFac=MyGetSigmaFactorization[{hDen},tower];
 {{piList,hFac},CurrentS}=AdjustSigmaFactorization[unsigmaFac,CurrentS,tower];
 
 {hNum,hDen}/=hFac[[1,1]];
-piSigmaMList=Table[Product[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}],{i,Length[piList]}];
+piSigmaMList=Table[Product[RatSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}],{i,Length[piList]}];
 Sow[Timing[
 giSigmaNumList=ParFracDecomp[hNum, piSigmaMList,x];
 ][[1]],"ParFracDecomp"];
 Assert[MyTogether[Total[giSigmaNumList/piSigmaMList]-hNum/(Times@@piSigmaMList)]===0];
 {a,u,v}={0,0,0};
 Do[
-	gijDenList=Table[MyTSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}];
+	gijDenList=Table[RatSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}];
 	Sow[Timing[
 	gijNumList=ParFracDecompAlt[giSigmaNumList[[i]],gijDenList ,x];
 	][[1]],"ParFracDecomp"];
@@ -374,10 +455,10 @@ xiDen=Denominator[xi];
 Sow[Timing[
 unsigmaFac=MyGetSigmaFactorization[{hDen},tower];
 ][[1]],"MySigmaFactorization"];
-{{piList,hFac},CurrentS}=AdjustSigmaFactorization[unsigmaFac,CurrentS,tower];
+{{piList,hFac},CurrentS}=AdjustSigmaFactorizationAlt[unsigmaFac,CurrentS,tower];
 {minShift,maxShift}=MinMax[hFac[[1,-1,;;,;;,1]]];
 (*Print[{minShift,maxShift}];*)
-piSigmaMList=Table[Product[MyTSigma[piList[[i]],k,tower]^LookupMultInFac[hFac[[1,-1,i]],k],{i,Length[piList]}],{k,minShift,maxShift}];
+piSigmaMList=Table[Product[RatSigma[piList[[i]],k,tower]^LookupMultInFac[hFac[[1,-1,i]],k],{i,Length[piList]}],{k,minShift,maxShift}];
 (*Print["{hFac[[1,1]], piSigmaMList}= ",{hFac[[1,1]], piSigmaMList}];*)
 Sow[Timing[
 giSigmaNumList=ParFracDecompAlt[hNum, piSigmaMList,x];
@@ -418,13 +499,18 @@ Return[{{a+gTS,u+gTR/xiDen},CurrentS}];
 
 Clear[RationalReduction]
 Options[RationalReduction]={"Representatives"->{}};
-RationalReduction[g_,f_,tower_,OptionsPattern[]]:=Module[{xi,eta,CurrentS,gS,gR},
+RationalReduction[g_,f_,tower_,OptionsPattern[]]:=Module[{xi,eta,CurrentSInfo,CurrentS,gS,gR},
 Sow[Timing[
-{{xi,eta},CurrentS}=RationalRNF[f,tower,"Representatives"->OptionValue["Representatives"]];
+CurrentSInfo=OptionValue["Representatives"];
+If[Length[CurrentSInfo]>0 && Head[CurrentSInfo[[1]]]===List,
+	 {{xi,eta},CurrentS}=CurrentSInfo
+ ,
+	{{xi,eta},CurrentS}=RationalRNFAlt[f,tower,"Representatives"->CurrentSInfo];
+];
 ][[1]],"RationalRNF"];
 {{gS,gR},CurrentS}=RationalReductionRNF[eta g,xi,tower,"Representatives"->CurrentS];
 (*Print["{eta,xi}=",{eta,xi}];Pause[0.1];*)
-Return[{MyTogether[{eta^(-1)gS,eta^(-1)gR}],CurrentS}]
+Return[{MyTogether[{eta^(-1)gS,eta^(-1)gR}],{{xi,eta},CurrentS}}]
 ]
 
 
