@@ -163,7 +163,7 @@ Clear[ReInitTower]
 ReInitTower[tower_?MatrixQ]:=Module[{newtower,ordList,orders,yList,RExt,alphas},
 TowerInfo=<||>;
 (*If[Length[RExt]>1,Message[ReInitTower::malformedTower,tower];Abort[]];*)
-
+TowerInfo["Generators"]=tower[[;;,1]];
 (*Delete precomputed higher towers*)
 ReleaseHold[MapAt[Unset,Select[DownValues[MyChangeShiftTower],(Head[#[[1,1,1]]]===List && IntegerQ[#[[1,1,2]]])&][[;;,1]],{All,1}]];
 
@@ -186,7 +186,7 @@ While[True,
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Auxiliary Functions*)
 
 
@@ -219,7 +219,7 @@ Return[result];
 Clear[MyTogether]
 Attributes[MyTogether]={Listable}
 MyTogether[f_]:=
-If[Length[Variables[f]]==0,
+If[Variables[f]==={},
 MyEliminateRootObjects[f]
 ,If[KeyExistsQ[TowerInfo,"R-Extension"],
    With[{yL=TowerInfo["R-Extension"][[;;,1]],l=TowerInfo["R-Extension"][[;;,-1]]},
@@ -241,6 +241,30 @@ MyEliminateRootObjects[f]
 
 
 
+(*Clear[MyTogether]
+Attributes[MyTogether]={Listable}
+MyTogether[f_]:=
+If[Length[Variables[f]]==0,
+MyEliminateRootObjects[f]
+,If[KeyExistsQ[TowerInfo,"R-Extension"],
+   With[{yL=TowerInfo["R-Extension"][[;;,1]],l=TowerInfo["R-Extension"][[;;,-1]]},
+	If[(Intersection[Variables[f],yL]=!={})(*&&Exponent[f,y]>=l*),
+		With[{prel=Together[MyEliminateRootObjects[(Collect[f,yL]/.Thread[yL^(AAA121212_)->yL^Mod[AAA121212,l]])],Extension->Automatic]},
+		If[Intersection[Variables[Denominator[prel]],yL]=!={},
+			Together[MyEliminateRootObjects[(Collect[Numerator[prel],yL]/.Thread[yL^(AAA121212_)->yL^Mod[AAA121212,l]])],Extension->Automatic]/Denominator[prel]
+		,
+			prel
+		]
+		]
+,
+	Collect[MyEliminateRootObjects[f],Reverse[Rest[TowerInfo["Generators"]]],Together[#,Extension->Automatic]&]
+	]]
+,
+	Collect[MyEliminateRootObjects[f],Reverse[Rest[TowerInfo["Generators"]]],Together[#,Extension->Automatic]&]
+]
+]*)
+
+
 (* ::Subsection:: *)
 (*Re-used*)
 
@@ -248,16 +272,6 @@ MyEliminateRootObjects[f]
 $activateEcho=False;
 Clear[myEcho];
 myEcho[args___]:=If[$activateEcho,Echo[args]];
-
-
-Clear[MySigma]
-MySigma[expr_,0,___]:=expr
-MySigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
-
-
-Clear[MySigma]
-MySigma[expr_,0,___]:=expr
-MySigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
 
 
 Clear[MyChangeShiftTower];
@@ -276,10 +290,15 @@ MyChangeShiftTower[tower_List,-1]:=MyChangeShiftTower[tower,-1]=Module[{trunktow
 
 
 
-Clear[MySigma]
+(*Clear[MySigma]
 MySigma[expr_,0,___]:=expr
 MySigma[expr_,1,tower]:=expr/.Thread[tower[[;;,1]]->tower[[;;,2]]tower[[;;,1]]+tower[[;;,3]]]
 MySigma[expr_,k_,tower]/;(k> 1):=MySigma[MySigma[expr,k-1,tower],1,tower];
+MySigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;*)
+
+
+Clear[MySigma]
+MySigma[expr_,0,___]:=expr
 MySigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
 
 
@@ -292,7 +311,7 @@ MySigma[expr_,k_,tower_]:=MySigma[expr,1,MyChangeShiftTower[tower,k]];
 
 
 Clear[DeltaF];
-DeltaF[g_,f_:1,tower_?MatrixQ]:=f MySigma[g,1,tower]-g
+DeltaF[g_,f_,tower_?MatrixQ]:=f MySigma[g,1,tower]-g
 
 
 Clear[MyEliminateRootObjects];
@@ -341,7 +360,7 @@ Do[
 	{q,r}+= {w/(d+1) t^(d+1)+(g-w betaS)*t^d,MyTogether[u-w*betaR]t^d};
 	
 	Assert[Rational`MyCoefficientNew[tower[[;;,1]],u-w*betaR,b]===0];
-	sub=If[Length[tower]>1,Collect[MySigma[g-w betaS,tower1],tower[[-2,1]],MyTogether],MyTogether[MySigma[g-w betaS,tower1]]];
+	sub=If[Length[tower]>2,Collect[MySigma[g-w betaS,tower1],tower[[-2,1]],MyTogether],MyTogether[MySigma[g-w betaS,tower1]]];
 	pCoeffs[[;;d]]-=sub Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
 	pCoeffs[[;;d]]-=Table[w/(d+1) Binomial[d+1,i] beta^(d+1-i),{i,0,d-1}];
 	
@@ -397,11 +416,13 @@ Sow[Timing[
 (*	    B_t, a basis of the intersection up to certain level*)
 
 
+TowerPrecomp::constantsExtended="Error: `1` is not a Sigma-extension of tower `2`";
 Clear[TowerPrecomp];
 TowerPrecomp[tower_?MatrixQ]:=Module[{t,beta,g,r,b,c,B},
 {t,beta}=tower[[-1,{1,3}]];
 Assert[!KeyExistsQ[TowerInfo,t]];
 {g,r}=RingReduction[beta,tower[[;;-2]]];
+If[r===0,Message[TowerPrecomp::constantsExtended,tower[[-1]],tower[[;;-2]]];Abort[]];
 {b,c}=Rational`BasisElement[tower[[1;;-2,1]],r];
 B={{{-g,1},{r}}};
 TowerInfo[t]={MyTogether[g],r,b,c,B};
