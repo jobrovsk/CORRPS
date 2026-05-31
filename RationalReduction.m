@@ -314,10 +314,10 @@ Do[
 		{k,CurrentS}=LookupShiftEqAlt[factors[[i]],CurrentS,tower];
 	][[1]],"LookupShiftEq"];
 	If[Head[k]===Missing,	
-		AppendTo[NewS,{MyTogether[RatSigma[factors[[i]],If[multi>0,0,-1],tower]],If[multi>0,">=","<="]}];
+		AppendTo[NewS,{MyTogether[RatSigma[factors[[i]],If[multi>0,1,-1],tower]],If[multi>0,">=","<="]}];
 		shiftgoal[[i]]=If[multi>0,0,0];
 	,
-		shiftgoal[[i]]=If[multi>0,k,k+1];
+		shiftgoal[[i]]=If[multi>0,k-1,k+1];
 	]
 ,{i,Length[factors]}];
 xi=MyTogether[sigmaFac[[1,1]]Product[RatSigma[factors[[i]],shiftgoal[[i]],tower]^Total[sigmaFac[[1,-1,i,;;,2]]],{i,Length[factors]}]];
