@@ -524,14 +524,14 @@ If[i==1000,Message[MyGetOrderOfUnity::donotrecognizeroot,alpha];Abort[];,Return[
 (*          is a complete reduction of g. gR is simplified (in particular gR === 0 if gR can be simplified to zero)*)
 
 
-Clear[BasicRReduction]
-BasicRReduction[g_,1,tower_?MatrixQ]:=Module[{y=tower[[-1,1]],AAA},
-PiReduction[Collect[g,y]/.y^(AAA_)->y^Mod[AAA,TowerInfo["R-Extension"][[1,3]]],1,tower]]
+(*Clear[BasicRReduction]
+BasicRReduction[g_,f_,tower_?MatrixQ]:=Module[{y=tower[[-1,1]],AAA},
+PiReduction[Collect[g,y]/.y^(AAA_)->y^Mod[AAA,TowerInfo["R-Extension"][[1,3]]],f,tower]]*)
 
 
 (* ::Text:: *)
 (*Input: A tower as required by function RingReduction, where the last extension is a Pi-extension {p,a,0}*)
-(*        g, an element in the tower (not necessarily simplified or canonocalized)*)
+(*        g, an element in the tower (not necessarily simplified or canonicalized)*)
 (*        s, an invertible element in the tower.*)
 (*  Output: {gS,gR}, two elements in the tower s.t.*)
 (*             g=\[CapitalDelta]_s(gS)+gR*)
@@ -612,6 +612,7 @@ lambda=(t/.(Rule@@@(TowerInfo["R-Extension"][[;;,{1,3}]])));Assert[IntegerQ[lamb
 m=Exponent[f,t];
 s=Coefficient[f,t,m];
 Assert[MyTogether[f-s t^m]===0];
+If[m==0,Return[PiReduction[Collect[g,t]/.t^AAA_->t^Mod[AAA,lambda],f,tower]]];
 d=GCD[lambda,m];
 (*Print["d=  ",d];*)
 mu=lambda/d;
@@ -710,7 +711,7 @@ If[!KeyExistsQ[TowerInfo["R-Extension"]],Message[IdempotentReduction::NotRExtens
 Assert[f===1];
 
 Sow[Timing[
-numR=Length[TowerInfo["R-Extension"][[;;,1]]\[Intersection] tower[[;;,1]]];
+numR=Length[TowerInfo["R-Extension"][[;;,1]] \[Intersection] tower[[;;,1]]];
 {yList,alphas,orders}=Transpose[TowerInfo["R-Extension"][[;;numR]]];
 myE=e[orders,orders*0,yList,alphas];
 {newtower,ordList}=RemoveRMonomials[tower,yList,0];
