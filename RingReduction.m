@@ -249,6 +249,10 @@ MyEliminateRootObjects[f]
 ,If[KeyExistsQ[TowerInfo,"R-Extension"],
    With[{yL=TowerInfo["R-Extension"][[;;,1]],l=TowerInfo["R-Extension"][[;;,-1]]},
 	If[(Intersection[Variables[f],yL]=!={})(*&&Exponent[f,y]>=l*),
+		If[PolynomialQ[f,yL],
+		With[{first=Collect[MyEliminateRootObjects[f],Reverse[Rest[TowerInfo["Generators"]]]]/.Thread[yL^(AAA121212_)->yL^Mod[AAA121212,l]]},
+		If[And@@Thread[Exponent[first,yL]<l],first,Collect[first,Reverse[Rest[TowerInfo["Generators"]]],Together[#,Extension->Automatic]&]]
+		
 		With[{prel=Together[MyEliminateRootObjects[(Collect[f,yL]/.Thread[yL^(AAA121212_)->yL^Mod[AAA121212,l]])],Extension->Automatic]},
 		If[Intersection[Variables[Denominator[prel]],yL]=!={},
 			Together[MyEliminateRootObjects[(Collect[Numerator[prel],yL]/.Thread[yL^(AAA121212_)->yL^Mod[AAA121212,l]])],Extension->Automatic]/Denominator[prel]
@@ -263,15 +267,6 @@ MyEliminateRootObjects[f]
 	Collect[MyEliminateRootObjects[f],Reverse[Rest[TowerInfo["Generators"]]],Together[#,Extension->Automatic]&]
 ]
 ]*)
-
-
-(* ::Subsection:: *)
-(*Re-used*)
-
-
-$activateEcho=False;
-Clear[myEcho];
-myEcho[args___]:=If[$activateEcho,Echo[args]];
 
 
 Clear[MyChangeShiftTower];
@@ -312,6 +307,15 @@ MySigma[expr_,k_,tower_]:=MySigma[expr,1,MyChangeShiftTower[tower,k]];
 
 Clear[DeltaF];
 DeltaF[g_,f_,tower_?MatrixQ]:=f MySigma[g,1,tower]-g
+
+
+(* ::Subsection:: *)
+(*Re-used*)
+
+
+$activateEcho=False;
+Clear[myEcho];
+myEcho[args___]:=If[$activateEcho,Echo[args]];
 
 
 Clear[MyEliminateRootObjects];
@@ -602,7 +606,7 @@ Return[{gS,gR}];
 
 
 Clear[SimpleRReduction]
-SimpleRReduction[g_,f_,tower_?MatrixQ]:=Module[{t=tower[[-1,1]],a=tower[[-1,2]],s,mu,m,d,lambda,AAA,p,gCoeffs,gProj,i,gS,iPrime,k,u,v,towerMu,gR},
+SimpleRReduction[g_,f_,tower_?MatrixQ]:=Module[{t=tower[[-1,1]],a=tower[[-1,2]],s,mu,m,d,lambda,AAA,p,gCoeffs,gProj,i,j,gS,iPrime,k,u,v,towerMu,gR},
 Assert[tower[[-1,3]]===0];
 lambda=(t/.(Rule@@@(TowerInfo["R-Extension"][[;;,{1,3}]])));Assert[IntegerQ[lambda]];
 m=Exponent[f,t];
@@ -612,30 +616,31 @@ d=GCD[lambda,m];
 (*Print["d=  ",d];*)
 mu=lambda/d;
 p[i_,k_]:=p[i,k]=MyTogether[Product[MySigma[s a^i,l,tower],{l,0,k-1}]Product[Product[MySigma[ a^m,l,tower],{l,0,ll-1}],{ll,1,k-1}]];
-gCoeffs=CoefficientList[MyTogether[g] ,t];
+gCoeffs=CoefficientList[g,t];
+If[gCoeffs==={},Return[{0,0}]];
+gCoeffs=MyTogether[Total[Partition[gCoeffs,lambda,lambda,1,0]]];
 Assert[Length[gCoeffs]<=lambda];
 gProj=PadRight[gCoeffs[[;;UpTo[d]]],d];
 gS=0;
 Do[
-u=gCoeffs[[+1+i]];
-iPrime=Mod[i,d];
-k=MyExtendedGCD[m,lambda,iPrime-i][[1]];
-gS+=-Sum[MySigma[u,j,tower]p[i,j]t^(i+j m),{j,0,k-1}];
-gProj[[+1+iPrime]]+=MySigma[u,k,tower]p[i,k];
+	u=gCoeffs[[+1+i]];
+	iPrime=Mod[i,d];
+	k=MyExtendedGCD[m,lambda,iPrime-i][[1]];
+	gS+=-Sum[MySigma[u,j,tower]p[i,j]t^Mod[i+j m,lambda],{j,0,k-1}];
+	gProj[[+1+iPrime]]+=MySigma[u,k,tower]p[i,k];
 ,{i,d,Length[gCoeffs]-1}];
 Assert[MyTogether[DeltaF[gS,f,tower]+Sum[gProj[[+1+i]]t^i,{i,0,d-1}]-g]===0];
 
-towerMu=If[mu>1,MyTogether[MyChangeShiftTower[tower[[;;-2]],mu]],tower[[;;-2]]];
+towerMu=MyChangeShiftTower[tower[[;;-2]],mu];
 Do[
-v=gProj[[+1+i]];
-{u,gProj[[+1+i]]}=RingReduction[v,p[i,mu],towerMu];
-gS+=Sum[MySigma[u,j,tower]p[i,j]t^(i+j m),{j,0,mu-1}];
+	v=gProj[[+1+i]];
+	{u,gProj[[+1+i]]}=RingReduction[v,p[i,mu],towerMu];
+	gS+=Sum[MySigma[u,j,tower]p[i,j]t^Mod[i+j m,lambda],{j,0,mu-1}];
 ,{i,0,d-1}];
 gR=Sum[gProj[[+1+i]]t^i,{i,0,d-1}];
 (*Print[{gS,f,tower,gR,g}];*)
 Assert[MyTogether[DeltaF[gS,f,tower]+gR-g]===0];
 Return[{gS,gR}];
-
 ];
 
 
