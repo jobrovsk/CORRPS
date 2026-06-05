@@ -1,8 +1,8 @@
 (* ::Package:: *)
 
 (* ::Input::Initialization:: *)
-BeginPackage["RingReduction`"];
-ClearAll@@Names["RingReduction`*"];
+BeginPackage["CRforSimpleDR`"];
+ClearAll@@Names["CRforSimpleDR`*"];
 
 
 (* ::Input::Initialization:: *)
@@ -12,9 +12,9 @@ NormalReduction::usage="";
 AuxiliaryReduction::usage="";
 MyProjection::usage="";
 SigmaRingReduction::usage="";
-RingReduction::usage="TowerInfo must be initialized before using this function 
+CRforSimpleDR::usage="TowerInfo must be initialized before using this function 
 (with ReInitTower[tower];)
-Call: RingReduction[g,f,tower]
+Call: CRforSimpleDR[g,f,tower]
 where:
 	tower: A basic RPiSigma tower represented by
 	{{x,1,1},{p_1,a_1,0},...{p_m,a_m,0},{y,alpha,0},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}}
@@ -65,7 +65,7 @@ Clear[RingReductionHelp]
 RingReductionHelp[]:=Module[{outnb},
     outnb = NotebookCreate[];
     SetOptions[SelectedNotebook[], WindowSize -> {1100, 900}, Magnification -> 1];
-    NotebookWrite[outnb, Cell["RingReduction Help", "Title"], AutoScroll -> False];
+    NotebookWrite[outnb, Cell["CRforSimpleDR Help", "Title"], AutoScroll -> False];
 (*    NotebookWrite[outnb,Cell["PLDESolverFunctionsList is a list of the available functions in PLDESolverList. Enter", "Text"], AutoScroll -> False];
     NotebookWrite[outnb, Cell["PLDESolverFunctionsList", "Input"], AutoScroll -> False];
     NotebookWrite[outnb,Cell["to list the available functions.", "Text"], AutoScroll -> False];
@@ -81,6 +81,16 @@ RingReductionHelp[]:=Module[{outnb},
 
 (* ::Subsection:: *)
 (*Main*)
+
+
+CRforDR[g,{{x,1,1}},rr->2134]
+
+
+Clear[CRforDR]
+CRforDR[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=CRforDR[g,1,tower,opts]
+CRforDR[g_,f_,tower_?MatrixQ,opts:OptionsPattern[]]:=
+	If[SimpleTowerQ[tower],CRforSimpleDR[g,f,tower,opts],IdempotentReduction[g,f,tower,opts]]
+
 
 
 (* ::Text:: *)
@@ -99,11 +109,11 @@ RingReductionHelp[]:=Module[{outnb},
 
 
 (*Note: The Sow[Timing[ ][[1]],String] is used for benchmarking*)
-Clear[RingReduction];
-RingReduction::malformedTower="Error: Tower `1` is malformed and not fit for RingReduction w.r.t Delta `2`";
-RingReduction[0,_,_?MatrixQ,OptionsPattern[]]:={0,0}
-RingReduction[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=RingReduction[g,1,tower,opts];
-RingReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{gTrans,fTrans,step,found,x,alpha,beta,gS,gR},
+Clear[CRforSimpleDR];
+CRforSimpleDR::malformedTower="Error: Tower `1` is malformed and not fit for CRforSimpleDR w.r.t Delta `2`";
+CRforSimpleDR[0,_,_?MatrixQ,OptionsPattern[]]:={0,0}
+CRforSimpleDR[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=CRforSimpleDR[g,1,tower,opts];
+CRforSimpleDR[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{gTrans,fTrans,step,found,x,alpha,beta,gS,gR},
 Assert[Head[TowerInfo]===Association];
 Sow[Timing[
 If[Length[tower]==1&&tower[[1,2]]===1,
@@ -140,7 +150,7 @@ If[beta===0,
 ,If[alpha===1&&f===1,
 	{gS,gR}=SigmaRingReduction[g,tower];
 ,
-	Message[RingReduction::malformedTower,tower,f];
+	Message[CRforSimpleDR::malformedTower,tower,f];
 	Abort[];
 ];]];
 ][[1]],ToString[tower[[-1,1]]]<>" combined"];
@@ -150,7 +160,7 @@ Return[{gS,gR}];
 
 
 (* ::Text:: *)
-(*Input :  An admissible tower (as specified for function RingReduction). *)
+(*Input :  An admissible tower (as specified for function CRforSimpleDR). *)
 (*    Output : Null*)
 (*    Side effect : If there is no R-extension then*)
 (*         TowerInfo=<| |>,*)
@@ -368,7 +378,7 @@ Assert[CheckReduction[{beta,1},{betaS,betaR},tower]];
 pCoeffs=CoefficientList[p,t];
 Do[
 	If[pCoeffs[[+1+d]]===0,Continue[]];
-	{g,u}=RingReduction[pCoeffs[[+1+d]],tower1];
+	{g,u}=CRforSimpleDR[pCoeffs[[+1+d]],tower1];
 	If[g===0 && u===0,Continue[]];
 	ct=Rational`MyCoefficientNew[tower[[;;,1]],u,b];
 	w=MyTogether[ct/c];
@@ -386,7 +396,7 @@ Return[{q,r}];
 
 
 (* ::Text:: *)
-(*Input: A tower as required by function RingReduction, where the last extension is a Sigma extension {t,1,beta}*)
+(*Input: A tower as required by function CRforSimpleDR, where the last extension is a Sigma extension {t,1,beta}*)
 (*        g, an element in the tower (not necessarily simplified or canonocalized)*)
 (*  Output: {gS,gR}, two elements in the tower s.t.*)
 (*             g=\[CapitalDelta](gS)+gR*)
@@ -436,7 +446,7 @@ Clear[TowerPrecomp];
 TowerPrecomp[tower_?MatrixQ]:=Module[{t,beta,g,r,b,c,B},
 {t,beta}=tower[[-1,{1,3}]];
 Assert[!KeyExistsQ[TowerInfo,t]];
-{g,r}=RingReduction[beta,tower[[;;-2]]];
+{g,r}=CRforSimpleDR[beta,tower[[;;-2]]];
 If[r===0,Message[TowerPrecomp::constantsExtended,tower[[-1]],tower[[;;-2]]];Abort[]];
 {b,c}=Rational`BasisElement[tower[[1;;-2,1]],r];
 B={{{-g,1},{r}}};
@@ -449,7 +459,7 @@ CheckReduction[{g_,f_},{gS_,gR_},tower_]:=(MyTogether[DeltaF[gS,f,tower]+gR-g]==
 
 
 (* ::Text:: *)
-(*Input :  A tower as required by function RingReduction, where the last extension is a Sigma extension t*)
+(*Input :  A tower as required by function CRforSimpleDR, where the last extension is a Sigma extension t*)
 (*         r, an element of the auxiliary space,*)
 (*         b, an element in the C - basis effective in \[Phi] (\[CapitalDelta] (t)),*)
 (*        c, equal to b^*\circ\[Phi] (t');*)
@@ -486,7 +496,7 @@ Return[{Sum[MyTogether[u[[+1+i]]]t^i,{i,0,k+1}],Sum[MyTogether[v[[+1+i]]]t^i,{i,
 
 
 (* ::Text:: *)
-(*Input : A tower as required by function RingReduction, where the last extension is a Sigma extension t*)
+(*Input : A tower as required by function CRforSimpleDR, where the last extension is a Sigma extension t*)
 (*          a polynomial p in t*)
 (*    Output : {q, r}, r in the auxiliary space such that*)
 (*               p = \[CapitalDelta] (q) + r*)
@@ -504,7 +514,7 @@ tower1=Drop[tower,-1];
 pCoeffs=(MyTogether/@CoefficientList[p,t]);
 Do[
 	If[pCoeffs[[+1+d]]===0,Continue[]];
-	{g,u}=RingReduction[pCoeffs[[+1+d]],tower1];
+	{g,u}=CRforSimpleDR[pCoeffs[[+1+d]],tower1];
 	{q,r}+= {g,u}*t^d;
 	pCoeffs[[;;d]]-=MySigma[g,tower1] Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
 ,{d,Length[pCoeffs]-1,0,-1}];
@@ -528,7 +538,7 @@ If[i==1000,Message[MyGetOrderOfUnity::donotrecognizeroot,alpha];Abort[];,Return[
 
 
 (* ::Text:: *)
-(*Input: A tower as required by function RingReduction, where the last extension is an R-extension {y,alpha,0}*)
+(*Input: A tower as required by function CRforSimpleDR, where the last extension is an R-extension {y,alpha,0}*)
 (*        g, an element in the tower (not necessarily simplified or canonocalized)*)
 (*  Output: {gS,gR}, two elements in the tower s.t.*)
 (*             g=\[CapitalDelta](gS)+gR*)
@@ -541,7 +551,7 @@ PiReduction[Collect[g,y]/.y^(AAA_)->y^Mod[AAA,TowerInfo["R-Extension"][[1,3]]],f
 
 
 (* ::Text:: *)
-(*Input: A tower as required by function RingReduction, where the last extension is a Pi-extension {p,a,0}*)
+(*Input: A tower as required by function CRforSimpleDR, where the last extension is a Pi-extension {p,a,0}*)
 (*        g, an element in the tower (not necessarily simplified or canonicalized)*)
 (*        s, an invertible element in the tower.*)
 (*  Output: {gS,gR}, two elements in the tower s.t.*)
@@ -568,7 +578,7 @@ If[Length[gCoeffs]==0,Return[{0,0}]];
 degG=Length[gCoeffs]+tdegG-1;
 If[m==0,
 	{gS,gR}=Sum[
-	RingReduction[gCoeffs[[i-tdegG+1]],s a^i,tower]t^i
+	CRforSimpleDR[gCoeffs[[i-tdegG+1]],s a^i,tower]t^i
 	,{i,tdegG,degG}];
 	Assert[MyTogether[DeltaF[gS,s,towerIn]+gR-g]===0];
 	Return[{gS,gR}];
@@ -646,7 +656,7 @@ Assert[MyTogether[DeltaF[gS,f,tower]+Sum[gProj[[+1+i]]t^i,{i,0,d-1}]-g]===0];
 towerMu=MyChangeShiftTower[tower[[;;-2]],mu];
 Do[
 	v=gProj[[+1+i]];
-	{u,gProj[[+1+i]]}=RingReduction[v,p[i,mu],towerMu];
+	{u,gProj[[+1+i]]}=CRforSimpleDR[v,p[i,mu],towerMu];
 	gS+=Sum[MySigma[u,j,tower]p[i,j]t^Mod[i+j m,lambda],{j,0,mu-1}];
 ,{i,0,d-1}];
 gR=Sum[gProj[[+1+i]]t^i,{i,0,d-1}];
@@ -716,11 +726,11 @@ Return[{newtower,ordList}];
 
 
 Clear[IdempotentReduction];
-IdempotentReduction::NotRExtension="No R-monomial in tower `1`"
+IdempotentReduction::NotPlainDelta="f = `1` must be 1 for a non-simple tower. Only plain \[CapitalDelta] is supported for a non-simple tower";
+IdempotentReduction::NotRExtension="No R-monomial in tower `1`";
 IdempotentReduction[g_,f_,tower_?MatrixQ]:=Module[{ordList,fm,numR,orders,gm,yList,newtower,ord,gS,gR,gSn,gRn,alphas,k,myE},
 If[!KeyExistsQ[TowerInfo["R-Extension"]],Message[IdempotentReduction::NotRExtension,tower];Abort[];];
-Assert[f===1];
-
+If[f=!=1,Message[IdempotentReduction::NotPlainDelta,f];Abort[]];
 Sow[Timing[
 numR=Length[TowerInfo["R-Extension"][[;;,1]] \[Intersection] tower[[;;,1]]];
 {yList,alphas,orders}=Transpose[TowerInfo["R-Extension"][[;;numR]]];
@@ -737,7 +747,7 @@ gm=Sum[MySigma[g,-k,tower]/.Thread[yList->1/alphas],{k,0,ord-1}];
 Assert[CheckReduction[{g,f},{gS,myE gm},tower]];
 fm=1;
 (*Print[newtower];*)
-{gSn,gRn}=RingReduction[gm,fm,newtower];
+{gSn,gRn}=CRforSimpleDR[gm,fm,newtower];
 (*Print["{gSn,gRn}= ",{gSn,gRn}];*)
 gR=myE gRn;
 gS+=Sum[MySigma[myE gSn,k,tower],{k,0,ord-1}];
@@ -768,7 +778,7 @@ Clear[PT];
 PT[tower_List,F_List]:= Module[{n,A,R,c,clist,coeff,m,B,i,j,Sol},
 n=Length[F];
 ReInitTower[tower];
-A=RingReduction[#,tower]&/@F;
+A=CRforSimpleDR[#,tower]&/@F;
 A=MapAt[MyTogether,A,{All,2}];
 Return[FindSummableCombination[A,tower[[;;,1]]]];
 ]
@@ -785,7 +795,7 @@ gPairList={};
 ReInitTower[towerK];
 {gmS,gmR}={0,0};
 Do[
-	{gmS,gmR}=RingReduction[If[m==0,g,MySigma[gmR,towerN]],towerK]+{MySigma[gmS,towerN],0};
+	{gmS,gmR}=CRforSimpleDR[If[m==0,g,MySigma[gmR,towerN]],towerK]+{MySigma[gmS,towerN],0};
 	gmR=MyTogether[gmR];(* for FindSummableCombination it should be together*)
 	Assert[MyTogether[DeltaF[gmS,1,towerK]+gmR-MySigma[g,m,towerN]]===0];
 	AppendTo[gPairList,{gmS,gmR}];
@@ -807,7 +817,7 @@ lastP={0,g};
 Do[
 	sign=If[EvenQ[m],-1,1];
 	shift=sign Ceiling[m/2];
-	{gmS,gmR}=RingReduction[If[m==0,g,MySigma[lastP[[2]],sign,towerN]],towerK]+{MySigma[lastP[[1]],sign,towerN],0};
+	{gmS,gmR}=CRforSimpleDR[If[m==0,g,MySigma[lastP[[2]],sign,towerN]],towerK]+{MySigma[lastP[[1]],sign,towerN],0};
 	gmR=MyTogether[gmR];(* for FindSummableCombination it should be together*)
 	Assert[MyTogether[DeltaF[gmS,1,towerK]+gmR-MySigma[g,shift,towerN]]===0];
 	If[sign>0,AppendTo[gPairList,{gmS,gmR}],PrependTo[gPairList,{gmS,gmR}]];
@@ -842,7 +852,7 @@ tower1=Drop[tower,-1];
 While[pt=!=0,
 d =Exponent[pt,t];
 lc=Coefficient[pt,t,d];
-{g,u}=RingReduction[lc,tower1];
+{g,u}=CRforSimpleDR[lc,tower1];
 q+= g*t^d;
 r+= u*t^d;
 pt=Collect[pt-MySigma[g*t^d,1,tower]+g*t^d-u*t^d,t,MyTogether];
@@ -892,7 +902,7 @@ n=Length[tower];
 TowerInfo={};
 For[i=2,i<=n,i++,
 	G=tower[[;;i-1]];
-	{g,r}=RingReduction[tower[[i,3]],G];
+	{g,r}=CRforSimpleDR[tower[[i,3]],G];
 	{b,c}=Rational`BasisElement[tower[[1;;i-1,1]],r];
 	B={{tower[[i,1]]-g,r}};
 	AppendTo[TowerInfo,{g,r,b,c,B}];
