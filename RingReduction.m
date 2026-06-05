@@ -190,6 +190,17 @@ While[True,
 (*Auxiliary Functions*)
 
 
+(* ::Text:: *)
+(*SimpleTowerQ[tower_] returns True if tower is a simple tower and False otherwise. Not defined for malformed tower.*)
+
+
+Clear[SimpleTowerQ];
+SimpleTowerQ[{}]:=True
+SimpleTowerQ[{{_,_,_}}]:=True
+SimpleTowerQ[tower_?MatrixQ]:=SimpleTowerQ[Most[tower]]&&Length[CoefficientRules[tower[[-1,2]],Join[Prepend[tower[[2;;-2,1]],Unique[]],1/tower[[2;;-2,1]]]]]==1
+SimpleTowerQ[_]:=False
+
+
 Clear[MyLookupPoly];
 MyLookupPoly[polList_List,poly_]:=Module[{polother,result,polyMod,repRules},
 repRules=Dispatch[Thread[Variables[polList]->RandomInteger[{Floor[Developer`$MaxMachineInteger/12],Developer`$MaxMachineInteger},Length[Variables[polList]]]]];
