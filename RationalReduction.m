@@ -16,9 +16,6 @@ RationalReductionRNF::usage=""
 Begin["`Private`"];
 
 
-RationalReduction`Private`PolynomialReduction
-
-
 (* ::Subsection:: *)
 (*MISC*)
 
@@ -62,7 +59,7 @@ If[!FreeQ[f,Power[_,Rational[_,_]]|Root[__]],
 ]]
 
 
-(*wwwaaayyy sslloowweerr*)
+(*slow for large degree*)
 Clear[MyTaylorShiftList];
 MyTaylorShiftList[g_List,k_Integer]:=Module[{i,l},
 	Table[g[[i]]+Sum[g[[l]]Binomial[l-1,i-1]k^(l-i),{l,i+1,Length[g]}],{i,Length[g]}]]
@@ -299,7 +296,7 @@ Return[{a,p}];
 
 
 Clear[RationalRNFAlt]
-Options[RationalRNFAlt]={"Representatives"->{}};
+Options[RationalRNFAlt]={"Representatives"->{},"EncodeRNFinRepresentatives"->False};
 RationalRNFAlt[f_,tower_List,OptionsPattern[]]:=Module[{CurrentS,factors,sigmaFac,shiftgoal={},multi,xi,eta,k,i,NewS={}},
 CurrentS=OptionValue["Representatives"];
 Sow[Timing[
@@ -314,7 +311,7 @@ Do[
 		{k,CurrentS}=LookupShiftEqAlt[factors[[i]],CurrentS,tower];
 	][[1]],"LookupShiftEq"];
 	If[Head[k]===Missing,	
-		AppendTo[NewS,{MyTogether[RatSigma[factors[[i]],If[multi>0,1,-1],tower]],If[multi>0,">=","<="]}];
+		AppendTo[NewS,{MyTogether[RatSigma[factors[[i]],If[multi>0,1,-1],tower]],If[OptionValue["EncodeRNFinRepresentatives"],"==",If[multi>0,">=","<="]]}];
 		shiftgoal[[i]]=If[multi>0,0,0];
 	,
 		shiftgoal[[i]]=If[multi>0,k-1,k+1];
@@ -352,10 +349,10 @@ Do[
 		k=LookupShiftEq[factors[[i]],CurrentS,tower];
 	][[1]],"LookupShiftEq"];
 	If[Head[k]===Missing,	
-		AppendTo[NewS,MyTogether[RatSigma[factors[[i]],If[multi>0,0,-1],tower]]];
+		AppendTo[NewS,MyTogether[RatSigma[factors[[i]],If[multi>0,1,-1],tower]]];
 		shiftgoal[[i]]=0;
 	,
-		shiftgoal[[i]]=If[multi>0,k,k+1];
+		shiftgoal[[i]]=If[multi>0,k-1,k+1];
 	]
 ,{i,Length[factors]}];
 xi=MyTogether[sigmaFac[[1,1]]Product[RatSigma[factors[[i]],shiftgoal[[i]],tower]^Total[sigmaFac[[1,-1,i,;;,2]]],{i,Length[factors]}]];
@@ -498,19 +495,19 @@ Return[{{a+gTS,u+gTR/xiDen},CurrentS}];
 
 
 Clear[RationalReduction]
-Options[RationalReduction]={"Representatives"->{}};
-RationalReduction[g_,f_,tower_,OptionsPattern[]]:=Module[{xi,eta,CurrentSInfo,CurrentS,gS,gR},
+Options[RationalReduction]={"Representatives"->{},"EncodeRNFinRepresentatives"->False};
+RationalReduction[g_,f_,tower_,opts:OptionsPattern[]]:=Module[{xi,eta,CurrentSInfo,CurrentS,gS,gR},
 Sow[Timing[
 CurrentSInfo=OptionValue["Representatives"];
-If[Length[CurrentSInfo]>0 && Head[CurrentSInfo[[1]]]===List,
+If[!OptionValue["EncodeRNFinRepresentatives"]&&Length[CurrentSInfo]>0 && Head[CurrentSInfo[[1]]]===List,
 	 {{xi,eta},CurrentS}=CurrentSInfo
  ,
-	{{xi,eta},CurrentS}=RationalRNFAlt[f,tower,"Representatives"->CurrentSInfo];
+	{{xi,eta},CurrentS}=RationalRNFAlt[f,tower,opts];
 ];
 ][[1]],"RationalRNF"];
 {{gS,gR},CurrentS}=RationalReductionRNF[eta g,xi,tower,"Representatives"->CurrentS];
 (*Print["{eta,xi}=",{eta,xi}];Pause[0.1];*)
-Return[{MyTogether[{eta^(-1)gS,eta^(-1)gR}],{{xi,eta},CurrentS}}]
+Return[{MyTogether[{eta^(-1)gS,eta^(-1)gR}],If[OptionValue["EncodeRNFinRepresentatives"],CurrentS,{{xi,eta},CurrentS}]}]
 ]
 
 

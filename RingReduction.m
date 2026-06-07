@@ -1,8 +1,8 @@
 (* ::Package:: *)
 
 (* ::Input::Initialization:: *)
-BeginPackage["CRforSimpleDR`"];
-ClearAll@@Names["CRforSimpleDR`*"];
+BeginPackage["RingReduction`"];
+ClearAll@@Names["RingReduction`*"];
 
 
 (* ::Input::Initialization:: *)
@@ -12,6 +12,7 @@ NormalReduction::usage="";
 AuxiliaryReduction::usage="";
 MyProjection::usage="";
 SigmaRingReduction::usage="";
+CRforDR::usage="";
 CRforSimpleDR::usage="TowerInfo must be initialized before using this function 
 (with ReInitTower[tower];)
 Call: CRforSimpleDR[g,f,tower]
@@ -37,12 +38,6 @@ FindTelescopingRecurrence::usage="FindTelescopingRecurrence[g,{towerN,towerK}] f
 \!\(\*SubscriptBox[\(c\), \(0\)]\) g + ... +  \!\(\*SubscriptBox[\(c\), \(m\(\\\ \)\)]\)\!\(\*SubscriptBox[\(\[Sigma]\), \(m\)]\)(g)=\!\(\*SubscriptBox[\(\[CapitalDelta]\), \(k\)]\)(h)
 of minimal order m. The output is given as {{\!\(\*SubscriptBox[\(c\), \(0\)]\),...,\!\(\*SubscriptBox[\(c\), \(m\)]\)},h}. h is not simplified by any means. If no recurrence of order OptionValue[\"MaxOrder\"] (default: 30) exists, then the output is {}. If OptionValue[\"WithNegativeShifts\"] is True, then also negative shifts are used internally in the computation (Default: False).
 ";
-
-
-(*$UseIdempotentReduction=True;*)
-
-
-usenewversionForRepresentatives=True;
 
 
 (* ::Input::Initialization:: *)
@@ -89,8 +84,11 @@ CRforDR[g,{{x,1,1}},rr->2134]
 Clear[CRforDR]
 CRforDR[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=CRforDR[g,1,tower,opts]
 CRforDR[g_,f_,tower_?MatrixQ,opts:OptionsPattern[]]:=
-	If[SimpleTowerQ[tower],CRforSimpleDR[g,f,tower,opts],IdempotentReduction[g,f,tower,opts]]
-
+	If[(TowerInfo["UseAlwaysIdempotents"]&&KeyExistsQ[TowerInfo,"R-Extension"])||!SimpleTowerQ[tower],
+		IdempotentReduction[g,f,tower,opts]
+	,
+		CRforSimpleDR[g,f,tower,opts]
+	]
 
 
 (* ::Text:: *)
@@ -124,9 +122,9 @@ If[Length[tower]==1&&tower[[1,2]]===1,
 	,
 		{fTrans,gTrans}={f,g};
 	];
-	If[!usenewversionForRepresentatives,
+	If[TowerInfo["SingleSetOfRepresentatives"],
 		If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]={}];
-		{{gS,gR},TowerInfo[x]}=RationalReduction`RationalReduction[gTrans,fTrans,{{x,1,1}},"Representatives"->TowerInfo[x]];	
+		{{gS,gR},TowerInfo[x]}=RationalReduction`RationalReduction[gTrans,fTrans,{{x,1,1}},"Representatives"->TowerInfo[x],"EncodeRNFinRepresentatives"->True];	
 		
 	,	
 		If[!KeyExistsQ[TowerInfo,x],TowerInfo[x]=<||>];
@@ -170,33 +168,37 @@ Return[{gS,gR}];
 
 ReInitTower::malformedTower="Error: Tower `1` contains more than one R-extension, this is not implemented";
 Clear[ReInitTower]
-ReInitTower[tower_?MatrixQ]:=Module[{newtower,ordList,orders,yList,RExt,alphas},
-TowerInfo=<||>;
-(*If[Length[RExt]>1,Message[ReInitTower::malformedTower,tower];Abort[]];*)
-TowerInfo["Generators"]=tower[[;;,1]];
-(*Delete precomputed higher towers*)
-ReleaseHold[MapAt[Unset,Select[DownValues[MyChangeShiftTower],(Head[#[[1,1,1]]]===List && IntegerQ[#[[1,1,2]]])&][[;;,1]],{All,1}]];
+Options[ReInitTower]={"SingleSetOfRepresentatives"->False,"UseAlwaysIdempotents"->False}
 
-newtower=tower;
-While[True,
-	RExt=Select[newtower,(#[[3]]===0 && RootOfUnityQ[#[[2]]])&];
-	If[Length[RExt]==0,Break[]];
-	yList=RExt[[;;,1]];
-	orders=(MyGetOrderOfUnity/@RExt[[;;,2]]);
-	alphas=Table[RExt[[i,2]]^(Times@@RExt[[;;i-1,2]]),{i,Length[RExt]}];
-	Assert[Union[MyTogether[Select[tower,MemberQ[yList,#[[1]]]& ][[;;,2]]^orders]][[1]]===1];
-	If[!KeyExistsQ[TowerInfo,"R-Extension"],TowerInfo["R-Extension"]={}];
-	TowerInfo["R-Extension"]=
-		SortBy[Join[TowerInfo["R-Extension"],Transpose[{yList,alphas,orders}]],FirstPosition[tower[[;;,1]],#[[1]]][[1]]&];
-	{newtower,ordList}=RemoveRMonomials[newtower,yList,0];
-	Assert[ordList===orders];
-	Assert[Length[newtower]+Length[TowerInfo["R-Extension"]]==Length[tower]];
-]
+ReInitTower[tower_?MatrixQ,OptionsPattern[]]:=Module[{newtower,ordList,orders,yList,RExt,alphas},
+	TowerInfo=<||>;
+	TowerInfo["SingleSetOfRepresentatives"]=OptionValue["SingleSetOfRepresentatives"];
+	TowerInfo["UseAlwaysIdempotents"]=OptionValue["UseAlwaysIdempotents"];
+	(*If[Length[RExt]>1,Message[ReInitTower::malformedTower,tower];Abort[]];*)
+	TowerInfo["Generators"]=tower[[;;,1]];
+	(*Delete precomputed higher towers*)
+	ReleaseHold[MapAt[Unset,Select[DownValues[MyChangeShiftTower],(Head[#[[1,1,1]]]===List && IntegerQ[#[[1,1,2]]])&][[;;,1]],{All,1}]];
+	
+	newtower=tower;
+	While[True,
+		RExt=Select[newtower,(#[[3]]===0 && RootOfUnityQ[#[[2]]])&];
+		If[Length[RExt]==0,Break[]];
+		yList=RExt[[;;,1]];
+		orders=(MyGetOrderOfUnity/@RExt[[;;,2]]);
+		alphas=Table[RExt[[i,2]]^(Times@@RExt[[;;i-1,2]]),{i,Length[RExt]}];
+		Assert[Union[MyTogether[Select[tower,MemberQ[yList,#[[1]]]& ][[;;,2]]^orders]][[1]]===1];
+		If[!KeyExistsQ[TowerInfo,"R-Extension"],TowerInfo["R-Extension"]={}];
+		TowerInfo["R-Extension"]=
+			SortBy[Join[TowerInfo["R-Extension"],Transpose[{yList,alphas,orders}]],FirstPosition[tower[[;;,1]],#[[1]]][[1]]&];
+		{newtower,ordList}=RemoveRMonomials[newtower,yList,0];
+		Assert[ordList===orders];
+		Assert[Length[newtower]+Length[TowerInfo["R-Extension"]]==Length[tower]];
+	]
 
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Auxiliary Functions*)
 
 
@@ -330,7 +332,7 @@ Clear[DeltaF];
 DeltaF[g_,f_,tower_?MatrixQ]:=f MySigma[g,1,tower]-g
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Re-used*)
 
 
@@ -356,7 +358,7 @@ If[ArrayQ[matMod,_,IntegerQ],
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Sigma*)
 
 
@@ -523,7 +525,7 @@ Return[{q,r}];
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*RPi-Case*)
 
 
@@ -680,7 +682,7 @@ Return[{aC,bC}]
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Idempotent*)
 
 
