@@ -1,8 +1,8 @@
 (* ::Package:: *)
 
 (* ::Input::Initialization:: *)
-BeginPackage["RingReduction`"];
-ClearAll@@Names["RingReduction`*"];
+BeginPackage["CRforDR`"];
+ClearAll@@Names["CRforDR`*"];
 
 
 (* ::Input::Initialization:: *)
@@ -12,8 +12,7 @@ NormalReduction::usage="";
 AuxiliaryReduction::usage="";
 MyProjection::usage="";
 SigmaRingReduction::usage="";
-CRforDR::usage="";
-CRforSimpleDR::usage="TowerInfo must be initialized before using this function 
+CRforDR::usage="TowerInfo must be initialized before using this function 
 (with ReInitTower[tower];)
 Call: CRforSimpleDR[g,f,tower]
 where:
@@ -24,16 +23,13 @@ where:
 	f: An invertible element in this ring. f must be f=1 if n>0 or if y is in the tower.
        Can be left out, in this case f=1
 Out: {gS,gR}, with \[CapitalDelta]_f(gS)+gR===g, where gR is a remainder";
-IdempotentReduction::usage="";
+CRforSimpleDR::usage="";
 ReInitTower::usage="(Re)Initializes TowerInfo. Call at the beginning and whenever a new tower is used";
 PT ::usage="";
 MyTogether::usage="";
 MyChangeShiftTower::usage="";
 DeltaF::usage="";
 MySigma::usage="";
-CheckReduction::usage="";
-MyGetOrderOfUnity::usage="";
-RemoveRMonomials::usage="";
 FindTelescopingRecurrence::usage="FindTelescopingRecurrence[g,{towerN,towerK}] finds the a recurrence 
 \!\(\*SubscriptBox[\(c\), \(0\)]\) g + ... +  \!\(\*SubscriptBox[\(c\), \(m\(\\\ \)\)]\)\!\(\*SubscriptBox[\(\[Sigma]\), \(m\)]\)(g)=\!\(\*SubscriptBox[\(\[CapitalDelta]\), \(k\)]\)(h)
 of minimal order m. The output is given as {{\!\(\*SubscriptBox[\(c\), \(0\)]\),...,\!\(\*SubscriptBox[\(c\), \(m\)]\)},h}. h is not simplified by any means. If no recurrence of order OptionValue[\"MaxOrder\"] (default: 30) exists, then the output is {}. If OptionValue[\"WithNegativeShifts\"] is True, then also negative shifts are used internally in the computation (Default: False).
@@ -109,7 +105,6 @@ CRforDR[g_,f_,tower_?MatrixQ,opts:OptionsPattern[]]:=
 (**)
 
 
-(*Note: The Sow[Timing[ ][[1]],String] is used for benchmarking*)
 Clear[CRforSimpleDR];
 CRforSimpleDR::malformedTower="Error: Tower `1` is malformed and not fit for CRforSimpleDR w.r.t Delta `2`";
 CRforSimpleDR[0,_,_?MatrixQ,OptionsPattern[]]:={0,0}
@@ -201,7 +196,7 @@ ReInitTower[tower_?MatrixQ,OptionsPattern[]]:=Module[{newtower,ordList,orders,yL
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Auxiliary Functions*)
 
 
@@ -311,13 +306,6 @@ MyChangeShiftTower[tower_List,-1]:=MyChangeShiftTower[tower,-1]=Module[{trunktow
 
 
 
-(*Clear[MySigma]
-MySigma[expr_,0,___]:=expr
-MySigma[expr_,1,tower]:=expr/.Thread[tower[[;;,1]]->tower[[;;,2]]tower[[;;,1]]+tower[[;;,3]]]
-MySigma[expr_,k_,tower]/;(k> 1):=MySigma[MySigma[expr,k-1,tower],1,tower];
-MySigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;*)
-
-
 Clear[MySigma]
 MySigma[expr_,0,___]:=expr
 MySigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;
@@ -328,7 +316,6 @@ MySigma[expr_,0,___]:=expr
 MySigma[expr_,tower_]:=expr/.Thread[tower[[;;,1]]->tower[[;;,2]]tower[[;;,1]]+tower[[;;,3]]]
 MySigma[expr_,1,tower_]:=expr/.Thread[tower[[;;,1]]->tower[[;;,2]]tower[[;;,1]]+tower[[;;,3]]]
 MySigma[expr_,k_,tower_]:=MySigma[expr,1,MyChangeShiftTower[tower,k]]; 
-(*MySigma[expr_,rest__]:=If[Variables[expr]==={},expr,Sigma`DifferenceFields`BasicTools`DFInterface`TSigma[expr,rest,False]]/.Sigma`Algebra`CompAlgSigma`II->I;*)
 
 
 Clear[DeltaF];
@@ -361,7 +348,7 @@ If[ArrayQ[matMod,_,IntegerQ],
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Sigma*)
 
 
