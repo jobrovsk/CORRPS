@@ -1,5 +1,8 @@
 (* ::Package:: *)
 
+Get["RPiSigmaRingReduction/RationalReduction.m"]
+
+
 (* ::Input::Initialization:: *)
 BeginPackage["CRforDR`"];
 ClearAll@@Names["CRforDR`*"];
@@ -40,44 +43,16 @@ of minimal order m. The output is given as {{\!\(\*SubscriptBox[\(c\), \(0\)]\),
 Begin["`Private`"];
 
 
-Get["RPiSigmaRingReduction/RationalReduction.m"]
-
-
 (* ::Input::Initialization:: *)
-CellPrint[Cell[BoxData[RowBox[{RowBox[{"RPiSigmaRingReduction by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyright] RISC \[LongDash] Version 0.1 (May 21, 2026)"}], 
+CellPrint[Cell[BoxData[RowBox[{RowBox[{"RPiSigmaRingReduction by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyright] RISC \[LongDash] Version 0.1 (May 21, 2026)"}](*, 
                ButtonBox[StyleBox["Help", "Hyperlink", FontVariations -> {"Underline" -> True}],
 					ButtonFunction :> RingReductionHelp[], ButtonEvaluator -> Automatic, ButtonData :> {"", ""}, 
-					ButtonFrame -> "None"]}]], "Print", CellFrame -> 0.5`, FontColor -> GrayLevel[0.`], 
+					ButtonFrame -> "None"]*)}]], "Print", CellFrame -> 0.5`, FontColor -> GrayLevel[0.`], 
 				Background -> RGBColor[102/256,139/256, 232/256], ButtonBoxOptions -> {Active -> True}]]
-
-
-(* ::Input::Initialization:: *)
- (*****************************************************************************************************)
-(***********************************************Help notebook*****************************************)
-(*****************************************************************************************************)
-Clear[RingReductionHelp]
-RingReductionHelp[]:=Module[{outnb},
-    outnb = NotebookCreate[];
-    SetOptions[SelectedNotebook[], WindowSize -> {1100, 900}, Magnification -> 1];
-    NotebookWrite[outnb, Cell["CRforSimpleDR Help", "Title"], AutoScroll -> False];
-(*    NotebookWrite[outnb,Cell["PLDESolverFunctionsList is a list of the available functions in PLDESolverList. Enter", "Text"], AutoScroll -> False];
-    NotebookWrite[outnb, Cell["PLDESolverFunctionsList", "Input"], AutoScroll -> False];
-    NotebookWrite[outnb,Cell["to list the available functions.", "Text"], AutoScroll -> False];
-    NotebookWrite[outnb,Cell["To get details for one function execute e.g.:", "Text"], AutoScroll -> False];
-    NotebookWrite[outnb, Cell["?SolvePLDE", "Input"], AutoScroll -> False];
-    NotebookWrite[outnb,Cell[TextData[{
-        "For more details, we refer to ",
-        Cell[TextData[ButtonBox["https://risc.jku.at/sw/PLDESolver.", BaseStyle -> "Hyperlink",ButtonData -> {URL["https://risc.jku.at/sw/PLDESolver"],None}]],"Text"]
-        }],"Text"]
-    , AutoScroll -> False];*)
-];
 
 
 (* ::Subsection:: *)
 (*Main*)
-
-
-CRforDR[g,{{x,1,1}},rr->2134]
 
 
 Clear[CRforDR]
@@ -170,7 +145,12 @@ Options[ReInitTower]={"SingleSetOfRepresentatives"->False,"UseAlwaysIdempotents"
 
 ReInitTower[tower_?MatrixQ,OptionsPattern[]]:=Module[{newtower,ordList,orders,yList,RExt,alphas},
 	TowerInfo=<||>;
-	TowerInfo["SingleSetOfRepresentatives"]=OptionValue["SingleSetOfRepresentatives"];
+	If[Head[OptionValue["SingleSetOfRepresentatives"]]===List,
+		TowerInfo[tower[[1,1]]]={#,"=="}&/@OptionValue["SingleSetOfRepresentatives"];
+		TowerInfo["SingleSetOfRepresentatives"]=True;
+	,
+		TowerInfo["SingleSetOfRepresentatives"]=TrueQ[OptionValue["SingleSetOfRepresentatives"]]
+	];
 	TowerInfo["UseAlwaysIdempotents"]=OptionValue["UseAlwaysIdempotents"];
 	(*If[Length[RExt]>1,Message[ReInitTower::malformedTower,tower];Abort[]];*)
 	TowerInfo["Generators"]=tower[[;;,1]];
@@ -196,7 +176,7 @@ ReInitTower[tower_?MatrixQ,OptionsPattern[]]:=Module[{newtower,ordList,orders,yL
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Auxiliary Functions*)
 
 

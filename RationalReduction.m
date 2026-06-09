@@ -1,5 +1,11 @@
 (* ::Package:: *)
 
+BeginPackage["CRforDR`"];
+
+
+Get["RPiSigmaRingReduction/Rational.m"]
+
+
 (* ::Input::Initialization:: *)
 BeginPackage["RationalReduction`"];
 
@@ -7,11 +13,11 @@ BeginPackage["RationalReduction`"];
 ClearAll@@Names["RationalReduction`*"];
 
 
+RationalReduction::usage="";
+
+
 (* ::Input::Initialization:: *)
 Begin["`Private`"];
-
-
-Get["RPiSigmaRingReduction/Rational.m"]
 
 
 (* ::Subsection:: *)
@@ -742,4 +748,5 @@ For[i=1,i<=Length[nDS],i++,
 
 
 End[];
+EndPackage[];
 EndPackage[];
