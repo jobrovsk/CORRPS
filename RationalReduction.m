@@ -16,6 +16,9 @@ RationalReductionRNF::usage=""
 Begin["`Private`"];
 
 
+Get["Rational.m"]
+
+
 (* ::Subsection:: *)
 (*MISC*)
 

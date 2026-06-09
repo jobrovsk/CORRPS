@@ -44,6 +44,9 @@ of minimal order m. The output is given as {{\!\(\*SubscriptBox[\(c\), \(0\)]\),
 Begin["`Private`"];
 
 
+Get["RationalReduction.m"]
+
+
 (* ::Input::Initialization:: *)
 CellPrint[Cell[BoxData[RowBox[{RowBox[{"RPiSigmaRingReduction by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyright] RISC \[LongDash] Version 0.1 (May 21, 2026)"}], 
                ButtonBox[StyleBox["Help", "Hyperlink", FontVariations -> {"Underline" -> True}],
@@ -358,7 +361,7 @@ If[ArrayQ[matMod,_,IntegerQ],
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Sigma*)
 
 
@@ -387,7 +390,7 @@ Do[
 	{q,r}+= {w/(d+1) t^(d+1)+(g-w betaS)*t^d,MyTogether[u-w*betaR]t^d};
 	
 	Assert[Rational`MyCoefficientNew[tower[[;;,1]],u-w*betaR,b]===0];
-	sub=If[Length[tower]>2,Collect[MySigma[g-w betaS,tower1],tower[[-2,1]],MyTogether],MyTogether[MySigma[g-w betaS,tower1]]];
+	sub=If[Length[tower]>1,Collect[MySigma[g-w betaS,tower1],tower[[-2,1]],MyTogether],MyTogether[MySigma[g-w betaS,tower1]]];
 	pCoeffs[[;;d]]-=sub Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
 	pCoeffs[[;;d]]-=Table[w/(d+1) Binomial[d+1,i] beta^(d+1-i),{i,0,d-1}];
 	
@@ -911,152 +914,6 @@ For[i=2,i<=n,i++,
 ];
 TowerInfo=AssociationThread[tower[[2;;,1]]->TowerInfo]
 ]
-
-
-(* ::Subsection::Closed:: *)
-(*Field stuff (not used)*)
-
-
-(* ::Input::Initialization:: *)
-(*Input: n, a positive integer
-         DenomSeq is set to be a list consisting of n empty lists
-*)
-
-
-(* ::Input::Initialization:: *)
-ResetDenomSeq[n_Integer]:=Module[{},
-DenomSeq=Table[{},n]
-];
-
-
-(* ::Input::Initialization:: *)
-(* Input: Two polynomials v, p in \Sigma tower with deg(v)<deg(p) and l an integer. *)
-(* Output: {g, h} such that
-v/\[Sigma]^l(p)=\[CapitalDelta](g)+h/p. *)
-LocalNormalReduction[v_,p_,l_Integer,tower_List]:=Module[{i,g, h},
-   If[l===0,Return[{0,v}]];
-If[ l>0, g=Sum[MySigma[v,-i,tower]/MySigma[p,l-i,tower],{i,1,l}],g=Sum[-MySigma[v,i,tower]/MySigma[p,l+i,tower],{i,0,-l-1}]];
-h=MySigma[v,-l,tower];
-{g,h}];
-
-
-(* ::Input::Initialization:: *)
-(*Input: a \Sigma tower reperensted by{{x,1,1},{t_1,a_1,b_1},{t_2,a_2,b_2},...{t_n,a_n,b_n}},
-        a nonzero {t_n}-proper element h in the tower, 
-  Output: {g,h} such that f= \[CapitalDelta](g)+h, where g,h are in the tower and h is t-simple
-*)
-
-
-(* ::Input::Initialization:: *)
-$activateEcho=False;
-NormalReduction[f_,tower_List]:=Module[{ff=MyTogether[f],denf,deg,numf,t,A,n,B,L,i,j,w,C,d,m,g,k, R,h,time1,time2,time3,time4},
-If[ff===0,Return[{0,0}]];
-t=tower[[-1]][[1]];
-denf=Denominator[ff];
-denf=Cancel[denf/Coefficient[denf,t,Exponent[denf,t]]];
-numf=Collect[denf*ff,{t},MyTogether];
-time1=TimeUsed[];
-A=GetCoprimeFactorization[denf,tower];
-(*myEcho[TimeUsed[]-time1,"factor"];*)
-n= Length[A[[1]]];
-B ={};
-L={};
-time2=TimeUsed[];
-Do[
-m=Length[A[[2]][[1]][[3]][[i]]];
-Do[
-w=MySigma[A[[1]][[i]]^A[[2]][[1]][[3]][[i]][[j]][[2]],A[[2]][[1]][[3]][[i]][[j]][[1]],tower];
-
-L=AppendTo[L,{A[[1]][[i]]^A[[2]][[1]][[3]][[i]][[j]][[2]],A[[2]][[1]][[3]][[i]][[j]][[1]]}];
-B=AppendTo[B,w],{j,1,m}],
-{i,1,n} 
-];
-(*myEcho[TimeUsed[]-time2,"set"];*)
-time3=TimeUsed[];
-C=Rational`ParFracDecomp[numf,B,t];
-(*myEcho[TimeUsed[]-time3,"parFrac"];*)
-g=0;
-h=0;
-time4=TimeUsed[];
-Do[
-R=LocalNormalReduction[C[[k]],L[[k]][[1]],L[[k]][[2]],tower];
-g=g+R[[1]];
-h=h+R[[2]]/L[[k]][[1]],
-{k,1,Length[C]}
-];  
-(*myEcho[TimeUsed[]-time4,"Reduce"];*)
-{g,h}
-];
-
-
-
-$activateEcho=False;
-GetCoprimeFactorization[p_,tower_List]:=Module[{A,n,i,k,S,j,B},
-A=Sigma`DifferenceFields`BasicTools`DFInterface`GetSigmaFactorization[{p},tower];
-n=Length[A[[1]]];
-k=Length[tower];
-For [i=1,i<=n,i++,
-S=SearchDenomSeq[k,A[[1]][[i]],tower];
-If[S===Null,
-	UpdateDenomSeq[k,A[[1]][[i]]]
-,
-	A[[1,i]]=S[[1]];
-	B=A[[2]][[1]][[3]][[i]];
-	For [j=1,j<=Length[B],j++,
-		B[[j]][[1]]=B[[j]][[1]]+S[[2]];
-		A[[2,1,3,i,j,1]]=B[[j,1]];
-	];
-];
-];
-A
-];
-
-
-(* ::Input::Initialization:: *)
-(*Input: k, a positive integer,
-         a \PiSigma tower C(x)(t_1,t_2,...,t_k)
-         p,a monic and irreducible polynomial in t_k 
- Output: {m, q}, the Specification of p if there exists q such that \[Sigma]^m(q)=p,
-           Otherwise, Null is returned
-*)
-SearchDenomSeq[k_Integer,p_,tower_List]:=Module[{M,m,i,a},
-M=DenomSeq[[k]];
-m=Length[M];
-For[i=1,i<=m,i++,  a=Sigma`DifferenceFields`BasicTools`DFInterface`GetSpecification[M[[i]],p,tower];
- If[a=!=Null,Break[] ];
-];
-If[i==m+1,Return[],Return[{M[[i]],a}]]
-];
-
-
-(* ::Input::Initialization:: *)
-(*Input: k, a positive integer no more than the length of DenomSeq,
-         a, a member to be inserted in DenomSeq
-*)
-UpdateDenomSeq[k_Integer,a_]:=Module[{n, M},
-n=Length[DenomSeq];
-M=AppendTo[DenomSeq[[k]],a];
-DenomSeq=ReplacePart[DenomSeq,k->M]
-];
-
-
-(* ::Input::Initialization:: *)
-(*Input: a difference field (C(x),\[Sigma]) with \[Sigma](x)=x+1 and f in the field
-Output: {g,h} such that
-      f=\[CapitalDelta](g)+h,
-            where g, h \in C(x) and h is x-simple
-*)
-
-
-(* ::Input::Initialization:: *)
-$activateEcho=False;
-CompleteReduction0[f_,var_Symbol]:=Module[{fp,pp,g,A},
-{fp,pp}=Rational`ProperAndPolynomialParts[f,var];
-g=Sum[pp,var];
-A =NormalReduction[fp,{{var,1,1}}];
-{g+A[[1]],A[[2]]}
-];
-
 
 
 (* ::Subsection:: *)
