@@ -8,15 +8,10 @@ ClearAll@@Names["RationalReduction`*"];
 
 
 (* ::Input::Initialization:: *)
-RationalReduction::usage=""
-RationalReductionRNF::usage=""
-
-
-(* ::Input::Initialization:: *)
 Begin["`Private`"];
 
 
-Get["Rational.m"]
+Get["RPiSigmaRingReduction/Rational.m"]
 
 
 (* ::Subsection:: *)

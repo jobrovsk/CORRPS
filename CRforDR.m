@@ -40,7 +40,7 @@ of minimal order m. The output is given as {{\!\(\*SubscriptBox[\(c\), \(0\)]\),
 Begin["`Private`"];
 
 
-Get["RationalReduction.m"]
+Get["RPiSigmaRingReduction/RationalReduction.m"]
 
 
 (* ::Input::Initialization:: *)
