@@ -59,6 +59,7 @@ CellPrint[Cell[BoxData[RowBox[{RowBox[{"RPiSigmaRingReduction by Yiman Gao and J
 
 
 Clear[CRforDR]
+Options[CRforDR]={"SimplifyFullOutput"->False}
 CRforDR[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=CRforDR[g,1,tower,opts]
 CRforDR[g_,f_,tower_?MatrixQ,opts:OptionsPattern[]]:=
 	If[(TowerInfo["UseAlwaysIdempotents"]&&KeyExistsQ[TowerInfo,"R-Extension"])||!SimpleTowerQ[tower],
@@ -226,6 +227,9 @@ Return[result];
 (* (Mathematica is really bad at dealing with algebraic numbers like (-1)^(2/3))*)
 
 
+(-1)^({2,3,4}/2)
+
+
 Clear[MyTogether]
 Attributes[MyTogether]={Listable}
 MyTogether[f_]:=
@@ -236,7 +240,8 @@ MyEliminateRootObjects[f]
 	If[(Intersection[Variables[f],yL]=!={})(*&&Exponent[f,y]>=l*),
 		With[{prel=Together[MyEliminateRootObjects[(Collect[f,yL]/.Thread[yL^(AAA121212_)->yL^Mod[AAA121212,l]])],Extension->Automatic]},
 		If[Intersection[Variables[Denominator[prel]],yL]=!={},
-			Together[MyEliminateRootObjects[(Collect[Numerator[prel],yL]/.Thread[yL^(AAA121212_)->yL^Mod[AAA121212,l]])],Extension->Automatic]/Denominator[prel]
+			Together[Sum[e[l,expon133,yL](prel/.Thread[yL->((-1)^(l/2))^expon133]),{expon133,Flatten[Array[List,l],Length[l]-1]-1}]]
+			(*Together[MyEliminateRootObjects[(Collect[Numerator[prel],yL]/.Thread[yL^(AAA121212_)->yL^Mod[AAA121212,l]])],Extension->Automatic]/Denominator[prel]*)
 		,
 			prel
 		]
