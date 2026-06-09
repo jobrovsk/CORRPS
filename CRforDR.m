@@ -8,6 +8,9 @@ BeginPackage["CRforDR`"];
 ClearAll@@Names["CRforDR`*"];
 
 
+$CRforDRenableAssert=False;
+
+
 (* ::Input::Initialization:: *)
 GetCoprimeFactorization::usage="";
 LocalNormalReduction::usage="";
@@ -85,7 +88,7 @@ CRforSimpleDR::malformedTower="Error: Tower `1` is malformed and not fit for CRf
 CRforSimpleDR[0,_,_?MatrixQ,OptionsPattern[]]:={0,0}
 CRforSimpleDR[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=CRforSimpleDR[g,1,tower,opts];
 CRforSimpleDR[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{gTrans,fTrans,step,found,x,alpha,beta,gS,gR},
-Assert[Head[TowerInfo]===Association];
+MyAssert[Head[TowerInfo]===Association];
 Sow[Timing[
 If[Length[tower]==1&&tower[[1,2]]===1,
 	{x,step}=tower[[1,{1,3}]];
@@ -125,7 +128,7 @@ If[beta===0,
 	Abort[];
 ];]];
 ][[1]],ToString[tower[[-1,1]]]<>" combined"];
-Assert[CheckReduction[{g,f},{gS,gR},tower]];
+MyAssert[CheckReduction[{g,f},{gS,gR},tower]];
 Return[{gS,gR}];
 ]
 
@@ -164,19 +167,19 @@ ReInitTower[tower_?MatrixQ,OptionsPattern[]]:=Module[{newtower,ordList,orders,yL
 		yList=RExt[[;;,1]];
 		orders=(MyGetOrderOfUnity/@RExt[[;;,2]]);
 		alphas=Table[RExt[[i,2]]^(Times@@RExt[[;;i-1,2]]),{i,Length[RExt]}];
-		Assert[Union[MyTogether[Select[tower,MemberQ[yList,#[[1]]]& ][[;;,2]]^orders]][[1]]===1];
+		MyAssert[Union[MyTogether[Select[tower,MemberQ[yList,#[[1]]]& ][[;;,2]]^orders]][[1]]===1];
 		If[!KeyExistsQ[TowerInfo,"R-Extension"],TowerInfo["R-Extension"]={}];
 		TowerInfo["R-Extension"]=
 			SortBy[Join[TowerInfo["R-Extension"],Transpose[{yList,alphas,orders}]],FirstPosition[tower[[;;,1]],#[[1]]][[1]]&];
 		{newtower,ordList}=RemoveRMonomials[newtower,yList,0];
-		Assert[ordList===orders];
-		Assert[Length[newtower]+Length[TowerInfo["R-Extension"]]==Length[tower]];
+		MyAssert[ordList===orders];
+		MyAssert[Length[newtower]+Length[TowerInfo["R-Extension"]]==Length[tower]];
 	]
 
 ];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Auxiliary Functions*)
 
 
@@ -189,6 +192,12 @@ SimpleTowerQ[{}]:=True
 SimpleTowerQ[{{_,_,_}}]:=True
 SimpleTowerQ[tower_?MatrixQ]:=SimpleTowerQ[Most[tower]]&&Length[CoefficientRules[tower[[-1,2]],Join[Prepend[tower[[2;;-2,1]],Unique[]],1/tower[[2;;-2,1]]]]]==1
 SimpleTowerQ[_]:=False
+
+
+Clear[MyAssert]
+MyAssert::AssertionFaild="Assertion failed: `1` does not evaluate to true";
+Attributes[MyAssert]=HoldAll;
+MyAssert[check_]:=If[$CRforDRenableAssert,If[!ReleaseHold[TrueQ[check]],Message[MyAssert::AssertionFaild,Hold[check]];Abort[]]];
 
 
 Clear[MyLookupPoly];
@@ -345,7 +354,7 @@ AuxiliaryProjectionReduction[p_,tower_?MatrixQ]:=Module[{betaS,betaR,w,ct,b,c,t,
 {q,r}={0,0};
 tower1=Drop[tower,-1];
 {betaS,betaR,b,c}= TowerInfo[t][[;;4]];
-Assert[CheckReduction[{beta,1},{betaS,betaR},tower]];
+MyAssert[CheckReduction[{beta,1},{betaS,betaR},tower]];
 
 pCoeffs=CoefficientList[p,t];
 Do[
@@ -356,7 +365,7 @@ Do[
 	w=MyTogether[ct/c];
 	{q,r}+= {w/(d+1) t^(d+1)+(g-w betaS)*t^d,MyTogether[u-w*betaR]t^d};
 	
-	Assert[Rational`MyCoefficientNew[tower[[;;,1]],u-w*betaR,b]===0];
+	MyAssert[Rational`MyCoefficientNew[tower[[;;,1]],u-w*betaR,b]===0];
 	sub=If[Length[tower]>1,Collect[MySigma[g-w betaS,tower1],tower[[-2,1]],MyTogether],MyTogether[MySigma[g-w betaS,tower1]]];
 	pCoeffs[[;;d]]-=sub Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
 	pCoeffs[[;;d]]-=Table[w/(d+1) Binomial[d+1,i] beta^(d+1-i),{i,0,d-1}];
@@ -377,7 +386,7 @@ Return[{q,r}];
 
 SigmaRingReduction[0,_]:={0,0}
 SigmaRingReduction[g_,tower_?MatrixQ]:=Module[{t=tower[[-1,1]],pp=g,q,r,b,c,u=0,v},
-Assert[tower[[-1,2]]===1];
+MyAssert[tower[[-1,2]]===1];
 
 If[Length[tower]===1,Return[CompleteReduction0[f,t]]];(* <-- this is curently not used*)
 (*{fp,pp}=Rational`ProperAndPolynomialParts[f,t];
@@ -417,7 +426,7 @@ TowerPrecomp::constantsExtended="Error: `1` is not a Sigma-extension of tower `2
 Clear[TowerPrecomp];
 TowerPrecomp[tower_?MatrixQ]:=Module[{t,beta,g,r,b,c,B},
 {t,beta}=tower[[-1,{1,3}]];
-Assert[!KeyExistsQ[TowerInfo,t]];
+MyAssert[!KeyExistsQ[TowerInfo,t]];
 {g,r}=CRforSimpleDR[beta,tower[[;;-2]]];
 If[r===0,Message[TowerPrecomp::constantsExtended,tower[[-1]],tower[[;;-2]]];Abort[]];
 {b,c}=Rational`BasisElement[tower[[1;;-2,1]],r];
@@ -446,7 +455,7 @@ k=Exponent[r,t];
 Sow[Timing[
 Basis[k,tower];
 ][[1]],"Basis"];
-Assert[KeyExistsQ[TowerInfo,t]];
+MyAssert[KeyExistsQ[TowerInfo,t]];
 B=TowerInfo[t][[5]];
 
 {u,v}={Table[0,{k+2}],CoefficientList[r,t]};
@@ -536,11 +545,11 @@ Clear[PiReduction];
 PiReduction[0,_,tower_?MatrixQ]:={0,0}
 PiReduction[g_,s_,towerIn_?MatrixQ]:=Module[
 {st,sc,i,degG,gS,gR,gcS,gcR,tdegG,gCoeffs,t,h,a,m,tower=Most[towerIn],lo,up},
-Assert[towerIn[[-1,3]]===0];
+MyAssert[towerIn[[-1,3]]===0];
 {t,a}=towerIn[[-1,1;;2]];
 (*g=Collect[gIn,t,MyTogether];*)
 m=Exponent[s,t];
-Assert[m==-Exponent[s,t^-1]];
+MyAssert[m==-Exponent[s,t^-1]];
 tdegG=-Exponent[g,t^(-1)];
 (*degG=Exponent[g,t];*)
 (*If[tdegG>degG,Return[{0,0}]];*)
@@ -552,7 +561,7 @@ If[m==0,
 	{gS,gR}=Sum[
 	CRforSimpleDR[gCoeffs[[i-tdegG+1]],s a^i,tower]t^i
 	,{i,tdegG,degG}];
-	Assert[MyTogether[DeltaF[gS,s,towerIn]+gR-g]===0];
+	MyAssert[MyTogether[DeltaF[gS,s,towerIn]+gR-g]===0];
 	Return[{gS,gR}];
 ];
 sc=(s/.t->1);
@@ -593,18 +602,18 @@ If[m<0,
 ];
 gR=Sum[MyTogether[gCoeffs[[i-st]]] t^i,{i,lo,up}];
 (*Print[{m,gR//Factor}];*)
-Assert[MyTogether[DeltaF[gS,s,towerIn]+gR-g]===0];
+MyAssert[MyTogether[DeltaF[gS,s,towerIn]+gR-g]===0];
 Return[{gS,gR}];
 ];
 
 
 Clear[SimpleRReduction]
 SimpleRReduction[g_,f_,tower_?MatrixQ]:=Module[{t=tower[[-1,1]],a=tower[[-1,2]],s,mu,m,d,lambda,AAA,p,gCoeffs,gProj,i,j,gS,iPrime,k,u,v,towerMu,gR},
-Assert[tower[[-1,3]]===0];
-lambda=(t/.(Rule@@@(TowerInfo["R-Extension"][[;;,{1,3}]])));Assert[IntegerQ[lambda]];
+MyAssert[tower[[-1,3]]===0];
+lambda=(t/.(Rule@@@(TowerInfo["R-Extension"][[;;,{1,3}]])));MyAssert[IntegerQ[lambda]];
 m=Exponent[f,t];
 s=Coefficient[f,t,m];
-Assert[MyTogether[f-s t^m]===0];
+MyAssert[MyTogether[f-s t^m]===0];
 If[m==0,Return[PiReduction[Collect[g,t]/.t^AAA_->t^Mod[AAA,lambda],f,tower]]];
 d=GCD[lambda,m];
 (*Print["d=  ",d];*)
@@ -613,7 +622,7 @@ p[i_,k_]:=p[i,k]=MyTogether[Product[MySigma[s a^i,l,tower],{l,0,k-1}]Product[Pro
 gCoeffs=CoefficientList[g,t];
 If[gCoeffs==={},Return[{0,0}]];
 gCoeffs=MyTogether[Total[Partition[gCoeffs,lambda,lambda,1,0]]];
-Assert[Length[gCoeffs]<=lambda];
+MyAssert[Length[gCoeffs]<=lambda];
 gProj=PadRight[gCoeffs[[;;UpTo[d]]],d];
 gS=0;
 Do[
@@ -623,7 +632,7 @@ Do[
 	gS+=-Sum[MySigma[u,j,tower]p[i,j]t^Mod[i+j m,lambda],{j,0,k-1}];
 	gProj[[+1+iPrime]]+=MySigma[u,k,tower]p[i,k];
 ,{i,d,Length[gCoeffs]-1}];
-Assert[MyTogether[DeltaF[gS,f,tower]+Sum[gProj[[+1+i]]t^i,{i,0,d-1}]-g]===0];
+MyAssert[MyTogether[DeltaF[gS,f,tower]+Sum[gProj[[+1+i]]t^i,{i,0,d-1}]-g]===0];
 
 towerMu=MyChangeShiftTower[tower[[;;-2]],mu];
 Do[
@@ -633,7 +642,7 @@ Do[
 ,{i,0,d-1}];
 gR=Sum[gProj[[+1+i]]t^i,{i,0,d-1}];
 (*Print[{gS,f,tower,gR,g}];*)
-Assert[MyTogether[DeltaF[gS,f,tower]+gR-g]===0];
+MyAssert[MyTogether[DeltaF[gS,f,tower]+gR-g]===0];
 Return[{gS,gR}];
 ];
 
@@ -641,18 +650,18 @@ Return[{gS,gR}];
 
 Clear[MyExtendedGCD];
 MyExtendedGCD[a_,b_,c_]:=Module[{g,ag,bg,aC,bC,k},
-Assert[Divisible[c, GCD[a,b]]];
+MyAssert[Divisible[c, GCD[a,b]]];
 {g,{ag,bg}}=ExtendedGCD[a,b];
 {aC,bC}={ag,bg}*c/g;
 {k,aC}=QuotientRemainder[aC,b];
 bC+=a k;
-Assert[aC a+bC b===c];
-Assert[0<=aC<b];
+MyAssert[aC a+bC b===c];
+MyAssert[0<=aC<b];
 Return[{aC,bC}]
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Idempotent*)
 
 
@@ -667,11 +676,6 @@ e[l_List,k_List,y_List]:=Times@@MapThread[e,{l,k,y}]
 e[l_,kIn_,y_]:=e[l,kIn,y,(-1)^(2/l)]
 e[l_,kIn_,y_,alpha_]:=e[l,Mod[kIn,l],y]=Module[{j,k=Mod[kIn,l]},(Times@@Drop[Table[y-(alpha)^j,{j,0,l-1}],{l-1-k+1}])
 /(Times@@Drop[Table[(alpha)^(l-1-k)-(alpha)^j,{j,0,l-1}],{l-1-k+1}])//RootReduce//ToRadicals];
-
-
-(*Clear[MyChangeShiftTower]; 
-MyChangeShiftTower[expr__]:=
-(Sigma`DifferenceFields`BasicTools`DFInterface`ChangeShiftTower[expr]/.Sigma`Algebra`CompAlgSigma`II->I);*)
 
 
 Clear[RemoveRMonomials];
@@ -708,7 +712,6 @@ numR=Length[TowerInfo["R-Extension"][[;;,1]] \[Intersection] tower[[;;,1]]];
 {yList,alphas,orders}=Transpose[TowerInfo["R-Extension"][[;;numR]]];
 myE=e[orders,orders*0,yList,alphas];
 {newtower,ordList}=RemoveRMonomials[tower,yList,0];
-(*Print["newtower=",newtower];*)
 ord=Times@@ordList;
 (*gS=-Sum[Sum[MySigma[myE,j,tower],{j,k+1,ord-1}]MySigma[g,k,tower],{k,0,ord-1}]/.Thread[yList^(AAA121212_)->yList^Mod[AAA121212,orders]];*)
 gS=Sum[Sum[MySigma[myE,i-j,tower]MySigma[g,-j,tower],{j,1,i}],{i,1,ord-1}]/.Thread[yList^(AAA121212_)->yList^Mod[AAA121212,orders]];
@@ -716,15 +719,14 @@ gS=Sum[Sum[MySigma[myE,i-j,tower]MySigma[g,-j,tower],{j,1,i}],{i,1,ord-1}]/.Thre
 (*Print["gS= ",Together[gS]];*)
 gm=Sum[MySigma[g,-k,tower]/.Thread[yList->1/alphas],{k,0,ord-1}];
 (*Print["gm = ",MyTogether[gm]];*)
-Assert[CheckReduction[{g,f},{gS,myE gm},tower]];
+MyAssert[CheckReduction[{g,f},{gS,myE gm},tower]];
 fm=1;
-(*Print[newtower];*)
 {gSn,gRn}=CRforSimpleDR[gm,fm,newtower];
 (*Print["{gSn,gRn}= ",{gSn,gRn}];*)
 gR=myE gRn;
 gS+=Sum[MySigma[myE gSn,k,tower],{k,0,ord-1}];
 ][[1]],"IdempotentReduction"];
-Assert[CheckReduction[{g,f},{gS,gR},tower]];
+MyAssert[CheckReduction[{g,f},{gS,gR},tower]];
 Return[{gS,gR}];
 ]
 
@@ -769,12 +771,12 @@ ReInitTower[towerK];
 Do[
 	{gmS,gmR}=CRforSimpleDR[If[m==0,g,MySigma[gmR,towerN]],towerK]+{MySigma[gmS,towerN],0};
 	gmR=MyTogether[gmR];(* for FindSummableCombination it should be together*)
-	Assert[MyTogether[DeltaF[gmS,1,towerK]+gmR-MySigma[g,m,towerN]]===0];
+	MyAssert[MyTogether[DeltaF[gmS,1,towerK]+gmR-MySigma[g,m,towerN]]===0];
 	AppendTo[gPairList,{gmS,gmR}];
 	Sow[Timing[
 	comb=FindSummableCombination[gPairList,towerK[[;;,1]]];
 	][[1]],"FindSummableCombination"];
-	If[comb=!={},Assert[MyTogether[Sum[comb[[1,1,i]]MySigma[g,i-1,towerN],{i,Length[comb[[1,1]]]}]-DeltaF[comb[[1,-1]],1,towerK]]===0];Break[]];
+	If[comb=!={},MyAssert[MyTogether[Sum[comb[[1,1,i]]MySigma[g,i-1,towerN],{i,Length[comb[[1,1]]]}]-DeltaF[comb[[1,-1]],1,towerK]]===0];Break[]];
 	(*Print["m:",m," New Remainder: ",gmR];*)
 ,{m,0,OptionValue["MaxOrder"]}];
 If[comb==={},Message[FindTelescopingRecurrence::norecfound,OptionValue["MaxOrder"]]];
@@ -791,7 +793,7 @@ Do[
 	shift=sign Ceiling[m/2];
 	{gmS,gmR}=CRforSimpleDR[If[m==0,g,MySigma[lastP[[2]],sign,towerN]],towerK]+{MySigma[lastP[[1]],sign,towerN],0};
 	gmR=MyTogether[gmR];(* for FindSummableCombination it should be together*)
-	Assert[MyTogether[DeltaF[gmS,1,towerK]+gmR-MySigma[g,shift,towerN]]===0];
+	MyAssert[MyTogether[DeltaF[gmS,1,towerK]+gmR-MySigma[g,shift,towerN]]===0];
 	If[sign>0,AppendTo[gPairList,{gmS,gmR}],PrependTo[gPairList,{gmS,gmR}]];
 	Sow[Timing[
 	comb=FindSummableCombination[gPairList,towerK[[;;,1]]];
@@ -799,7 +801,7 @@ Do[
 	If[comb=!={},
 		result=MySigma[comb[[1]],Floor[m/2],towerN];
 		result[[1]]=MyTogether[result[[1]]];
-		Assert[MyTogether[Sum[result[[1,i]]MySigma[g,i-1,towerN],{i,Length[result[[1]]]}]-DeltaF[result[[-1]],1,towerK]]===0];
+		MyAssert[MyTogether[Sum[result[[1,i]]MySigma[g,i-1,towerN],{i,Length[result[[1]]]}]-DeltaF[result[[-1]],1,towerK]]===0];
 		Break[]
 	];
 	lastP=gPairList[[sign]];
@@ -828,7 +830,7 @@ lc=Coefficient[pt,t,d];
 q+= g*t^d;
 r+= u*t^d;
 pt=Collect[pt-MySigma[g*t^d,1,tower]+g*t^d-u*t^d,t,MyTogether];
-Assert[Exponent[pt,t]<d];
+MyAssert[Exponent[pt,t]<d];
 ];
 {q,r}
 ];
@@ -845,7 +847,7 @@ Remark:n>1
 (*deprecated*)
 Clear[Basis];
 Basis[k_Integer,tower_List]:=Module[{n=Length[tower],t=tower[[-1,1]],H,lt,v0,m,L,i,a,b,q,r,u,v},
-Assert[KeyExistsQ[TowerInfo,t]];
+MyAssert[KeyExistsQ[TowerInfo,t]];
 H=TowerInfo[t];
 lt=H[[1]];
 v0=H[[2]];
