@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       154,          7]
-NotebookDataLength[     38177,        928]
-NotebookOptionsPosition[     35564,        880]
-NotebookOutlinePosition[     35954,        896]
-CellTagsIndexPosition[     35911,        893]
+NotebookDataLength[     76158,       1845]
+NotebookOptionsPosition[     71886,       1770]
+NotebookOutlinePosition[     72276,       1786]
+CellTagsIndexPosition[     72233,       1783]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -29,7 +29,7 @@ Cell[BoxData[
  RowBox[{"<<", "RPiSigmaRingReduction/CRforDR.m"}]], "Input",
  CellChangeTimes->{{3.989995726501307*^9, 3.989995726725108*^9}, {
    3.9899958652016172`*^9, 3.9899958696037073`*^9}, 3.989995900875564*^9},
- CellLabel->"In[22]:=",ExpressionUUID->"5490dd19-1d2a-48d8-baeb-5e0a452cf0bb"],
+ CellLabel->"In[31]:=",ExpressionUUID->"5490dd19-1d2a-48d8-baeb-5e0a452cf0bb"],
 
 Cell[BoxData[
  RowBox[{
@@ -37,19 +37,19 @@ Cell[BoxData[
   "RPiSigmaRingReduction", " ", "by", " ", "Yiman", " ", "Gao", " ", "and", " ",
     "Jakob", " ", "Obrovsky"}], " ", "\[LongDash]", " ", 
   RowBox[{"\[Copyright]", " ", "RISC"}], " ", "\[LongDash]", " ", 
-  RowBox[{"Version", " ", "0.1", " ", 
+  RowBox[{"Version", " ", "0.2", ".1", " ", 
    RowBox[{"(", 
     RowBox[{
-     RowBox[{"May", " ", "21"}], ",", " ", "2026"}], ")"}]}]}]], "Print",
+     RowBox[{"June", " ", "11"}], ",", " ", "2026"}], ")"}]}]}]], "Print",
  CellFrame->0.5,
- CellChangeTimes->{3.99000554897429*^9},
+ CellChangeTimes->{3.9901759900143013`*^9},
  FontColor->GrayLevel[0.],
  Background->RGBColor[
    Rational[51, 128], 
    Rational[139, 256], 
    Rational[29, 32]],
  ButtonBoxOptions->{
- Active->True},ExpressionUUID->"0b8e0273-6df2-4ac5-994a-ee1d3341f567"]
+ Active->True},ExpressionUUID->"3d2cb6f5-2b34-4b2a-9810-c8d10659e82a"]
 }, Open  ]],
 
 Cell[CellGroupData[{
@@ -94,7 +94,7 @@ Cell[CellGroupData[{
 Cell[BoxData[
  RowBox[{"?", "ReInitTower"}]], "Input",
  CellChangeTimes->{{3.989998959488146*^9, 3.989998959913772*^9}},
- CellLabel->"In[23]:=",ExpressionUUID->"06c71e58-72af-47aa-8c14-c3e65a90ccef"],
+ CellLabel->"In[3]:=",ExpressionUUID->"06c71e58-72af-47aa-8c14-c3e65a90ccef"],
 
 Cell[BoxData[
  InterpretationBox[
@@ -128,7 +128,21 @@ Cell[BoxData[
            PaneBox[
             
             StyleBox["\<\"(Re)Initializes TowerInfo. Call at the beginning \
-and whenever a new tower is used\"\>", "InformationUsageText",
+and whenever a new tower is used. The given options are used in the function \
+CRforDR.\\nCall: ReInitTower[tower]\\nwhere:\\n\\ttower: An represented by\\n\
+\\t{{x,1,1},{y_1,alpha,0},...,{y_l,alpha_l,0},{p_1,a_1,0},...{p_m,a_m,0},{t_1,\
+1,b_1},{t_2,1,b_2},...{t_n,1,b_n}}\\n\\t(l>=0,m>=0,n>=0, where x,y_i,p_i,t_i \
+are the generators and the shift is defined by \[Sigma](p_i)=alpha_i p_i and \
+\[Sigma](t_i)= t_i + b_i\\n\\tThe y_i must be R-monomials, the p_i \
+\[CapitalPi]-monomials and the t_i \[CapitalSigma]-monimails.\\n\\nOptions: \
+\\n\\\"SingleSetOfRepresentatives\\\"->True|False|{pol1,pol2,...pol_k} \
+(Default: False) : Whether a single set of Representatives should be used for \
+Rational Reduction. This set can be explicitely given as a list of monic, \
+pairwise shift-coprime polynomials {pol1,pol2,...pol_k}. The default is that \
+an individual set is constructed for each \
+\[CapitalDelta]_f.\\n\\\"UseAlwaysIdempotents\\\"->True|False (Default: \
+False) : Whether Idempotent Representation should be used always or only when \
+the tower is not a simple tower (default)\\n\"\>", "InformationUsageText",
              StripOnInput->False,
              LineSpacing->{1.5, 1.5, 3.}],
             FrameMargins->{{10, 10}, {8, 10}}],
@@ -227,8 +241,9 @@ and whenever a new tower is used\"\>", "InformationUsageText",
                     RowBox[{
                     RowBox[{"Select", "[", 
                     RowBox[{
-                    RowBox[{"DownValues", "[", "MyChangeShiftTower", "]"}], 
-                    ",", 
+                    
+                    RowBox[{"DownValues", "[", 
+                    "CRforDR`Private`MyChangeShiftTower", "]"}], ",", 
                     RowBox[{
                     RowBox[{
                     RowBox[{
@@ -299,8 +314,7 @@ and whenever a new tower is used\"\>", "InformationUsageText",
                     RowBox[{"CRforDR`Private`i", ",", 
                     RowBox[{"Length", "[", "CRforDR`Private`RExt", "]"}]}], 
                     "}"}]}], "]"}]}], ";", 
-                    RowBox[{"Assert", "[", 
-                    RowBox[{
+                    RowBox[{"CRforDR`Private`MyAssert", "[", 
                     RowBox[{
                     RowBox[{
                     RowBox[{"Union", "[", 
@@ -320,12 +334,7 @@ and whenever a new tower is used\"\>", "InformationUsageText",
                     RowBox[{"1", ";;", "All"}], ",", "2"}], 
                     "\[RightDoubleBracket]"}], "CRforDR`Private`orders"], 
                     "]"}], "]"}], "\[LeftDoubleBracket]", "1", 
-                    "\[RightDoubleBracket]"}], "===", "1"}], ",", 
-                    RowBox[{"{", 
-                    
-                    RowBox[{"167", ",", 
-                    "\"RPiSigmaRingReduction/CRforDR.m\""}], "}"}]}], "]"}], 
-                    ";", 
+                    "\[RightDoubleBracket]"}], "===", "1"}], "]"}], ";", 
                     RowBox[{"If", "[", 
                     RowBox[{
                     RowBox[{"!", 
@@ -377,32 +386,21 @@ and whenever a new tower is used\"\>", "InformationUsageText",
                     
                     RowBox[{"CRforDR`Private`newtower", ",", 
                     "CRforDR`Private`yList", ",", "0"}], "]"}]}], ";", 
-                    RowBox[{"Assert", "[", 
-                    RowBox[{
+                    RowBox[{"CRforDR`Private`MyAssert", "[", 
                     
                     RowBox[{"CRforDR`Private`ordList", "===", 
-                    "CRforDR`Private`orders"}], ",", 
-                    RowBox[{"{", 
-                    
-                    RowBox[{"172", ",", 
-                    "\"RPiSigmaRingReduction/CRforDR.m\""}], "}"}]}], "]"}], 
-                    ";", 
-                    RowBox[{"Assert", "[", 
-                    RowBox[{
+                    "CRforDR`Private`orders"}], "]"}], ";", 
+                    RowBox[{"CRforDR`Private`MyAssert", "[", 
                     RowBox[{
                     RowBox[{
                     RowBox[{"Length", "[", "CRforDR`Private`newtower", "]"}], 
                     "+", 
                     RowBox[{"Length", "[", 
+                    
                     RowBox[{"CRforDR`Private`TowerInfo", "[", 
                     "\"R-Extension\"", "]"}], "]"}]}], "\[Equal]", 
                     RowBox[{"Length", "[", "CRforDR`Private`tower", "]"}]}], 
-                    ",", 
-                    RowBox[{"{", 
-                    
-                    RowBox[{"173", ",", 
-                    "\"RPiSigmaRingReduction/CRforDR.m\""}], "}"}]}], "]"}], 
-                    ";"}]}], "]"}]}]}], "]"}]}]}, {" "}}, 
+                    "]"}], ";"}]}], "]"}]}]}], "]"}]}]}, {" "}}, 
                   GridBoxAlignment -> {"Columns" -> {{Left}}}, 
                   DefaultBaseStyle -> "Column", 
                   GridBoxItemSize -> {
@@ -546,7 +544,21 @@ and whenever a new tower is used\"\>", "InformationUsageText",
            PaneBox[
             
             StyleBox["\<\"(Re)Initializes TowerInfo. Call at the beginning \
-and whenever a new tower is used\"\>", "InformationUsageText",
+and whenever a new tower is used. The given options are used in the function \
+CRforDR.\\nCall: ReInitTower[tower]\\nwhere:\\n\\ttower: An represented by\\n\
+\\t{{x,1,1},{y_1,alpha,0},...,{y_l,alpha_l,0},{p_1,a_1,0},...{p_m,a_m,0},{t_1,\
+1,b_1},{t_2,1,b_2},...{t_n,1,b_n}}\\n\\t(l>=0,m>=0,n>=0, where x,y_i,p_i,t_i \
+are the generators and the shift is defined by \[Sigma](p_i)=alpha_i p_i and \
+\[Sigma](t_i)= t_i + b_i\\n\\tThe y_i must be R-monomials, the p_i \
+\[CapitalPi]-monomials and the t_i \[CapitalSigma]-monimails.\\n\\nOptions: \
+\\n\\\"SingleSetOfRepresentatives\\\"->True|False|{pol1,pol2,...pol_k} \
+(Default: False) : Whether a single set of Representatives should be used for \
+Rational Reduction. This set can be explicitely given as a list of monic, \
+pairwise shift-coprime polynomials {pol1,pol2,...pol_k}. The default is that \
+an individual set is constructed for each \
+\[CapitalDelta]_f.\\n\\\"UseAlwaysIdempotents\\\"->True|False (Default: \
+False) : Whether Idempotent Representation should be used always or only when \
+the tower is not a simple tower (default)\\n\"\>", "InformationUsageText",
              StripOnInput->False,
              LineSpacing->{1.5, 1.5, 3.}],
             FrameMargins->{{10, 10}, {8, 10}}],
@@ -611,7 +623,21 @@ and whenever a new tower is used\"\>", "InformationUsageText",
   InformationData[<|
    "ObjectType" -> "Symbol", "Usage" -> 
     "(Re)Initializes TowerInfo. Call at the beginning and whenever a new \
-tower is used", "Documentation" -> None, "OwnValues" -> None, "UpValues" -> 
+tower is used. The given options are used in the function CRforDR.\nCall: \
+ReInitTower[tower]\nwhere:\n\ttower: An represented by\n\t\
+{{x,1,1},{y_1,alpha,0},...,{y_l,alpha_l,0},{p_1,a_1,0},...{p_m,a_m,0},{t_1,1,\
+b_1},{t_2,1,b_2},...{t_n,1,b_n}}\n\t(l>=0,m>=0,n>=0, where x,y_i,p_i,t_i are \
+the generators and the shift is defined by \[Sigma](p_i)=alpha_i p_i and \
+\[Sigma](t_i)= t_i + b_i\n\tThe y_i must be R-monomials, the p_i \
+\[CapitalPi]-monomials and the t_i \[CapitalSigma]-monimails.\n\nOptions: \n\
+\"SingleSetOfRepresentatives\"->True|False|{pol1,pol2,...pol_k} (Default: \
+False) : Whether a single set of Representatives should be used for Rational \
+Reduction. This set can be explicitely given as a list of monic, pairwise \
+shift-coprime polynomials {pol1,pol2,...pol_k}. The default is that an \
+individual set is constructed for each \[CapitalDelta]_f.\n\
+\"UseAlwaysIdempotents\"->True|False (Default: False) : Whether Idempotent \
+Representation should be used always or only when the tower is not a simple \
+tower (default)\n", "Documentation" -> None, "OwnValues" -> None, "UpValues" -> 
     None, "DownValues" -> 
     Information`InformationValueForm[
      DownValues, CRforDR`ReInitTower, {CRforDR`ReInitTower[
@@ -638,7 +664,7 @@ tower is used", "Documentation" -> None, "OwnValues" -> None, "UpValues" ->
            MapAt[Unset, 
             Part[
              Select[
-              DownValues[CRforDR`MyChangeShiftTower], And[Head[
+              DownValues[CRforDR`Private`MyChangeShiftTower], And[Head[
                  Part[#, 1, 1, 1]] === List, 
                IntegerQ[
                 Part[#, 1, 1, 2]]]& ], 
@@ -659,14 +685,13 @@ tower is used", "Documentation" -> None, "OwnValues" -> None, "UpValues" ->
               Apply[Times, 
                 Part[CRforDR`Private`RExt, 
                  Span[1, CRforDR`Private`i - 1], 2]], {CRforDR`Private`i, 
-               Length[CRforDR`Private`RExt]}]; Assert[Part[
+               Length[CRforDR`Private`RExt]}]; CRforDR`Private`MyAssert[Part[
                Union[
                 CRforDR`MyTogether[Part[
                    Select[
                    CRforDR`Private`tower, MemberQ[CRforDR`Private`yList, 
                     Part[#, 1]]& ], 
-                   Span[1, All], 2]^CRforDR`Private`orders]], 1] === 1, {
-             167, "RPiSigmaRingReduction/CRforDR.m"}]; If[
+                   Span[1, All], 2]^CRforDR`Private`orders]], 1] === 1]; If[
              Not[
               KeyExistsQ[CRforDR`Private`TowerInfo, "R-Extension"]], 
              CRforDR`Private`TowerInfo["R-Extension"] = {}]; 
@@ -684,30 +709,27 @@ tower is used", "Documentation" -> None, "OwnValues" -> None, "UpValues" ->
              CRforDR`Private`newtower, CRforDR`Private`ordList} = 
             CRforDR`Private`RemoveRMonomials[
              CRforDR`Private`newtower, CRforDR`Private`yList, 0]; 
-           Assert[CRforDR`Private`ordList === CRforDR`Private`orders, {
-             172, "RPiSigmaRingReduction/CRforDR.m"}]; 
-           Assert[Length[CRforDR`Private`newtower] + Length[
+           CRforDR`Private`MyAssert[
+            CRforDR`Private`ordList === CRforDR`Private`orders]; 
+           CRforDR`Private`MyAssert[
+            Length[CRforDR`Private`newtower] + Length[
                 CRforDR`Private`TowerInfo["R-Extension"]] == 
-             Length[CRforDR`Private`tower], {
-             173, "RPiSigmaRingReduction/CRforDR.m"}]; Null]]}], "SubValues" -> 
-    None, "DefaultValues" -> None, "NValues" -> None, "FormatValues" -> None, 
+             Length[CRforDR`Private`tower]]; Null]]}], "SubValues" -> None, 
+    "DefaultValues" -> None, "NValues" -> None, "FormatValues" -> None, 
     "Options" -> {
      "SingleSetOfRepresentatives" -> False, "UseAlwaysIdempotents" -> False}, 
     "Attributes" -> {}, "FullName" -> "CRforDR`ReInitTower"|>, 
    False]]], "Output",
- CellChangeTimes->{3.98999928100495*^9},
- CellLabel->"Out[23]=",ExpressionUUID->"3a17c6d9-b0f9-4f48-909c-a18e9e50434e"]
+ CellChangeTimes->{3.98999928100495*^9, 3.990172250541213*^9},
+ CellLabel->"Out[3]=",ExpressionUUID->"1edc75e2-3bd1-4ce3-9cdf-6591f55d671f"]
 }, Open  ]],
 
 Cell[BoxData[
- RowBox[{"ReInitTower", "[", 
-  RowBox[{"tower", ",", 
-   RowBox[{"\"\<SingleSetOfRepresentatives\>\"", "->", 
-    RowBox[{"{", "}"}]}]}], "]"}]], "Input",
+ RowBox[{"ReInitTower", "[", "tower", "]"}]], "Input",
  CellChangeTimes->{{3.989997242596301*^9, 3.989997328062788*^9}, {
   3.989998946234735*^9, 3.989998980502393*^9}, {3.989999201381119*^9, 
-  3.989999223229395*^9}},
- CellLabel->"In[18]:=",ExpressionUUID->"1c7dcc25-f4ff-4b86-9de0-0f02518feba8"],
+  3.989999223229395*^9}, {3.990172268289536*^9, 3.990172268529138*^9}},
+ CellLabel->"In[6]:=",ExpressionUUID->"1c7dcc25-f4ff-4b86-9de0-0f02518feba8"],
 
 Cell[BoxData[
  RowBox[{
@@ -724,7 +746,7 @@ Cell[BoxData[
    3.9899984171031227`*^9, 3.989998417218959*^9}, {3.989998464484179*^9, 
    3.989998490410286*^9}, {3.989999188813134*^9, 3.989999193341007*^9}, 
    3.989999249237278*^9},
- CellLabel->"In[21]:=",ExpressionUUID->"56baf46f-1029-49cc-ae0f-50bdbc60344c"],
+ CellLabel->"In[7]:=",ExpressionUUID->"56baf46f-1029-49cc-ae0f-50bdbc60344c"],
 
 Cell["Computing a \[CapitalSigma]-pair w.r.t. g in the given tower", "Text",
  CellChangeTimes->{{3.989998498665296*^9, 
@@ -734,12 +756,395 @@ d2a34c0159dc"],
 Cell[CellGroupData[{
 
 Cell[BoxData[
- RowBox[{"CRforDR", "[", 
-  RowBox[{"g", ",", "tower"}], "]"}]], "Input",
+ RowBox[{"?", "CRforDR"}]], "Input",
+ CellChangeTimes->{{3.990172257848111*^9, 3.990172258268056*^9}},
+ CellLabel->"In[4]:=",ExpressionUUID->"4160a3de-0d41-423d-bc2d-5847d8e7ab57"],
+
+Cell[BoxData[
+ InterpretationBox[
+  StyleBox[
+   FrameBox[
+    DynamicModuleBox[{System`InformationDump`open$$ = False, 
+     System`InformationDump`mouseOver$$ = False}, 
+     PaneSelectorBox[{True->
+      TagBox[GridBox[{
+         {
+          ItemBox[
+           PaneBox[
+            StyleBox[
+             TagBox[
+              TooltipBox[
+               StyleBox["\<\" Symbol\"\>", "InformationRowLabel",
+                StripOnInput->False],
+               "\"Symbol\"",
+               TooltipStyle->"TextStyling"],
+              Annotation[#, "Symbol", "Tooltip"]& ], "InformationTitleText",
+             StripOnInput->False,
+             BaseStyle -> None],
+            FrameMargins->{{4, 0}, {-1, 1}}],
+           BaseStyle->"InformationTitleBackground",
+           StripOnInput->False], 
+          ItemBox["\<\"\"\>",
+           BaseStyle->"InformationTitleBackground",
+           StripOnInput->False]},
+         {
+          ItemBox[
+           PaneBox[
+            
+            StyleBox["\<\"TowerInfo must be initialized before using this \
+function \\n(with ReInitTower[tower];)\\nCall: CRforSimpleDR[g,f,tower] or \
+CRforSimpleDR[g,tower]\\nwhere:\\n\\ttower: RPiSigma tower (which has been \
+already initialized by calling ReInitTower[tower], for details see \
+?ReInitTower\\n\\tg: An element in the ring encoded by tower\\n\\tf: An \
+invertible element in this ring. f must be f=1 if n>0.\\n       Can be left \
+out, in this case f is set to 1.\\nOut: {gS,gR}, with \
+\[CapitalDelta]_f(gS)+gR===g, where gR is a remainder.\\nOptions: \
+\\\"SimplifyFullOutput\\\" -> True|False (Default: False) : Whether also gS \
+should be simplified, or only gR, which is the default.\"\>", 
+             "InformationUsageText",
+             StripOnInput->False,
+             LineSpacing->{1.5, 1.5, 3.}],
+            FrameMargins->{{10, 10}, {8, 10}}],
+           BaseStyle->"InformationUsageSubtitleBackground",
+           StripOnInput->False], 
+          ItemBox["\<\"\"\>",
+           BaseStyle->"InformationUsageSubtitleBackground",
+           StripOnInput->False]},
+         {
+          PaneBox[
+           TagBox[GridBox[{
+              {
+               StyleBox[
+                TagBox[
+                 TooltipBox[
+                  StyleBox["\<\" Definitions\"\>", "InformationRowLabel",
+                   StripOnInput->False],
+                  "\"Definitions\"",
+                  TooltipStyle->"TextStyling"],
+                 Annotation[#, "Definitions", "Tooltip"]& ], "DialogStyle",
+                StripOnInput->False]},
+              {
+               TemplateBox[{"\"\[ThinSpace]\"", 
+                 GridBox[{{
+                    RowBox[{
+                    RowBox[{"CRforDR", "[", 
+                    RowBox[{"CRforDR`Private`g_", ",", 
+                    RowBox[{"CRforDR`Private`tower_", "?", "MatrixQ"}], ",", 
+                    RowBox[{"CRforDR`Private`opts", ":", 
+                    RowBox[{"OptionsPattern", "[", "]"}]}]}], "]"}], ":=", 
+                    RowBox[{"CRforDR", "[", 
+                    
+                    RowBox[{
+                    "CRforDR`Private`g", ",", "1", ",", 
+                    "CRforDR`Private`tower", ",", "CRforDR`Private`opts"}], 
+                    "]"}]}]}, {" "}, {
+                    RowBox[{
+                    RowBox[{"CRforDR", "[", 
+                    
+                    RowBox[{
+                    "CRforDR`Private`g_", ",", "CRforDR`Private`f_", ",", 
+                    RowBox[{"CRforDR`Private`tower_", "?", "MatrixQ"}], ",", 
+                    RowBox[{"CRforDR`Private`opts", ":", 
+                    RowBox[{"OptionsPattern", "[", "]"}]}]}], "]"}], ":=", 
+                    RowBox[{"If", "[", 
+                    RowBox[{
+                    RowBox[{
+                    RowBox[{"(", 
+                    RowBox[{
+                    
+                    RowBox[{"CRforDR`Private`TowerInfo", "[", 
+                    "\"UseAlwaysIdempotents\"", "]"}], "&&", 
+                    RowBox[{"KeyExistsQ", "[", 
+                    
+                    RowBox[{"CRforDR`Private`TowerInfo", ",", 
+                    "\"R-Extension\""}], "]"}]}], ")"}], "||", 
+                    RowBox[{"!", 
+                    
+                    RowBox[{"CRforDR`Private`SimpleTowerQ", "[", 
+                    "CRforDR`Private`tower", "]"}]}]}], ",", 
+                    RowBox[{"CRforDR`Private`IdempotentReduction", "[", 
+                    
+                    RowBox[{"CRforDR`Private`g", ",", "CRforDR`Private`f", 
+                    ",", "CRforDR`Private`tower", ",", 
+                    "CRforDR`Private`opts"}], "]"}], ",", 
+                    RowBox[{"CRforDR`Private`CRforSimpleDR", "[", 
+                    
+                    RowBox[{"CRforDR`Private`g", ",", "CRforDR`Private`f", 
+                    ",", "CRforDR`Private`tower", ",", 
+                    "CRforDR`Private`opts"}], "]"}]}], "]"}]}]}, {" "}}, 
+                  GridBoxAlignment -> {"Columns" -> {{Left}}}, 
+                  DefaultBaseStyle -> "Column", 
+                  GridBoxItemSize -> {
+                   "Columns" -> {{Automatic}}, "Rows" -> {{Automatic}}}]},
+                "RowDefault"]}
+             },
+             DefaultBaseStyle->"Column",
+             GridBoxAlignment->{"Columns" -> {{Left}}},
+             
+             GridBoxItemSize->{
+              "Columns" -> {{Automatic}}, "Rows" -> {{Automatic}}}],
+            "Column"],
+           FrameMargins->{{6, 0}, {3, 6}}], "\<\"\"\>"},
+         {
+          PaneBox[GridBox[{
+             {
+              
+              DynamicModuleBox[{System`InformationDump`open$$ = {
+               False, False, False, False, False, False}}, 
+               StyleBox[GridBox[{
+                  {
+                   TagBox[
+                    TooltipBox[
+                    StyleBox["\<\" Options\"\>", "InformationRowLabel",
+                    StripOnInput->False],
+                    "\"Options\"",
+                    TooltipStyle->"TextStyling"],
+                    Annotation[#, "Options", "Tooltip"]& ], 
+                   RowBox[{"\<\"SimplifyFullOutput\"\>", "\[Rule]", "False"}]},
+                  {
+                   TagBox[
+                    TooltipBox[
+                    StyleBox["\<\" Full Name\"\>", "InformationRowLabel",
+                    StripOnInput->False],
+                    "\"FullName\"",
+                    TooltipStyle->"TextStyling"],
+                    
+                    Annotation[#, "FullName", 
+                    "Tooltip"]& ], "\<\"CRforDR`CRforDR\"\>"}
+                 },
+                 AutoDelete->False,
+                 GridBoxAlignment->{"Columns" -> {Right, Left}},
+                 GridBoxDividers->None,
+                 GridBoxItemSize->{"Columns" -> {Automatic, Automatic}},
+                 GridBoxSpacings->{"Columns" -> {
+                    Offset[0.27999999999999997`], {
+                    Offset[0.5599999999999999]}, 
+                    Offset[0.27999999999999997`]}, "Rows" -> {
+                    Offset[0.2], {
+                    Offset[0.8]}, 
+                    Offset[0.2]}}], "DialogStyle",
+                StripOnInput->False],
+               DynamicModuleValues:>{}]}
+            },
+            DefaultBaseStyle->"Column",
+            GridBoxAlignment->{"Columns" -> {{Left}}},
+            GridBoxDividers->{"Columns" -> {{False}}, "Rows" -> {{False}}},
+            
+            GridBoxItemSize->{
+             "Columns" -> {{Automatic}}, "Rows" -> {{Automatic}}},
+            GridBoxSpacings->{"Columns" -> {
+                Offset[0.27999999999999997`], {
+                 Offset[0.5599999999999999]}, 
+                Offset[0.27999999999999997`]}, "Rows" -> {
+                Offset[0.2], {
+                 Offset[3.6]}, 
+                Offset[0.2]}}],
+           FrameMargins->{{6, 6}, {6, 3}}], ""},
+         {
+          ItemBox[
+           TagBox[
+            ButtonBox[
+             PaneSelectorBox[{False->
+              
+              DynamicBox[FEPrivate`FrontEndResource[
+               "FEBitmaps", "UpPointerOpener"]], True->
+              
+              DynamicBox[FEPrivate`FrontEndResource[
+               "FEBitmaps", "UpPointerOpenerHot"]]}, Dynamic[
+              System`InformationDump`mouseOver$$]],
+             Alignment->Left,
+             Appearance->{"Default" -> None},
+             
+             ButtonFunction:>FEPrivate`Set[
+              System`InformationDump`open$$, False],
+             Evaluator->Automatic,
+             FrameMargins->{{9, 0}, {0, 0}},
+             ImageMargins->0,
+             ImageSize->Full,
+             Method->"Preemptive"],
+            
+            EventHandlerTag[{
+             "MouseEntered" :> 
+              FEPrivate`Set[System`InformationDump`mouseOver$$, True], 
+              "MouseExited" :> 
+              FEPrivate`Set[System`InformationDump`mouseOver$$, False], 
+              Method -> "Preemptive", PassEventsDown -> Automatic, 
+              PassEventsUp -> True}]],
+           BaseStyle->"InformationTitleBackground",
+           StripOnInput->False], "\[SpanFromLeft]"}
+        },
+        AutoDelete->False,
+        FrameStyle->Directive[
+          LightDarkSwitched[
+           GrayLevel[0.8]], 
+          Thickness[Tiny]],
+        GridBoxAlignment->{"Columns" -> {Left, Right}, "Rows" -> {{Center}}},
+        GridBoxDividers->{
+         "Columns" -> {{None}}, "Rows" -> {False, {True}, False}},
+        GridBoxItemSize->{
+         "Columns" -> {{Automatic}}, "Rows" -> {{Automatic}}}],
+       "Grid"], False->
+      TagBox[GridBox[{
+         {
+          ItemBox[
+           PaneBox[
+            StyleBox[
+             TagBox[
+              TooltipBox[
+               StyleBox["\<\" Symbol\"\>", "InformationRowLabel",
+                StripOnInput->False],
+               "\"Symbol\"",
+               TooltipStyle->"TextStyling"],
+              Annotation[#, "Symbol", "Tooltip"]& ], "InformationTitleText",
+             StripOnInput->False],
+            FrameMargins->{{4, 0}, {-1, 1}}],
+           BaseStyle->"InformationTitleBackground",
+           StripOnInput->False], 
+          ItemBox["\<\"\"\>",
+           BaseStyle->"InformationTitleBackground",
+           StripOnInput->False]},
+         {
+          ItemBox[
+           PaneBox[
+            
+            StyleBox["\<\"TowerInfo must be initialized before using this \
+function \\n(with ReInitTower[tower];)\\nCall: CRforSimpleDR[g,f,tower] or \
+CRforSimpleDR[g,tower]\\nwhere:\\n\\ttower: RPiSigma tower (which has been \
+already initialized by calling ReInitTower[tower], for details see \
+?ReInitTower\\n\\tg: An element in the ring encoded by tower\\n\\tf: An \
+invertible element in this ring. f must be f=1 if n>0.\\n       Can be left \
+out, in this case f is set to 1.\\nOut: {gS,gR}, with \
+\[CapitalDelta]_f(gS)+gR===g, where gR is a remainder.\\nOptions: \
+\\\"SimplifyFullOutput\\\" -> True|False (Default: False) : Whether also gS \
+should be simplified, or only gR, which is the default.\"\>", 
+             "InformationUsageText",
+             StripOnInput->False,
+             LineSpacing->{1.5, 1.5, 3.}],
+            FrameMargins->{{10, 10}, {8, 10}},
+            ScrollPosition->{0., 0.}],
+           BaseStyle->"InformationUsageSubtitleBackground",
+           StripOnInput->False], 
+          ItemBox["\<\"\"\>",
+           BaseStyle->"InformationUsageSubtitleBackground",
+           StripOnInput->False]},
+         {
+          ItemBox[
+           TagBox[
+            ButtonBox[
+             PaneSelectorBox[{False->
+              
+              DynamicBox[FEPrivate`FrontEndResource[
+               "FEBitmaps", "DownPointerOpener"],
+               ImageSizeCache->{10., {2.673828125, 7.326171875}}], True->
+              
+              DynamicBox[FEPrivate`FrontEndResource[
+               "FEBitmaps", "DownPointerOpenerHot"],
+               ImageSizeCache->{10., {2.673828125, 7.326171875}}]}, Dynamic[
+              System`InformationDump`mouseOver$$]],
+             Alignment->Left,
+             Appearance->{"Default" -> None},
+             
+             ButtonFunction:>FEPrivate`Set[
+              System`InformationDump`open$$, True],
+             Evaluator->Automatic,
+             FrameMargins->{{9, 0}, {0, 0}},
+             ImageMargins->0,
+             ImageSize->Full,
+             Method->"Preemptive"],
+            
+            EventHandlerTag[{
+             "MouseEntered" :> 
+              FEPrivate`Set[System`InformationDump`mouseOver$$, True], 
+              "MouseExited" :> 
+              FEPrivate`Set[System`InformationDump`mouseOver$$, False], 
+              Method -> "Preemptive", PassEventsDown -> Automatic, 
+              PassEventsUp -> True}]],
+           BaseStyle->"InformationTitleBackground",
+           StripOnInput->False], "\[SpanFromLeft]"}
+        },
+        AutoDelete->False,
+        FrameStyle->Directive[
+          LightDarkSwitched[
+           GrayLevel[0.8]], 
+          Thickness[Tiny]],
+        GridBoxAlignment->{"Columns" -> {Left, Right}, "Rows" -> {{Center}}},
+        GridBoxDividers->{
+         "Columns" -> {{None}}, "Rows" -> {False, {True}, False}},
+        GridBoxItemSize->{
+         "Columns" -> {{Automatic}}, "Rows" -> {{Automatic}}}],
+       "Grid"]}, Dynamic[System`InformationDump`open$$],
+      BaselinePosition->Baseline,
+      FrameMargins->0,
+      ImageSize->Automatic],
+     DynamicModuleValues:>{}],
+    BaseStyle->"InformationGridFrame",
+    StripOnInput->False], "InformationGridPlain",
+   StripOnInput->False],
+  InformationData[<|
+   "ObjectType" -> "Symbol", "Usage" -> 
+    "TowerInfo must be initialized before using this function \n(with \
+ReInitTower[tower];)\nCall: CRforSimpleDR[g,f,tower] or \
+CRforSimpleDR[g,tower]\nwhere:\n\ttower: RPiSigma tower (which has been \
+already initialized by calling ReInitTower[tower], for details see \
+?ReInitTower\n\tg: An element in the ring encoded by tower\n\tf: An \
+invertible element in this ring. f must be f=1 if n>0.\n       Can be left \
+out, in this case f is set to 1.\nOut: {gS,gR}, with \
+\[CapitalDelta]_f(gS)+gR===g, where gR is a remainder.\nOptions: \
+\"SimplifyFullOutput\" -> True|False (Default: False) : Whether also gS \
+should be simplified, or only gR, which is the default.", "Documentation" -> 
+    None, "OwnValues" -> None, "UpValues" -> None, "DownValues" -> 
+    Information`InformationValueForm[
+     DownValues, CRforDR`CRforDR, {CRforDR`CRforDR[
+         Pattern[CRforDR`Private`g, 
+          Blank[]], 
+         PatternTest[
+          Pattern[CRforDR`Private`tower, 
+           Blank[]], MatrixQ], 
+         Pattern[CRforDR`Private`opts, 
+          OptionsPattern[]]] :> 
+       CRforDR`CRforDR[
+        CRforDR`Private`g, 1, CRforDR`Private`tower, CRforDR`Private`opts], 
+       CRforDR`CRforDR[
+         Pattern[CRforDR`Private`g, 
+          Blank[]], 
+         Pattern[CRforDR`Private`f, 
+          Blank[]], 
+         PatternTest[
+          Pattern[CRforDR`Private`tower, 
+           Blank[]], MatrixQ], 
+         Pattern[CRforDR`Private`opts, 
+          OptionsPattern[]]] :> If[
+         Or[
+          And[
+           CRforDR`Private`TowerInfo["UseAlwaysIdempotents"], 
+           KeyExistsQ[CRforDR`Private`TowerInfo, "R-Extension"]], 
+          Not[
+           CRforDR`Private`SimpleTowerQ[CRforDR`Private`tower]]], 
+         CRforDR`Private`IdempotentReduction[
+         CRforDR`Private`g, CRforDR`Private`f, CRforDR`Private`tower, 
+          CRforDR`Private`opts], 
+         CRforDR`Private`CRforSimpleDR[
+         CRforDR`Private`g, CRforDR`Private`f, CRforDR`Private`tower, 
+          CRforDR`Private`opts]]}], "SubValues" -> None, "DefaultValues" -> 
+    None, "NValues" -> None, "FormatValues" -> None, 
+    "Options" -> {"SimplifyFullOutput" -> False}, "Attributes" -> {}, 
+    "FullName" -> "CRforDR`CRforDR"|>, False]]], "Output",
+ CellChangeTimes->{3.990172258838093*^9},
+ CellLabel->"Out[4]=",ExpressionUUID->"2765bf62-629a-456c-aaee-b253aa2b617f"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"{", 
+   RowBox[{"gS", ",", "gR"}], "}"}], "=", 
+  RowBox[{"CRforDR", "[", 
+   RowBox[{"g", ",", "tower"}], "]"}]}]], "Input",
  CellChangeTimes->{{3.989997410590747*^9, 3.989997462517592*^9}, {
   3.9899984171031227`*^9, 3.989998417218959*^9}, {3.989998464484179*^9, 
-  3.989998477256267*^9}},
- CellLabel->"In[22]:=",ExpressionUUID->"3683a167-a82f-4772-abf0-ee7816d31d08"],
+  3.989998477256267*^9}, {3.9901722988973846`*^9, 3.9901723071348963`*^9}},
+ CellLabel->"In[10]:=",ExpressionUUID->"3683a167-a82f-4772-abf0-ee7816d31d08"],
 
 Cell[BoxData[
  RowBox[{"{", 
@@ -751,13 +1156,263 @@ Cell[BoxData[
    3.9899976252706833`*^9, 3.98999766162372*^9}, {3.989998044938682*^9, 
    3.989998060719301*^9}, 3.9899981571021557`*^9, 3.989998328495276*^9, 
    3.989998418174786*^9, 3.989998523836483*^9, 3.989998988983059*^9, 
-   3.989999152115654*^9, {3.989999197542074*^9, 3.9899992507018414`*^9}},
- CellLabel->"Out[22]=",ExpressionUUID->"d4a1866e-b632-44bb-91d5-7f8180be373c"]
+   3.989999152115654*^9, {3.989999197542074*^9, 3.9899992507018414`*^9}, 
+   3.990172272364654*^9, 3.990172351120056*^9},
+ CellLabel->"Out[10]=",ExpressionUUID->"440a812e-ce24-4e6a-99e1-de83c5e9986e"]
 }, Open  ]],
 
-Cell[BoxData[""], "Input",
+Cell["Check result:", "Text",
+ CellChangeTimes->{{3.990172282285954*^9, 
+  3.990172292315815*^9}},ExpressionUUID->"d84f7a5c-a429-403a-a36a-\
+37e1c839052f"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Factor", "[", 
+  RowBox[{
+   RowBox[{"MySigma", "[", 
+    RowBox[{"gS", ",", "tower"}], "]"}], "-", "gS", " ", "+", "gR"}], " ", 
+  "]"}]], "Input",
  CellChangeTimes->{
-  3.99000534505049*^9},ExpressionUUID->"cc2cb72e-ade5-4d16-ac15-7443464ebc9f"]
+  3.99000534505049*^9, {3.990172310452198*^9, 3.990172372851964*^9}},
+ CellLabel->"In[12]:=",ExpressionUUID->"cc2cb72e-ade5-4d16-ac15-7443464ebc9f"],
+
+Cell[BoxData[
+ FractionBox[
+  RowBox[{"t", " ", 
+   RowBox[{"(", 
+    RowBox[{"1", "+", "x", "+", 
+     RowBox[{"2", " ", "x", " ", "y1"}]}], ")"}], " ", "y2"}], 
+  RowBox[{"x", " ", 
+   RowBox[{"(", 
+    RowBox[{"1", "+", "x"}], ")"}]}]]], "Output",
+ CellChangeTimes->{{3.99017234812549*^9, 3.99017237380882*^9}},
+ CellLabel->"Out[12]=",ExpressionUUID->"c3cd502d-615b-458e-8af4-729ba5e4594c"]
+}, Open  ]],
+
+Cell["\<\
+By default no idempotent representation is used, since the tower is simple.  \
+Idempotent representation can be enforced by using the option \
+\[OpenCurlyDoubleQuote]UseAlwaysIdempotents\[CloseCurlyDoubleQuote]->True. \
+The output has to be equal, since the remainder is 0 for any Complete \
+Reduction.\
+\>", "Text",
+ CellChangeTimes->{{3.990172408134012*^9, 3.990172541261285*^9}, {
+  3.9901725935251303`*^9, 
+  3.9901726090848227`*^9}},ExpressionUUID->"1019f406-69c1-4c08-a686-\
+f9664de30e4f"],
+
+Cell[BoxData[
+ RowBox[{"ReInitTower", "[", 
+  RowBox[{"tower", ",", 
+   RowBox[{"\"\<UseAlwaysIdempotents\>\"", "->", "True"}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.990172548309246*^9, 3.990172552470044*^9}},
+ CellLabel->"In[13]:=",ExpressionUUID->"2770c224-7577-4f9d-9583-9dd412592708"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"{", 
+   RowBox[{"gS", ",", "gR"}], "}"}], "=", 
+  RowBox[{"CRforDR", "[", 
+   RowBox[{"g", ",", "tower"}], "]"}]}]], "Input",
+ CellLabel->"In[14]:=",ExpressionUUID->"275e632e-2ae6-42f9-85cc-6dbf75042039"],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{
+   RowBox[{
+    FractionBox[
+     RowBox[{"t", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "-", "y1"}], ")"}], " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "-", "y2"}], ")"}]}], 
+     RowBox[{"32", " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "3"}], "+", "x"}], ")"}]}]], "-", 
+    FractionBox[
+     RowBox[{"t", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "-", "y1"}], ")"}], " ", "y1", " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "2"}], "+", "x", "-", 
+        RowBox[{"2", " ", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"-", "3"}], "+", "x"}], ")"}], " ", "y1"}]}], ")"}], " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "-", "y2"}], ")"}], " ", "y2"}], 
+     RowBox[{"32", " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "3"}], "+", "x"}], ")"}], " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "2"}], "+", "x"}], ")"}]}]], "-", 
+    FractionBox[
+     RowBox[{"t", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "-", "y1"}], ")"}], " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "1"}], "+", "x", "+", 
+        RowBox[{"2", " ", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"-", "2"}], "+", "x"}], ")"}], " ", "y1"}]}], ")"}], " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "-", "y2"}], ")"}], " ", "y2"}], 
+     RowBox[{"16", " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "2"}], "+", "x"}], ")"}], " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "1"}], "+", "x"}], ")"}]}]], "+", 
+    FractionBox[
+     RowBox[{"t", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "-", "y1"}], ")"}], " ", "y1", " ", 
+      RowBox[{"(", 
+       RowBox[{"x", "-", 
+        RowBox[{"2", " ", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"-", "1"}], "+", "x"}], ")"}], " ", "y1"}]}], ")"}], " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "-", "y2"}], ")"}], " ", "y2"}], 
+     RowBox[{"8", " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "1"}], "+", "x"}], ")"}], " ", "x"}]], "+", 
+    FractionBox[
+     RowBox[{"t", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "-", "y1"}], ")"}], " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "+", "y2"}], ")"}]}], 
+     RowBox[{"8", " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "1"}], "+", "x"}], ")"}]}]], "+", 
+    FractionBox[
+     RowBox[{"t", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "-", "y1"}], ")"}], " ", "y1", " ", 
+      RowBox[{"(", 
+       RowBox[{"x", "-", 
+        RowBox[{"2", " ", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"-", "1"}], "+", "x"}], ")"}], " ", "y1"}]}], ")"}], " ", 
+      "y2", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "+", "y2"}], ")"}]}], 
+     RowBox[{"8", " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "1"}], "+", "x"}], ")"}], " ", "x"}]], "+", 
+    FractionBox[
+     RowBox[{"t", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "+", "y1"}], ")"}], " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "-", 
+        RowBox[{"y1", " ", "y2"}]}], ")"}]}], 
+     RowBox[{"4", " ", "x"}]], "+", 
+    FractionBox[
+     RowBox[{"t", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "+", "y1"}], ")"}], " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "+", 
+        RowBox[{"y1", " ", "y2"}]}], ")"}]}], 
+     RowBox[{"16", " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "2"}], "+", "x"}], ")"}]}]], "-", 
+    FractionBox[
+     RowBox[{"t", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "+", "y1"}], ")"}], " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "1"}], "+", "x", "+", 
+        RowBox[{"2", " ", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"-", "2"}], "+", "x"}], ")"}], " ", "y1"}]}], ")"}], " ", 
+      "y2", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "+", 
+        RowBox[{"y1", " ", "y2"}]}], ")"}]}], 
+     RowBox[{"16", " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "2"}], "+", "x"}], ")"}], " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "1"}], "+", "x"}], ")"}]}]], "+", 
+    FractionBox[
+     RowBox[{"t", " ", "y1", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "+", "y1"}], ")"}], " ", 
+      RowBox[{"(", 
+       RowBox[{"x", "-", 
+        RowBox[{"2", " ", 
+         RowBox[{"(", 
+          RowBox[{
+           RowBox[{"-", "1"}], "+", "x"}], ")"}], " ", "y1"}]}], ")"}], " ", 
+      "y2", " ", 
+      RowBox[{"(", 
+       RowBox[{"1", "+", 
+        RowBox[{"y1", " ", "y2"}]}], ")"}]}], 
+     RowBox[{"8", " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{"-", "1"}], "+", "x"}], ")"}], " ", "x"}]]}], ",", "0"}], 
+  "}"}]], "Output",
+ CellChangeTimes->{3.9901725590259113`*^9},
+ CellLabel->"Out[14]=",ExpressionUUID->"b6bb2c39-e6b6-497a-aadc-547e731ead8c"]
+}, Open  ]],
+
+Cell["\<\
+Contrary to gR, by default gS is not simplified in any way. To enforce \
+simplification also for  gS, use the option  \
+\[OpenCurlyDoubleQuote]SimplifyFullOutput\[CloseCurlyDoubleQuote] -> True\
+\>", "Text",
+ CellChangeTimes->{{3.9901726191727333`*^9, 3.9901726841483393`*^9}, 
+   3.990172721599132*^9, 
+   3.9901727668758297`*^9},ExpressionUUID->"a34f358e-012f-4d04-8795-\
+7b7fef1cf55e"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"{", 
+   RowBox[{"gS", ",", "gR"}], "}"}], "=", 
+  RowBox[{"CRforDR", "[", 
+   RowBox[{"g", ",", "tower", ",", 
+    RowBox[{"\"\<SimplifyFullOutput\>\"", "->", "True"}]}], "]"}]}]], "Input",\
+
+ CellChangeTimes->{{3.990172696908938*^9, 3.990172712889452*^9}},
+ CellLabel->"In[16]:=",ExpressionUUID->"98cf263c-c569-4855-b23d-862a0368398b"],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{
+   RowBox[{"-", 
+    FractionBox[
+     RowBox[{"t", " ", "y2"}], "x"]}], ",", "0"}], "}"}]], "Output",
+ CellChangeTimes->{{3.990172707868428*^9, 3.990172713197474*^9}},
+ CellLabel->"Out[16]=",ExpressionUUID->"f09dff62-127e-48c6-9f00-2b245a53fec4"]
+}, Open  ]]
 }, Open  ]],
 
 Cell[CellGroupData[{
@@ -793,7 +1448,7 @@ Cell[BoxData[
            RowBox[{"x", "-", "1"}], ")"}]}]}], "4"], ",", "0"}], "}"}]}], 
     "}"}]}], ";"}]], "Input",
  CellChangeTimes->{{3.989999539539476*^9, 3.989999604506075*^9}},
- CellLabel->"In[9]:=",ExpressionUUID->"2c78ba0b-e5bf-456b-b2a9-799fc093c4bb"],
+ CellLabel->"In[18]:=",ExpressionUUID->"2c78ba0b-e5bf-456b-b2a9-799fc093c4bb"],
 
 Cell[BoxData[
  RowBox[{"ReInitTower", "[", "tower", "]"}]], "Input",
@@ -812,70 +1467,305 @@ Cell[BoxData[
          RowBox[{"2", "-", "x"}], ")"}]}], "+", "x"}], ")"}], "p2"}], 
     RowBox[{"p1", " ", "p3"}]]}], " ", ";"}]], "Input",
  CellChangeTimes->{{3.989999639105432*^9, 3.989999661034281*^9}},
- CellLabel->"In[11]:=",ExpressionUUID->"30f6a043-f517-41fb-82ba-4abbaf0719d5"],
+ CellLabel->"In[20]:=",ExpressionUUID->"30f6a043-f517-41fb-82ba-4abbaf0719d5"],
 
 Cell[CellGroupData[{
 
 Cell[BoxData[
  RowBox[{"CRforDR", "[", 
-  RowBox[{"f", ",", "tower"}], "]"}]], "Input",
- CellChangeTimes->{3.9899996672139072`*^9},
- CellLabel->"In[24]:=",ExpressionUUID->"ba28c124-aa0d-44b5-8247-afda1718ad2c"],
+  RowBox[{"f", ",", "tower", ",", 
+   RowBox[{"\"\<SimplifyFullOutput\>\"", "->", "True"}]}], "]"}]], "Input",
+ CellChangeTimes->{
+  3.9899996672139072`*^9, {3.9901727484534683`*^9, 3.9901727486858*^9}},
+ CellLabel->"In[21]:=",ExpressionUUID->"ba28c124-aa0d-44b5-8247-afda1718ad2c"],
 
 Cell[BoxData[
  RowBox[{"{", 
   RowBox[{
-   RowBox[{
+   RowBox[{"-", 
     FractionBox[
-     RowBox[{"2", " ", "p2", " ", 
-      RowBox[{"(", 
-       RowBox[{"1", "-", "y"}], ")"}]}], 
-     RowBox[{"p1", " ", "p3"}]], "+", 
-    FractionBox[
-     RowBox[{"4", " ", "p2", " ", 
-      RowBox[{"(", 
-       RowBox[{"1", "+", "x"}], ")"}], " ", 
-      RowBox[{"(", 
-       RowBox[{"1", "+", "y"}], ")"}]}], 
-     RowBox[{"p1", " ", "p3", " ", 
-      RowBox[{"(", 
-       RowBox[{"3", "+", "x", "-", 
-        RowBox[{
-         RowBox[{"(", 
-          RowBox[{
-           RowBox[{"-", "1"}], "+", "x"}], ")"}], " ", "y"}]}], ")"}]}]], "+", 
-    FractionBox[
-     RowBox[{"2", " ", "p2", " ", 
-      RowBox[{"(", 
-       RowBox[{"1", "-", "y"}], ")"}], " ", 
+     RowBox[{"p2", " ", 
       RowBox[{"(", 
        RowBox[{
-        RowBox[{"-", "1"}], "+", "x", "-", 
-        RowBox[{
-         RowBox[{"(", 
-          RowBox[{"3", "-", "x"}], ")"}], " ", "y"}]}], ")"}]}], 
-     RowBox[{"p1", " ", "p3", " ", 
-      RowBox[{"(", 
-       RowBox[{"2", "+", "x", "-", 
+        RowBox[{"-", "4"}], "-", "x", "-", 
         RowBox[{"2", " ", "y"}], "+", 
-        RowBox[{"x", " ", "y"}]}], ")"}]}]]}], ",", "0"}], "}"}]], "Output",
- CellChangeTimes->{3.990005330967825*^9, 3.990005517785754*^9, 
-  3.9900055949966908`*^9},
- CellLabel->"Out[24]=",ExpressionUUID->"49b781bf-2cd3-4e19-8918-821907ff4156"]
+        RowBox[{"x", " ", "y"}]}], ")"}]}], 
+     RowBox[{"p1", " ", "p3"}]]}], ",", "0"}], "}"}]], "Output",
+ CellChangeTimes->{
+  3.990005330967825*^9, 3.990005517785754*^9, 3.9900055949966908`*^9, {
+   3.990172749095765*^9, 3.990172753094913*^9}},
+ CellLabel->"Out[21]=",ExpressionUUID->"c3d8ee30-53bc-4911-b903-490a6db0a7b0"]
+}, Open  ]]
 }, Open  ]],
 
-Cell["\<\
-Note that the first entry in the \[CapitalSigma]-pair is not simplified in \
-any way.\
-\>", "Text",
- CellChangeTimes->{{3.989999687822877*^9, 
-  3.989999735344153*^9}},ExpressionUUID->"8344095e-94e4-49a9-827f-\
-c322253d96d7"],
+Cell[CellGroupData[{
+
+Cell["Example 3 (Creative Teleskoping using \
+R\[CapitalPi]\[CapitalSigma]*-extensions)", "Subsection",
+ CellChangeTimes->{{3.9901728013111477`*^9, 
+  3.9901728293230753`*^9}},ExpressionUUID->"b83e04c0-21d9-490d-9322-\
+e8938f00dddb"],
+
+Cell["Define towers for the shift in k and the shift in n", "Text",
+ CellChangeTimes->{{3.9901756943351*^9, 
+  3.990175713270225*^9}},ExpressionUUID->"ce0eb7f5-fce0-4989-ad8b-\
+24ef1a95a2c0"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"towerK", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"k", ",", "1", ",", "1"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"b", ",", 
+       FractionBox[
+        RowBox[{
+         RowBox[{"-", "k"}], "+", "n"}], 
+        RowBox[{"1", "+", "k"}]], ",", "0"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"h", ",", "1", ",", 
+       RowBox[{"1", "/", 
+        RowBox[{"(", 
+         RowBox[{"k", "+", "1"}], ")"}]}]}], "}"}]}], "}"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"towerN", "=", 
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"n", ",", "1", ",", "1"}], "}"}], ",", 
+     RowBox[{"{", 
+      RowBox[{"b", ",", 
+       FractionBox[
+        RowBox[{"1", "+", "n"}], 
+        RowBox[{"1", "-", "k", "+", "n"}]], ",", "0"}], "}"}]}], "}"}]}], 
+  ";"}]}], "Input",
+ CellChangeTimes->{{3.9846526600413523`*^9, 3.984652683485972*^9}, {
+   3.984652717628128*^9, 3.984652763221603*^9}, 3.9847150662242327`*^9, {
+   3.988983198809614*^9, 3.988983202065343*^9}},
+ CellLabel->"In[22]:=",ExpressionUUID->"bc0bc9e1-0592-4614-82dd-a732a0e757cd"],
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"g", "=", 
+   RowBox[{
+    RowBox[{"(", 
+     RowBox[{"1", "-", 
+      RowBox[{"l", " ", "k", " ", "h"}], "+", 
+      RowBox[{"l", 
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"-", "k"}], "+", "n"}], ")"}], "h"}]}], ")"}], 
+    RowBox[{"b", "^", "l"}]}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"l", "=", "3"}], ";"}]}], "Input",
+ CellChangeTimes->{{3.990175728543783*^9, 3.990175730854433*^9}, 
+   3.990175780640648*^9, {3.990176054498402*^9, 3.990176055318858*^9}},
+ CellLabel->"In[34]:=",ExpressionUUID->"e5dfd9b1-a412-4c90-9832-9861d771b764"],
+
+Cell[CellGroupData[{
 
 Cell[BoxData[
- RowBox[{"CRforDR", "[", 
-  RowBox[{"f", ",", "tower"}], "]"}]], "Input",ExpressionUUID->"94012812-5c48-\
-4f94-be33-5cb78342e2fd"]
+ RowBox[{"FindTelescopingRecurrence", "[", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"(", 
+     RowBox[{"1", "-", 
+      RowBox[{"l", " ", "k", " ", "h"}], "+", 
+      RowBox[{"l", 
+       RowBox[{"(", 
+        RowBox[{
+         RowBox[{"-", "k"}], "+", "n"}], ")"}], "h"}]}], ")"}], 
+    RowBox[{"b", "^", "l"}]}], ",", 
+   RowBox[{"{", 
+    RowBox[{"towerN", ",", "towerK"}], "}"}], ",", 
+   RowBox[{"\"\<SimplifyFullOutput\>\"", "->", "True"}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.984715880052375*^9, 3.9847158992060432`*^9}, {
+   3.9847160541475782`*^9, 3.984716076185175*^9}, {3.9847161229679823`*^9, 
+   3.984716135904174*^9}, {3.9847163778547573`*^9, 3.984716378239874*^9}, {
+   3.984716410344688*^9, 3.98471641141355*^9}, 3.984722031625044*^9, {
+   3.984723106289269*^9, 3.984723141800386*^9}, {3.984724194634817*^9, 
+   3.9847242004164543`*^9}, 3.984724363510724*^9, {3.984724415917604*^9, 
+   3.9847244218722687`*^9}, {3.984724846364192*^9, 3.984724854125166*^9}, {
+   3.984724989555789*^9, 3.984724990379026*^9}, {3.984725036752987*^9, 
+   3.984725102819751*^9}, {3.984725136050929*^9, 3.984725140170802*^9}, {
+   3.9847251819643297`*^9, 3.984725209508452*^9}, {3.984725274096813*^9, 
+   3.984725274152585*^9}, {3.9847255499191236`*^9, 3.98472555108068*^9}, {
+   3.984726106575057*^9, 3.984726107803607*^9}, {3.984726496664119*^9, 
+   3.984726516223633*^9}, {3.9847266237699757`*^9, 3.9847266274304132`*^9}, {
+   3.984726800328867*^9, 3.984726801092136*^9}, {3.984727719696231*^9, 
+   3.9847277569496593`*^9}, {3.98472799030127*^9, 3.984727990660129*^9}, {
+   3.984728314117002*^9, 3.9847283410760517`*^9}, {3.984728445562965*^9, 
+   3.9847284460330467`*^9}, {3.984728688636239*^9, 3.9847286901090307`*^9}, 
+   3.9847287848251133`*^9, {3.984728844129798*^9, 3.984728850542788*^9}, {
+   3.984729066008214*^9, 3.984729066351275*^9}, {3.984729501903297*^9, 
+   3.984729524081655*^9}, {3.98472994766222*^9, 3.984729993995524*^9}, {
+   3.984731480252686*^9, 3.9847314838444767`*^9}, {3.984734061192218*^9, 
+   3.984734062330719*^9}, {3.988983474095376*^9, 3.9889835244971867`*^9}, 
+   3.988983581856104*^9, {3.988985541253015*^9, 3.988985545602254*^9}, {
+   3.988986207222106*^9, 3.988986233268037*^9}, {3.98898639330053*^9, 
+   3.988986394799217*^9}, 3.989986137388941*^9, {3.989986862754302*^9, 
+   3.989986864687192*^9}, {3.990175762998125*^9, 3.990175820341337*^9}, {
+   3.990175995615778*^9, 3.990176005815626*^9}},
+ CellLabel->"In[33]:=",ExpressionUUID->"2f16c5fc-568b-4754-8cda-73f2ebfc9ab0"],
+
+Cell[BoxData[
+ RowBox[{"{", 
+  RowBox[{
+   RowBox[{"{", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"-", "1"}], "-", "n"}], ",", 
+     RowBox[{
+      RowBox[{"-", "3"}], "-", 
+      RowBox[{"2", " ", "n"}]}], ",", 
+     RowBox[{
+      RowBox[{"-", "2"}], "-", "n"}]}], "}"}], ",", 
+   RowBox[{"-", 
+    RowBox[{
+     FractionBox["1", 
+      RowBox[{
+       SuperscriptBox[
+        RowBox[{"(", 
+         RowBox[{
+          RowBox[{"-", "2"}], "+", "k", "-", "n"}], ")"}], "3"], " ", 
+       SuperscriptBox[
+        RowBox[{"(", 
+         RowBox[{
+          RowBox[{"-", "1"}], "+", "k", "-", "n"}], ")"}], "3"]}]], 
+     RowBox[{
+      SuperscriptBox["k", "2"], " ", 
+      RowBox[{"(", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"-", "72"}], " ", 
+         SuperscriptBox["b", "3"]}], "+", 
+        RowBox[{"104", " ", 
+         SuperscriptBox["b", "3"], " ", "k"}], "+", 
+        RowBox[{"72", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", "k"}], "-", 
+        RowBox[{"63", " ", 
+         SuperscriptBox["b", "3"], " ", 
+         SuperscriptBox["k", "2"]}], "-", 
+        RowBox[{"102", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", 
+         SuperscriptBox["k", "2"]}], "+", 
+        RowBox[{"18", " ", 
+         SuperscriptBox["b", "3"], " ", 
+         SuperscriptBox["k", "3"]}], "+", 
+        RowBox[{"72", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", 
+         SuperscriptBox["k", "3"]}], "-", 
+        RowBox[{"2", " ", 
+         SuperscriptBox["b", "3"], " ", 
+         SuperscriptBox["k", "4"]}], "-", 
+        RowBox[{"24", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", 
+         SuperscriptBox["k", "4"]}], "+", 
+        RowBox[{"3", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", 
+         SuperscriptBox["k", "5"]}], "-", 
+        RowBox[{"264", " ", 
+         SuperscriptBox["b", "3"], " ", "n"}], "+", 
+        RowBox[{"312", " ", 
+         SuperscriptBox["b", "3"], " ", "k", " ", "n"}], "+", 
+        RowBox[{"264", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", "k", " ", "n"}], "-", 
+        RowBox[{"147", " ", 
+         SuperscriptBox["b", "3"], " ", 
+         SuperscriptBox["k", "2"], " ", "n"}], "-", 
+        RowBox[{"297", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", 
+         SuperscriptBox["k", "2"], " ", "n"}], "+", 
+        RowBox[{"30", " ", 
+         SuperscriptBox["b", "3"], " ", 
+         SuperscriptBox["k", "3"], " ", "n"}], "+", 
+        RowBox[{"162", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", 
+         SuperscriptBox["k", "3"], " ", "n"}], "-", 
+        RowBox[{"2", " ", 
+         SuperscriptBox["b", "3"], " ", 
+         SuperscriptBox["k", "4"], " ", "n"}], "-", 
+        RowBox[{"39", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", 
+         SuperscriptBox["k", "4"], " ", "n"}], "+", 
+        RowBox[{"3", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", 
+         SuperscriptBox["k", "5"], " ", "n"}], "-", 
+        RowBox[{"378", " ", 
+         SuperscriptBox["b", "3"], " ", 
+         SuperscriptBox["n", "2"]}], "+", 
+        RowBox[{"342", " ", 
+         SuperscriptBox["b", "3"], " ", "k", " ", 
+         SuperscriptBox["n", "2"]}], "+", 
+        RowBox[{"378", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", "k", " ", 
+         SuperscriptBox["n", "2"]}], "-", 
+        RowBox[{"111", " ", 
+         SuperscriptBox["b", "3"], " ", 
+         SuperscriptBox["k", "2"], " ", 
+         SuperscriptBox["n", "2"]}], "-", 
+        RowBox[{"315", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", 
+         SuperscriptBox["k", "2"], " ", 
+         SuperscriptBox["n", "2"]}], "+", 
+        RowBox[{"12", " ", 
+         SuperscriptBox["b", "3"], " ", 
+         SuperscriptBox["k", "3"], " ", 
+         SuperscriptBox["n", "2"]}], "+", 
+        RowBox[{"117", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", 
+         SuperscriptBox["k", "3"], " ", 
+         SuperscriptBox["n", "2"]}], "-", 
+        RowBox[{"15", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", 
+         SuperscriptBox["k", "4"], " ", 
+         SuperscriptBox["n", "2"]}], "-", 
+        RowBox[{"264", " ", 
+         SuperscriptBox["b", "3"], " ", 
+         SuperscriptBox["n", "3"]}], "+", 
+        RowBox[{"162", " ", 
+         SuperscriptBox["b", "3"], " ", "k", " ", 
+         SuperscriptBox["n", "3"]}], "+", 
+        RowBox[{"264", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", "k", " ", 
+         SuperscriptBox["n", "3"]}], "-", 
+        RowBox[{"27", " ", 
+         SuperscriptBox["b", "3"], " ", 
+         SuperscriptBox["k", "2"], " ", 
+         SuperscriptBox["n", "3"]}], "-", 
+        RowBox[{"144", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", 
+         SuperscriptBox["k", "2"], " ", 
+         SuperscriptBox["n", "3"]}], "+", 
+        RowBox[{"27", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", 
+         SuperscriptBox["k", "3"], " ", 
+         SuperscriptBox["n", "3"]}], "-", 
+        RowBox[{"90", " ", 
+         SuperscriptBox["b", "3"], " ", 
+         SuperscriptBox["n", "4"]}], "+", 
+        RowBox[{"28", " ", 
+         SuperscriptBox["b", "3"], " ", "k", " ", 
+         SuperscriptBox["n", "4"]}], "+", 
+        RowBox[{"90", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", "k", " ", 
+         SuperscriptBox["n", "4"]}], "-", 
+        RowBox[{"24", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", 
+         SuperscriptBox["k", "2"], " ", 
+         SuperscriptBox["n", "4"]}], "-", 
+        RowBox[{"12", " ", 
+         SuperscriptBox["b", "3"], " ", 
+         SuperscriptBox["n", "5"]}], "+", 
+        RowBox[{"12", " ", 
+         SuperscriptBox["b", "3"], " ", "h", " ", "k", " ", 
+         SuperscriptBox["n", "5"]}]}], ")"}]}]}]}]}], "}"}]], "Output",
+ CellChangeTimes->{{3.990175794466495*^9, 3.990175821431347*^9}, {
+  3.990175993659388*^9, 3.9901760062028847`*^9}},
+ CellLabel->"Out[33]=",ExpressionUUID->"1986559c-8246-4a43-8500-5200330c141c"]
+}, Open  ]]
 }, Open  ]]
 },
 WindowSize->{1440, 859.5},
@@ -898,37 +1788,64 @@ Notebook[{
 Cell[554, 20, 160, 3, 33, "Text",ExpressionUUID->"cae12827-5fe6-408e-ba8d-cb4e2107d338"],
 Cell[CellGroupData[{
 Cell[739, 27, 296, 4, 29, "Input",ExpressionUUID->"5490dd19-1d2a-48d8-baeb-5e0a452cf0bb"],
-Cell[1038, 33, 652, 18, 41, "Print",ExpressionUUID->"0b8e0273-6df2-4ac5-994a-ee1d3341f567"]
+Cell[1038, 33, 662, 18, 41, "Print",ExpressionUUID->"3d2cb6f5-2b34-4b2a-9810-c8d10659e82a"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[1727, 56, 261, 5, 53, "Subsection",ExpressionUUID->"bdcf2901-d15b-476b-a4d9-be829df731e0"],
-Cell[1991, 63, 165, 3, 33, "Text",ExpressionUUID->"02ee28b7-1377-4ad5-b342-b59bf9895d8f"],
-Cell[2159, 68, 585, 16, 29, "Input",ExpressionUUID->"6565bc30-7a88-470a-8adf-e779bad3a9b0"],
-Cell[2747, 86, 196, 3, 33, "Text",ExpressionUUID->"81423139-bdcc-49aa-9972-b672cd2af92c"],
+Cell[1737, 56, 261, 5, 53, "Subsection",ExpressionUUID->"bdcf2901-d15b-476b-a4d9-be829df731e0"],
+Cell[2001, 63, 165, 3, 33, "Text",ExpressionUUID->"02ee28b7-1377-4ad5-b342-b59bf9895d8f"],
+Cell[2169, 68, 585, 16, 29, "Input",ExpressionUUID->"6565bc30-7a88-470a-8adf-e779bad3a9b0"],
+Cell[2757, 86, 196, 3, 33, "Text",ExpressionUUID->"81423139-bdcc-49aa-9972-b672cd2af92c"],
 Cell[CellGroupData[{
-Cell[2968, 93, 199, 3, 29, "Input",ExpressionUUID->"06c71e58-72af-47aa-8c14-c3e65a90ccef"],
-Cell[3170, 98, 26283, 600, 90, "Output",ExpressionUUID->"3a17c6d9-b0f9-4f48-909c-a18e9e50434e"]
+Cell[2978, 93, 198, 3, 29, "Input",ExpressionUUID->"06c71e58-72af-47aa-8c14-c3e65a90ccef"],
+Cell[3179, 98, 28830, 625, 403, "Output",ExpressionUUID->"1edc75e2-3bd1-4ce3-9cdf-6591f55d671f"]
 }, Open  ]],
-Cell[29468, 701, 412, 8, 29, "Input",ExpressionUUID->"1c7dcc25-f4ff-4b86-9de0-0f02518feba8"],
-Cell[29883, 711, 619, 15, 54, "Input",ExpressionUUID->"56baf46f-1029-49cc-ae0f-50bdbc60344c"],
-Cell[30505, 728, 202, 3, 33, "Text",ExpressionUUID->"1ee569ec-07d8-4e04-bc4d-d2a34c0159dc"],
+Cell[32024, 726, 356, 5, 29, "Input",ExpressionUUID->"1c7dcc25-f4ff-4b86-9de0-0f02518feba8"],
+Cell[32383, 733, 618, 15, 54, "Input",ExpressionUUID->"56baf46f-1029-49cc-ae0f-50bdbc60344c"],
+Cell[33004, 750, 202, 3, 33, "Text",ExpressionUUID->"1ee569ec-07d8-4e04-bc4d-d2a34c0159dc"],
 Cell[CellGroupData[{
-Cell[30732, 735, 332, 6, 29, "Input",ExpressionUUID->"3683a167-a82f-4772-abf0-ee7816d31d08"],
-Cell[31067, 743, 578, 11, 49, "Output",ExpressionUUID->"d4a1866e-b632-44bb-91d5-7f8180be373c"]
-}, Open  ]],
-Cell[31660, 757, 125, 2, 29, "Input",ExpressionUUID->"cc2cb72e-ade5-4d16-ac15-7443464ebc9f"]
+Cell[33231, 757, 194, 3, 29, "Input",ExpressionUUID->"4160a3de-0d41-423d-bc2d-5847d8e7ab57"],
+Cell[33428, 762, 15912, 370, 325, "Output",ExpressionUUID->"2765bf62-629a-456c-aaee-b253aa2b617f"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[31822, 764, 329, 5, 53, "Subsection",ExpressionUUID->"319b3c6f-0824-405c-95a5-fa34c8c57c6b"],
-Cell[32154, 771, 821, 24, 46, "Input",ExpressionUUID->"2c78ba0b-e5bf-456b-b2a9-799fc093c4bb"],
-Cell[32978, 797, 215, 3, 29, "Input",ExpressionUUID->"027319b9-f2b9-40a2-9844-5aee6466da74"],
-Cell[33196, 802, 422, 12, 54, "Input",ExpressionUUID->"30f6a043-f517-41fb-82ba-4abbaf0719d5"],
-Cell[CellGroupData[{
-Cell[33643, 818, 210, 4, 29, "Input",ExpressionUUID->"ba28c124-aa0d-44b5-8247-afda1718ad2c"],
-Cell[33856, 824, 1295, 39, 59, "Output",ExpressionUUID->"49b781bf-2cd3-4e19-8918-821907ff4156"]
+Cell[49377, 1137, 455, 9, 29, "Input",ExpressionUUID->"3683a167-a82f-4772-abf0-ee7816d31d08"],
+Cell[49835, 1148, 626, 12, 49, "Output",ExpressionUUID->"440a812e-ce24-4e6a-99e1-de83c5e9986e"]
 }, Open  ]],
-Cell[35166, 866, 235, 6, 33, "Text",ExpressionUUID->"8344095e-94e4-49a9-827f-c322253d96d7"],
-Cell[35404, 874, 144, 3, 29, "Input",ExpressionUUID->"94012812-5c48-4f94-be33-5cb78342e2fd"]
+Cell[50476, 1163, 155, 3, 33, "Text",ExpressionUUID->"d84f7a5c-a429-403a-a36a-37e1c839052f"],
+Cell[CellGroupData[{
+Cell[50656, 1170, 341, 8, 30, "Input",ExpressionUUID->"cc2cb72e-ade5-4d16-ac15-7443464ebc9f"],
+Cell[51000, 1180, 393, 10, 57, "Output",ExpressionUUID->"c3cd502d-615b-458e-8af4-729ba5e4594c"]
+}, Open  ]],
+Cell[51408, 1193, 505, 10, 55, "Text",ExpressionUUID->"1019f406-69c1-4c08-a686-f9664de30e4f"],
+Cell[51916, 1205, 291, 5, 29, "Input",ExpressionUUID->"2770c224-7577-4f9d-9583-9dd412592708"],
+Cell[CellGroupData[{
+Cell[52232, 1214, 239, 6, 29, "Input",ExpressionUUID->"275e632e-2ae6-42f9-85cc-6dbf75042039"],
+Cell[52474, 1222, 4797, 158, 108, "Output",ExpressionUUID->"b6bb2c39-e6b6-497a-aadc-547e731ead8c"]
+}, Open  ]],
+Cell[57286, 1383, 398, 8, 33, "Text",ExpressionUUID->"a34f358e-012f-4d04-8795-7b7fef1cf55e"],
+Cell[CellGroupData[{
+Cell[57709, 1395, 371, 9, 29, "Input",ExpressionUUID->"98cf263c-c569-4855-b23d-862a0368398b"],
+Cell[58083, 1406, 287, 7, 49, "Output",ExpressionUUID->"f09dff62-127e-48c6-9f00-2b245a53fec4"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[58419, 1419, 329, 5, 53, "Subsection",ExpressionUUID->"319b3c6f-0824-405c-95a5-fa34c8c57c6b"],
+Cell[58751, 1426, 822, 24, 46, "Input",ExpressionUUID->"2c78ba0b-e5bf-456b-b2a9-799fc093c4bb"],
+Cell[59576, 1452, 215, 3, 29, "Input",ExpressionUUID->"027319b9-f2b9-40a2-9844-5aee6466da74"],
+Cell[59794, 1457, 422, 12, 54, "Input",ExpressionUUID->"30f6a043-f517-41fb-82ba-4abbaf0719d5"],
+Cell[CellGroupData[{
+Cell[60241, 1473, 322, 6, 29, "Input",ExpressionUUID->"ba28c124-aa0d-44b5-8247-afda1718ad2c"],
+Cell[60566, 1481, 547, 15, 57, "Output",ExpressionUUID->"c3d8ee30-53bc-4911-b903-490a6db0a7b0"]
+}, Open  ]]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[61162, 1502, 233, 4, 53, "Subsection",ExpressionUUID->"b83e04c0-21d9-490d-9322-e8938f00dddb"],
+Cell[61398, 1508, 191, 3, 33, "Text",ExpressionUUID->"ce0eb7f5-fce0-4989-ad8b-24ef1a95a2c0"],
+Cell[61592, 1513, 1134, 33, 79, "Input",ExpressionUUID->"bc0bc9e1-0592-4614-82dd-a732a0e757cd"],
+Cell[62729, 1548, 605, 16, 51, "Input",ExpressionUUID->"e5dfd9b1-a412-4c90-9832-9861d771b764"],
+Cell[CellGroupData[{
+Cell[63359, 1568, 2518, 42, 30, "Input",ExpressionUUID->"2f16c5fc-568b-4754-8cda-73f2ebfc9ab0"],
+Cell[65880, 1612, 5978, 154, 128, "Output",ExpressionUUID->"1986559c-8246-4a43-8500-5200330c141c"]
+}, Open  ]]
 }, Open  ]]
 }
 ]

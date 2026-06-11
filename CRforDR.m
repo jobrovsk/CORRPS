@@ -47,7 +47,7 @@ of minimal order m. The output is given as {{\!\(\*SubscriptBox[\(c\), \(0\)]\),
 Options:
 \"WithNegativeShifts\" -> True|False (Default: False)
 Whether also negative shifts are used internally in the computation. This can make the computation faster.
-";
+\"SimplifyFullOutput\" -> True|False (Default: False) : Whether the certificate should be simplified, or only the found recurrenc, which is the default.";
 
 
 (* ::Input::Initialization:: *)
@@ -732,7 +732,7 @@ Return[{If[OptionValue["SimplifyFullOutput"],MyTogether[gS],gS],gR}];
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Creative/Parametric Telescoping *)
 
 
@@ -763,7 +763,7 @@ Return[FindSummableCombination[A,tower[[;;,1]]]];
 Clear[FindTelescopingRecurrence]
 FindTelescopingRecurrence::norecfound="No recurrence of order <= `1` exists, increase value of option \"MaxOrder\"";
 
-Options[FindTelescopingRecurrence]={"MaxOrder"->30,"WithNegativeShifts"->False};
+Options[FindTelescopingRecurrence]={"MaxOrder"->30,"WithNegativeShifts"->False,"SimplifyFullOutput"->False};
 FindTelescopingRecurrence[g_,{towerN_List,towerK_List},opts:OptionsPattern[]]:=FindTelescopingRecurrence[g,{towerN,towerK},OptionValue["WithNegativeShifts"],opts]
 FindTelescopingRecurrence[g_,{towerN_List,towerK_List},False,OptionsPattern[]]:=Module[{comb,gPairList,m,gmS,gmR},
 gPairList={};
@@ -781,7 +781,7 @@ Do[
 	(*Print["m:",m," New Remainder: ",gmR];*)
 ,{m,0,OptionValue["MaxOrder"]}];
 If[comb==={},Message[FindTelescopingRecurrence::norecfound,OptionValue["MaxOrder"]]];
-Return[comb[[1]]];
+Return[If[OptionValue["SimplifyFullOutput"],MyTogether[comb[[1]]],comb[[1]]]];
 ]
 
 FindTelescopingRecurrence[g_,{towerN_List,towerK_List},True,OptionsPattern[]]:=Module[{result,comb,gPairList,m,gmS,gmR,shift,sign,lastP},
@@ -809,7 +809,7 @@ Do[
 	(*Print["m:",m," New Remainder: ",gmR];*)
 ,{m,0,OptionValue["MaxOrder"]}];
 If[comb==={},Message[FindTelescopingRecurrence::norecfound,OptionValue["MaxOrder"]]];
-Return[result];
+Return[If[OptionValue["SimplifyFullOutput"],MyTogether[result],result]];
 ]
 
 
