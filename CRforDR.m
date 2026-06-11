@@ -46,8 +46,11 @@ of minimal order m. The output is given as {{\!\(\*SubscriptBox[\(c\), \(0\)]\),
 Begin["`Private`"];
 
 
+$VersionCRforDR="Version 0.2 (June 11, 2026)";
+
+
 (* ::Input::Initialization:: *)
-CellPrint[Cell[BoxData[RowBox[{RowBox[{"RPiSigmaRingReduction by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyright] RISC \[LongDash] Version 0.1 (May 21, 2026)"}](*, 
+CellPrint[Cell[BoxData[RowBox[{RowBox[{"RPiSigmaRingReduction by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyright] RISC \[LongDash] "<>$VersionCRforDR}](*, 
                ButtonBox[StyleBox["Help", "Hyperlink", FontVariations -> {"Underline" -> True}],
 					ButtonFunction :> RingReductionHelp[], ButtonEvaluator -> Automatic, ButtonData :> {"", ""}, 
 					ButtonFrame -> "None"]*)}]], "Print", CellFrame -> 0.5`, FontColor -> GrayLevel[0.`], 
@@ -85,6 +88,7 @@ CRforDR[g_,f_,tower_?MatrixQ,opts:OptionsPattern[]]:=
 
 
 Clear[CRforSimpleDR];
+Options[CRforSimpleDR]={"SimplifyFullOutput"->False}
 CRforSimpleDR::malformedTower="Error: Tower `1` is malformed and not fit for CRforSimpleDR w.r.t Delta `2`";
 CRforSimpleDR[0,_,_?MatrixQ,OptionsPattern[]]:={0,0}
 CRforSimpleDR[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=CRforSimpleDR[g,1,tower,opts];
@@ -130,7 +134,7 @@ If[beta===0,
 ];]];
 ][[1]],ToString[tower[[-1,1]]]<>" combined"];
 MyAssert[CheckReduction[{g,f},{gS,gR},tower]];
-Return[{gS,gR}];
+Return[{If[OptionValue["SimplifyFullOutput"],MyTogether[gS],gS],gR}];
 ]
 
 
@@ -707,9 +711,10 @@ Return[{newtower,ordList}];
 
 
 Clear[IdempotentReduction];
+Options[IdempotentReduction]={"SimplifyFullOutput"->False}
 IdempotentReduction::NotPlainDelta="f = `1` must be 1 for a non-simple tower. Only plain \[CapitalDelta] is supported for a non-simple tower";
 IdempotentReduction::NotRExtension="No R-monomial in tower `1`";
-IdempotentReduction[g_,f_,tower_?MatrixQ]:=Module[{ordList,fm,numR,orders,gm,yList,newtower,ord,gS,gR,gSn,gRn,alphas,k,myE},
+IdempotentReduction[g_,f_,tower_?MatrixQ,OptionsPattern[]]:=Module[{ordList,fm,numR,orders,gm,yList,newtower,ord,gS,gR,gSn,gRn,alphas,k,myE},
 If[!KeyExistsQ[TowerInfo["R-Extension"]],Message[IdempotentReduction::NotRExtension,tower];Abort[];];
 If[f=!=1,Message[IdempotentReduction::NotPlainDelta,f];Abort[]];
 Sow[Timing[
@@ -732,7 +737,7 @@ gR=myE gRn;
 gS+=Sum[MySigma[myE gSn,k,tower],{k,0,ord-1}];
 ][[1]],"IdempotentReduction"];
 MyAssert[CheckReduction[{g,f},{gS,gR},tower]];
-Return[{gS,gR}];
+Return[{If[OptionValue["SimplifyFullOutput"],MyTogether[gS],gS],gR}];
 ]
 
 
