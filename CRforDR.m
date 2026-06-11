@@ -11,42 +11,47 @@ ClearAll@@Names["CRforDR`*"];
 $CRforDRenableAssert=False;
 
 
+$VersionCRforDR="Version 0.2.1 (June 11, 2026)";
+
+
 (* ::Input::Initialization:: *)
-GetCoprimeFactorization::usage="";
-LocalNormalReduction::usage="";
-NormalReduction::usage="";
-AuxiliaryReduction::usage="";
-MyProjection::usage="";
-SigmaRingReduction::usage="";
 CRforDR::usage="TowerInfo must be initialized before using this function 
 (with ReInitTower[tower];)
-Call: CRforSimpleDR[g,f,tower]
+Call: CRforSimpleDR[g,f,tower] or CRforSimpleDR[g,tower]
 where:
-	tower: A basic RPiSigma tower represented by
-	{{x,1,1},{p_1,a_1,0},...{p_m,a_m,0},{y,alpha,0},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}}
-	(m>=0,n>=0 and with or without the R-monomial y)
-	g: An element in this ring
-	f: An invertible element in this ring. f must be f=1 if n>0 or if y is in the tower.
-       Can be left out, in this case f=1
-Out: {gS,gR}, with \[CapitalDelta]_f(gS)+gR===g, where gR is a remainder";
-CRforSimpleDR::usage="";
-ReInitTower::usage="(Re)Initializes TowerInfo. Call at the beginning and whenever a new tower is used";
+	tower: RPiSigma tower (which has been already initialized by calling ReInitTower[tower], for details see ?ReInitTower
+	g: An element in the ring encoded by tower
+	f: An invertible element in this ring. f must be f=1 if n>0.
+       Can be left out, in this case f is set to 1.
+Out: {gS,gR}, with \[CapitalDelta]_f(gS)+gR===g, where gR is a remainder.
+Options: \"SimplifyFullOutput\" -> True|False (Default: False) : Whether also gS should be simplified, or only gR, which is the default.";
+ReInitTower::usage="(Re)Initializes TowerInfo. Call at the beginning and whenever a new tower is used. The given options are used in the function CRforDR.
+Call: ReInitTower[tower]
+where:
+	tower: An represented by
+	{{x,1,1},{y_1,alpha,0},...,{y_l,alpha_l,0},{p_1,a_1,0},...{p_m,a_m,0},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}}
+	(l>=0,m>=0,n>=0, where x,y_i,p_i,t_i are the generators and the shift is defined by \[Sigma](p_i)=alpha_i p_i and \[Sigma](t_i)= t_i + b_i
+	The y_i must be R-monomials, the p_i \[CapitalPi]-monomials and the t_i \[CapitalSigma]-monimails.
+
+Options: 
+\"SingleSetOfRepresentatives\"->True|False|{pol1,pol2,...pol_k} (Default: False) : Whether a single set of Representatives should be used for Rational Reduction. This set can be explicitely given as a list of monic, pairwise shift-coprime polynomials {pol1,pol2,...pol_k}. The default is that an individual set is constructed for each \[CapitalDelta]_f.
+\"UseAlwaysIdempotents\"->True|False (Default: False) : Whether Idempotent Representation should be used always or only when the tower is not a simple tower (default)
+";
 PT ::usage="";
 MyTogether::usage="";
-MyChangeShiftTower::usage="";
 DeltaF::usage="";
 MySigma::usage="";
 FindTelescopingRecurrence::usage="FindTelescopingRecurrence[g,{towerN,towerK}] finds the a recurrence 
 \!\(\*SubscriptBox[\(c\), \(0\)]\) g + ... +  \!\(\*SubscriptBox[\(c\), \(m\(\\\ \)\)]\)\!\(\*SubscriptBox[\(\[Sigma]\), \(m\)]\)(g)=\!\(\*SubscriptBox[\(\[CapitalDelta]\), \(k\)]\)(h)
-of minimal order m. The output is given as {{\!\(\*SubscriptBox[\(c\), \(0\)]\),...,\!\(\*SubscriptBox[\(c\), \(m\)]\)},h}. h is not simplified by any means. If no recurrence of order OptionValue[\"MaxOrder\"] (default: 30) exists, then the output is {}. If OptionValue[\"WithNegativeShifts\"] is True, then also negative shifts are used internally in the computation (Default: False).
+of minimal order m. The output is given as {{\!\(\*SubscriptBox[\(c\), \(0\)]\),...,\!\(\*SubscriptBox[\(c\), \(m\)]\)},h}. h is not simplified by any means. If no recurrence of order OptionValue[\"MaxOrder\"] (default: 30) exists, then the output is {}. 
+Options:
+\"WithNegativeShifts\" -> True|False (Default: False)
+Whether also negative shifts are used internally in the computation. This can make the computation faster.
 ";
 
 
 (* ::Input::Initialization:: *)
 Begin["`Private`"];
-
-
-$VersionCRforDR="Version 0.2 (June 11, 2026)";
 
 
 (* ::Input::Initialization:: *)
@@ -73,18 +78,7 @@ CRforDR[g_,f_,tower_?MatrixQ,opts:OptionsPattern[]]:=
 
 
 (* ::Text:: *)
-(*Main scheduler which calls Reduction-function which fits to this tower. *)
-(**)
-(*In : a basic RPiSigma tower represented by*)
-(*	{{x, 1, 1}, {p_ 1, a_ 1, 0}, ... {p_m, a_m, 0}, {y, alpha, 0}, {t_ 1, 1, b_ 1}, {t_ 2, 1, b_ 2}, ... {t_n, 1, b_n}}*)
-(*	(m >= 0, n >= 0 and with or without R - monomial y)*)
-(*	g : An element in this ring*)
-(*	f : An invertible element in this ring . Must be f = 1 if n > 0*)
-(*	TowerInfo must be initialized before using this function *)
-(*	(with ReInitTower[tower]; or with information which was produced for this tower)*)
-(**)
-(*Out : {gS, gR}, with \[CapitalDelta]_f (gS) + gR === g, where gR is a remainder*)
-(**)
+(*Main scheduler which calls Reduction-function which fits to this simple tower. *)
 
 
 Clear[CRforSimpleDR];
@@ -229,9 +223,6 @@ Return[result];
 (*plain MyTogether for QQ (x_ 1, x_ 2, ...),*)
 (*MyEliminateRootObjects for algebraic numbers *)
 (* (Mathematica is really bad at dealing with algebraic numbers like (-1)^(2/3))*)
-
-
-(-1)^({2,3,4}/2)
 
 
 Clear[MyTogether]
@@ -670,7 +661,7 @@ Return[{aC,bC}]
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Idempotent*)
 
 
