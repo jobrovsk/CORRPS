@@ -1,6 +1,6 @@
 # CRforDR
 
-Website: 
+Website: risc.jku.at/sw/CRforDR
 
 ## Overview
 
@@ -12,7 +12,7 @@ CRforDR is developed and tested for Wolfram Mathematica 14.3, but should work on
 
 ## Installation
 
-Clone Repository and move the directory into one of the directories in $Path where Mathematica can find it. 
+Clone Repository and move the directory CRforDR into one of the directories in $Path where Mathematica can find it. 
 
 ## Documentation
 
@@ -21,6 +21,9 @@ See the Mathematica-Notebook Examples.nb.
 ## Authors
 
 Jakob Obrovsky (jakob.obrovsky@risc.jku.at)
+
 Yiman Gao (ymgao@risc.jku.at) 
 
 ## License
+
+CRforDR is distributed under LGPL (GNU Lesser General Public License) version 3 or later. See the COPYING.LESSER file.

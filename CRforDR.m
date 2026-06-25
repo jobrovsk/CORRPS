@@ -1,6 +1,14 @@
 (* ::Package:: *)
 
-Get["RPiSigmaRingReduction/RationalReduction.m"]
+(* ::Text:: *)
+(*Copyright (C) 2026 Jakob Obrovsky*)
+(**)
+(*This file is part of CRforDR.*)
+(**)
+(*CRforDR is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License (LGPL) as published by the Free Software Foundation; either version 3 of the License, or  (at your option) any later version.  See https://www.gnu.org/licenses/*)
+
+
+Get["CRforDR/RationalReduction.m"]
 
 
 (* ::Input::Initialization:: *)
@@ -15,18 +23,17 @@ $VersionCRforDR="Version 0.2.1 (June 11, 2026)";
 
 
 (* ::Input::Initialization:: *)
-CRforDR::usage="TowerInfo must be initialized before using this function 
-(with ReInitTower[tower];)
+CRforDR::usage="TowerInfo must be initialized with ResetTower[tower] before using this function
 Call: CRforSimpleDR[g,f,tower] or CRforSimpleDR[g,tower]
 where:
-	tower: RPiSigma tower (which has been already initialized by calling ReInitTower[tower], for details see ?ReInitTower
+	tower: RPiSigma tower (which has been already initialized by calling ResetTower[tower], for details see ?ResetTower
 	g: An element in the ring encoded by tower
 	f: An invertible element in this ring. f must be f=1 if n>0.
        Can be left out, in this case f is set to 1.
 Out: {gS,gR}, with \[CapitalDelta]_f(gS)+gR===g, where gR is a remainder.
 Options: \"SimplifyFullOutput\" -> True|False (Default: False) : Whether also gS should be simplified, or only gR, which is the default.";
-ReInitTower::usage="(Re)Initializes TowerInfo. Call at the beginning and whenever a new tower is used. The given options are used in the function CRforDR.
-Call: ReInitTower[tower]
+ResetTower::usage="(Re)Initializes TowerInfo. Call at the beginning and whenever a new tower is used. The given options are used in the function CRforDR.
+Call: ResetTower[tower]
 where:
 	tower: An represented by
 	{{x,1,1},{y_1,alpha,0},...,{y_l,alpha_l,0},{p_1,a_1,0},...{p_m,a_m,0},{t_1,1,b_1},{t_2,1,b_2},...{t_n,1,b_n}}
@@ -37,11 +44,11 @@ Options:
 \"SingleSetOfRepresentatives\"->True|False|{pol1,pol2,...pol_k} (Default: False) : Whether a single set of Representatives should be used for Rational Reduction. This set can be explicitely given as a list of monic, pairwise shift-coprime polynomials {pol1,pol2,...pol_k}. The default is that an individual set is constructed for each \[CapitalDelta]_f.
 \"UseAlwaysIdempotents\"->True|False (Default: False) : Whether Idempotent Representation should be used always or only when the tower is not a simple tower (default)
 ";
-PT ::usage="";
-MyTogether::usage="";
-DeltaF::usage="";
-MySigma::usage="";
-FindTelescopingRecurrence::usage="FindTelescopingRecurrence[g,{towerN,towerK}] finds the a recurrence 
+ParametricTelescopingViaCR ::usage="";
+MyTogether::usage="Chooses an efficient way to simplify the given object. The output is canonical w.r.t. the R-extension, i.e. it is explicitely 0 if f is equal to zero in the given tower.";
+DeltaF::usage="DeltaF[g,f,tower] returns f*MySigma[g,1,tower]-f";
+MySigma::usage="MySigma[g,k,tower] returns \[Sigma]^k(g) where \[Sigma] is defined by tower.";
+CreativeTelescopingViaCR::usage="CreativeTelescopingViaCR[g,{towerN,towerK}] finds the a recurrence 
 \!\(\*SubscriptBox[\(c\), \(0\)]\) g + ... +  \!\(\*SubscriptBox[\(c\), \(m\(\\\ \)\)]\)\!\(\*SubscriptBox[\(\[Sigma]\), \(m\)]\)(g)=\!\(\*SubscriptBox[\(\[CapitalDelta]\), \(k\)]\)(h)
 of minimal order m. The output is given as {{\!\(\*SubscriptBox[\(c\), \(0\)]\),...,\!\(\*SubscriptBox[\(c\), \(m\)]\)},h}. h is not simplified by any means. If no recurrence of order OptionValue[\"MaxOrder\"] (default: 30) exists, then the output is {}. 
 Options:
@@ -55,10 +62,10 @@ Begin["`Private`"];
 
 
 (* ::Input::Initialization:: *)
-CellPrint[Cell[BoxData[RowBox[{RowBox[{"RPiSigmaRingReduction by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyright] RISC \[LongDash] "<>$VersionCRforDR}](*, 
+CellPrint[TextCell["RPiSigmaRingReduction by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyright] RISC \[LongDash] "<>$VersionCRforDR (*, 
                ButtonBox[StyleBox["Help", "Hyperlink", FontVariations -> {"Underline" -> True}],
 					ButtonFunction :> RingReductionHelp[], ButtonEvaluator -> Automatic, ButtonData :> {"", ""}, 
-					ButtonFrame -> "None"]*)}]], "Print", CellFrame -> 0.5`, FontColor -> GrayLevel[0.`], 
+					ButtonFrame -> "None"]*), "Print", CellFrame -> 0.5`, FontColor -> GrayLevel[0.`], 
 				Background -> RGBColor[102/256,139/256, 232/256], ButtonBoxOptions -> {Active -> True}]]
 
 
@@ -141,11 +148,11 @@ Return[{If[OptionValue["SimplifyFullOutput"],MyTogether[gS],gS],gR}];
 (*        TowerInfo = <|"R-Extension" -> {y, lambda}|>,  where lambda = ord (alpha)*)
 
 
-ReInitTower::malformedTower="Error: Tower `1` contains more than one R-extension, this is not implemented";
-Clear[ReInitTower]
-Options[ReInitTower]={"SingleSetOfRepresentatives"->False,"UseAlwaysIdempotents"->False}
+ResetTower::malformedTower="Error: Tower `1` contains more than one R-extension, this is not implemented";
+Clear[ResetTower]
+Options[ResetTower]={"SingleSetOfRepresentatives"->False,"UseAlwaysIdempotents"->False}
 
-ReInitTower[tower_?MatrixQ,OptionsPattern[]]:=Module[{newtower,ordList,orders,yList,RExt,alphas},
+ResetTower[tower_?MatrixQ,OptionsPattern[]]:=Module[{newtower,ordList,orders,yList,RExt,alphas},
 	TowerInfo=<||>;
 	If[Head[OptionValue["SingleSetOfRepresentatives"]]===List,
 		TowerInfo[tower[[1,1]]]={#,"=="}&/@OptionValue["SingleSetOfRepresentatives"];
@@ -154,7 +161,7 @@ ReInitTower[tower_?MatrixQ,OptionsPattern[]]:=Module[{newtower,ordList,orders,yL
 		TowerInfo["SingleSetOfRepresentatives"]=TrueQ[OptionValue["SingleSetOfRepresentatives"]]
 	];
 	TowerInfo["UseAlwaysIdempotents"]=OptionValue["UseAlwaysIdempotents"];
-	(*If[Length[RExt]>1,Message[ReInitTower::malformedTower,tower];Abort[]];*)
+	(*If[Length[RExt]>1,Message[ResetTower::malformedTower,tower];Abort[]];*)
 	TowerInfo["Generators"]=tower[[;;,1]];
 	(*Delete precomputed higher towers*)
 	ReleaseHold[MapAt[Unset,Select[DownValues[MyChangeShiftTower],(Head[#[[1,1,1]]]===List && IntegerQ[#[[1,1,2]]])&][[;;,1]],{All,1}]];
@@ -749,10 +756,10 @@ Return[Table[{sol,sol . SigmaPairList[[;;,1]]},{sol,Sol}]]
 ]
 
 
-Clear[PT];
-PT[tower_List,F_List]:= Module[{n,A,R,c,clist,coeff,m,B,i,j,Sol},
+Clear[ParametricTelescopingViaCR];
+ParametricTelescopingViaCR[tower_List,F_List]:= Module[{n,A,R,c,clist,coeff,m,B,i,j,Sol},
 n=Length[F];
-ReInitTower[tower];
+ResetTower[tower];
 A=CRforSimpleDR[#,tower]&/@F;
 A=MapAt[MyTogether,A,{All,2}];
 Return[FindSummableCombination[A,tower[[;;,1]]]];
@@ -760,14 +767,14 @@ Return[FindSummableCombination[A,tower[[;;,1]]]];
 
 
 
-Clear[FindTelescopingRecurrence]
-FindTelescopingRecurrence::norecfound="No recurrence of order <= `1` exists, increase value of option \"MaxOrder\"";
+Clear[CreativeTelescopingViaCR]
+CreativeTelescopingViaCR::norecfound="No recurrence of order <= `1` exists, increase value of option \"MaxOrder\"";
 
-Options[FindTelescopingRecurrence]={"MaxOrder"->30,"WithNegativeShifts"->False,"SimplifyFullOutput"->False};
-FindTelescopingRecurrence[g_,{towerN_List,towerK_List},opts:OptionsPattern[]]:=FindTelescopingRecurrence[g,{towerN,towerK},OptionValue["WithNegativeShifts"],opts]
-FindTelescopingRecurrence[g_,{towerN_List,towerK_List},False,OptionsPattern[]]:=Module[{comb,gPairList,m,gmS,gmR},
+Options[CreativeTelescopingViaCR]={"MaxOrder"->30,"WithNegativeShifts"->False,"SimplifyFullOutput"->False};
+CreativeTelescopingViaCR[g_,{towerN_List,towerK_List},opts:OptionsPattern[]]:=CreativeTelescopingViaCR[g,{towerN,towerK},OptionValue["WithNegativeShifts"],opts]
+CreativeTelescopingViaCR[g_,{towerN_List,towerK_List},False,OptionsPattern[]]:=Module[{comb,gPairList,m,gmS,gmR},
 gPairList={};
-ReInitTower[towerK];
+ResetTower[towerK];
 {gmS,gmR}={0,0};
 Do[
 	{gmS,gmR}=CRforSimpleDR[If[m==0,g,MySigma[gmR,towerN]],towerK]+{MySigma[gmS,towerN],0};
@@ -780,13 +787,13 @@ Do[
 	If[comb=!={},MyAssert[MyTogether[Sum[comb[[1,1,i]]MySigma[g,i-1,towerN],{i,Length[comb[[1,1]]]}]-DeltaF[comb[[1,-1]],1,towerK]]===0];Break[]];
 	(*Print["m:",m," New Remainder: ",gmR];*)
 ,{m,0,OptionValue["MaxOrder"]}];
-If[comb==={},Message[FindTelescopingRecurrence::norecfound,OptionValue["MaxOrder"]]];
+If[comb==={},Message[CreativeTelescopingViaCR::norecfound,OptionValue["MaxOrder"]]];
 Return[If[OptionValue["SimplifyFullOutput"],MyTogether[comb[[1]]],comb[[1]]]];
 ]
 
-FindTelescopingRecurrence[g_,{towerN_List,towerK_List},True,OptionsPattern[]]:=Module[{result,comb,gPairList,m,gmS,gmR,shift,sign,lastP},
+CreativeTelescopingViaCR[g_,{towerN_List,towerK_List},True,OptionsPattern[]]:=Module[{result,comb,gPairList,m,gmS,gmR,shift,sign,lastP},
 gPairList={};
-ReInitTower[towerK];
+ResetTower[towerK];
 {gmS,gmR}={0,0};
 lastP={0,g};
 Do[
@@ -808,7 +815,7 @@ Do[
 	lastP=gPairList[[sign]];
 	(*Print["m:",m," New Remainder: ",gmR];*)
 ,{m,0,OptionValue["MaxOrder"]}];
-If[comb==={},Message[FindTelescopingRecurrence::norecfound,OptionValue["MaxOrder"]]];
+If[comb==={},Message[CreativeTelescopingViaCR::norecfound,OptionValue["MaxOrder"]]];
 Return[If[OptionValue["SimplifyFullOutput"],MyTogether[result],result]];
 ]
 
