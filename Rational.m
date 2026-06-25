@@ -2,6 +2,7 @@
 
 (* ::Text:: *)
 (*Copyright (C) 2025 Yiman Gao*)
+(*Copyright (C) 2026 Jakob Obrovsky*)
 (**)
 (*This file is part of CRforDR.*)
 (**)
