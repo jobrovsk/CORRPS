@@ -20,7 +20,7 @@ ClearAll@@Names["CRforDR`*"];
 $CRforDRenableAssert=False;
 
 
-$VersionCRforDR="Version 0.2.1 (June 11, 2026)";
+$VersionCRforDR="Version 0.3.0 (June 25, 2026)";
 
 
 (* ::Input::Initialization:: *)
