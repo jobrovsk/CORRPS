@@ -1,10 +1,10 @@
 # CRforDR
 
-Website: risc.jku.at/sw/CRforDR
+Website: risc.jku.at/sw/crfordr
 
 ## Overview
 
-CRforDR is a Mathematica package which implements a complete reduction for RPiSigma-rings. For a given RPiSigma-tower and an element in this tower, it computes a remainder w.r.t. a complete reduction for this tower. The package also contains functions for creative telescoping and parametric telescoping, which use complete reduction internally. 
+CRforDR is a Mathematica package which implements a complete reduction for RPiSigma-rings. For a given RPiSigma-tower and an element in this tower, it computes a remainder w.r.t. a complete reduction for this tower. The package also contains functions for creative telescoping and parametric telescoping, which uses complete reduction internally. 
 
 ## Requirements
 
