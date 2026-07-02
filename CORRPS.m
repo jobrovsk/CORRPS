@@ -4,23 +4,23 @@
 (*Copyright (C) 2025 Yiman Gao*)
 (*Copyright (C) 2026 Jakob Obrovsky*)
 (**)
-(*This file is part of CRforDR.*)
+(*This file is part of CORRPS.*)
 (**)
-(*CRforDR is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License (LGPL) as published by the Free Software Foundation; either version 3 of the License, or  (at your option) any later version.  See https://www.gnu.org/licenses/*)
+(*CORRPS is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License (GPL) as published by the Free Software Foundation; either version 3 of the License, or  (at your option) any later version.  See https://www.gnu.org/licenses/*)
 
 
-Get["CRforDR/RationalReduction.m"]
+If[Quiet[Get["CORRPS/RationalReduction.m"],{Get::noopen}]===$Failed,Get["corrps/RationalReduction.m"]]
 
 
 (* ::Input::Initialization:: *)
-BeginPackage["CRforDR`"];
-ClearAll@@Names["CRforDR`*"];
+BeginPackage["CORRPS`"];
+ClearAll@@Names["CORRPS`*"];
 
 
 $CRforDRenableAssert=False;
 
 
-$VersionCRforDR="Version 0.3.0 (June 25, 2026)";
+$VersionCRforDR="Version 0.4.0 (July 2, 2026)";
 
 
 (* ::Input::Initialization:: *)

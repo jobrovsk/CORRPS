@@ -1,22 +1,22 @@
-# CRforDR
+# CORRPS
 
-Website: [risc.jku.at/sw/crfordr](https://risc.jku.at/sw/crfordr)
+Website: [risc.jku.at/sw/corrps](https://risc.jku.at/sw/corrps)
 
 ## Overview
 
-CRforDR is a Mathematica package which implements a complete reduction for RPiSigma-rings. For a given RPiSigma-tower and an element in this tower, it computes a remainder w.r.t. a complete reduction for this tower. The package also contains functions for creative telescoping and parametric telescoping, which uses complete reduction internally. 
+CORRPS (COmplete Reduction for RPiSigma-rings) is a Mathematica package which computes for an element in a given RΠΣ-tower a remainder w.r.t. a complete reduction for this tower. The package also contains functions for creative telescoping and parametric telescoping, which uses complete reduction internally. 
 
 ## Requirements
 
-CRforDR is developed and tested for Wolfram Mathematica 14.3, but should work on any resent version of Mathematica.
+CORRPS is developed and tested for Wolfram Mathematica 14.3, but should work on any resent version of Mathematica.
 
 ## Installation
 
-Clone Repository and move the directory CRforDR into one of the directories in $Path where Mathematica can find it. 
+Clone Repository and move the directory CORRPS into one of the directories in $Path where Mathematica can find it. 
 
 ## Documentation
 
-See the Mathematica-Notebook Examples.nb. 
+See the Mathematica notebook Examples.nb. 
 
 ## Authors
 
@@ -26,4 +26,4 @@ Yiman Gao (ymgao@risc.jku.at)
 
 ## License
 
-CRforDR is distributed under LGPL (GNU Lesser General Public License) version 3 or later. See the COPYING.LESSER file.
+CORRPS is distributed under GPL (GNU General Public License) version 3 or later. See the COPYING file.

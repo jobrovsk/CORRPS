@@ -4,15 +4,15 @@
 (*Copyright (C) 2025 Yiman Gao*)
 (*Copyright (C) 2026 Jakob Obrovsky*)
 (**)
-(*This file is part of CRforDR.*)
+(*This file is part of CORRPS.*)
 (**)
-(*CRforDR is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License (LGPL) as published by the Free Software Foundation; either version 3 of the License, or  (at your option) any later version.  See https://www.gnu.org/licenses/*)
+(*CORRPS is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License (GPL) as published by the Free Software Foundation; either version 3 of the License, or  (at your option) any later version.  See https://www.gnu.org/licenses/*)
 
 
-BeginPackage["CRforDR`"];
+BeginPackage["CORRPS`"];
 
 
-Get["CRforDR/Rational.m"]
+If[Quiet[Get["CORRPS/Rational.m"],{Get::noopen}]===$Failed,Get["corrps/Rational.m"]]
 
 
 (* ::Input::Initialization:: *)
