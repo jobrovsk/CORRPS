@@ -63,7 +63,7 @@ Begin["`Private`"];
 
 
 (* ::Input::Initialization:: *)
-CellPrint[TextCell["RPiSigmaRingReduction by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyright] RISC \[LongDash] "<>$VersionCRforDR (*, 
+CellPrint[TextCell["CORRPS by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyright] RISC \[LongDash] "<>$VersionCRforDR (*, 
                ButtonBox[StyleBox["Help", "Hyperlink", FontVariations -> {"Underline" -> True}],
 					ButtonFunction :> RingReductionHelp[], ButtonEvaluator -> Automatic, ButtonData :> {"", ""}, 
 					ButtonFrame -> "None"]*), "Print", CellFrame -> 0.5`, FontColor -> GrayLevel[0.`], 

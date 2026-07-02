@@ -220,11 +220,11 @@ Return[{{factors,sigmafac},Join[CurrentS,NewS]}];
 
 
 (*Ported to Mathematica from (HypergeometricCT.mm by Hui Huang) *)
-Clear[PolynomialReduction]
-PolynomialReduction[0,u_,v_,tower_]:={0,0}
-PolynomialReduction[b_,u_,v_,tower:{{x_,_,_}}]:=Module[{du,dv,dp,lu,lv,a=0,p=b,d,i,g,pg,lp,cu,cv,m,bm,pm,r,gr,dr,lr,pr},
+Clear[MyPolynomialReduction]
+MyPolynomialReduction[0,u_,v_,tower_]:={0,0}
+MyPolynomialReduction[b_,u_,v_,tower:{{x_,_,_}}]:=Module[{du,dv,dp,lu,lv,a=0,p=b,d,i,g,pg,lp,cu,cv,m,bm,pm,r,gr,dr,lr,pr},
 {du,dv,dp}=Exponent[{u,v,p},x];
-JEcho["PolynomialReduction: {u,v}=",{u,v}];
+JEcho["MyPolynomialReduction: {u,v}=",{u,v}];
 lu=Coefficient[u,x,du];lv=Coefficient[v,x,dv];
 Assert[PolynomialQ[b,x]];Assert[PolynomialQ[u,x]];Assert[PolynomialQ[v,x]];
 If[du!=dv || MyTogether[lu-lv]=!=0, (*Case I*)
@@ -500,8 +500,8 @@ Sow[Timing[
 {{a,u,v},CurrentS}=JEcho["ProperReduction: ",ProperReductionAlt[h,xi,tower,"Representatives"->CurrentS]];
 ][[1]],"ProperReduction"];
 Sow[Timing[
-{gTS,gTR}=JEcho["PolynomialReduction: ",PolynomialReduction[Collect[xiDen gT+v,x,MyTogether],xiNum,xiDen,tower]];
-][[1]],"PolynomialReduction"];
+{gTS,gTR}=JEcho["MyPolynomialReduction: ",MyPolynomialReduction[Collect[xiDen gT+v,x,MyTogether],xiNum,xiDen,tower]];
+][[1]],"MyPolynomialReduction"];
 Assert[MyTogether[DeltaF[gTS,xi,tower]+gTR/xiDen-(gT+v/xiDen)]===0];
 Return[{{a+gTS,u+gTR/xiDen},CurrentS}];
 ]
