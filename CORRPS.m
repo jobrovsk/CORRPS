@@ -74,14 +74,14 @@ CellPrint[TextCell["CORRPS by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyrig
 				Background -> RGBColor[102/256,139/256, 232/256], ButtonBoxOptions -> {Active -> True}]]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Profiling*)
 
 
 ClearAll[ProfileCORRPS];
 ProfileCORRPS::wrongres="Error:Result is wrong!";
 Options[ProfileCORRPS]={"Package"->"Corrps","Suite"->"TelescopingSimpleNr1","Repetitions"->3,"Seed"->314159265358};
-ProfileCORRPS[sizeRange_?VectorQ,OptionsPattern[]]:=Module[{towerK,towerN,kk,nn,bb,hh,yy,xx,summand,pp,mySuml,tt,suite,j,tower,m,data,k,i,package,depth,correct,currtime,time,res,finalTimings},
+ProfileCORRPS[sizeRange_?VectorQ,OptionsPattern[]]:=Module[{towerK,towerN,kk,nn,bb,hh,yy,xx,answers,currAnswer,summand,pp,mySuml,tt,suite,j,tower,m,data,k,i,package,depth,correct,currtime,time,res,finalTimings},
 suite=OptionValue["Suite"];
 package=ToLowerCase[OptionValue["Package"]];
 m=OptionValue["Repetitions"];
@@ -93,7 +93,7 @@ Which[suite=="TelescopingSimpleNr1",
 	Print["tower = ",tower];
 	ResetTower[tower];
 	SeedRandom[OptionValue["Seed"]];
-	data=Association@@Table[i->Table[Collect[MySigma[#,1,tower]-#,{tt},Together]&@randomPoly[{xx},{pp,tt},i,2*i],{m}],{i,sizeRange}];
+	data=Association@@Table[i->Table[Collect[MySigma[#,1,tower]-#,{tt},Together]&@randomPoly[xx,{pp,tt},i,2*i],{m}],{i,sizeRange}];
 ,suite=="TelescopingSimpleNr2",
 	{xx,yy,pp,tt}={Global`x,Global`y,Global`p,Global`t};
 	tower={{xx,1,1},{yy,-1,0},{pp,2*(2*xx+1)/(xx+1),0},{tt,1,-yy/(xx+1)}};
@@ -106,22 +106,27 @@ Which[suite=="TelescopingSimpleNr1",
 
 ];
 Print["Timing ",package, " with input Data."];
+answers={};
+finalTimings=<||>;
 Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
-	finalTimings=<||>;
+	
 	Do[
 		Do[
 			currtime={};
+			currAnswer={};
 			Which[package=="corrps",
-			{time,res}=Timing[ResetTower[tower];CRforDR[data[i][[k]],tower]];
+				{time,res}=Timing[ResetTower[tower];CRforDR[data[i][[k]],tower]];
 			,package=="sigma",
-			{time,res}=Timing[Sigma`DifferenceFields`RefinedTelescoping`RefinedConstruction`RefinedTelescoping[data[i][[k]],tower,depth,Global`V]];
-			ResetTower[tower];					
+				{time,res}=Timing[Sigma`DifferenceFields`RefinedTelescoping`RefinedConstruction`RefinedTelescoping[data[i][[k]],tower,depth,Global`V]];
+				ResetTower[tower];					
 			];
 			correct=(res[[-1]]==0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];
 			(*Print["res: ",res];*)				
-			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];	
+			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];
+			AppendTo[currAnswer,res[[{1,-1}]]];
 			AppendTo[currtime,time];	
 		,{k,m}];
+		AppendTo[answers,currAnswer];
 		Print[i,": ",Mean[currtime]];
 		finalTimings[i]=Mean[currtime];
 	,{i,sizeRange}];
@@ -132,6 +137,7 @@ Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
 	Do[
 		Do[
 			currtime={};
+			currAnswer={};
 			correct=True;
 			summand=(1-i kk hh+i(-kk+nn)hh)bb^i;
 			Which[package=="corrps",
@@ -141,17 +147,20 @@ Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
 			{time,res}=Timing[Sigma`Summation`SumProducts`CreativeTelescoping[mySuml]];
 			(*correct=(res[[-1]]==0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];*)		
 			];
+			AppendTo[currAnswer,res];
 			AppendTo[currtime,time];
 			(*Print["res: ",res];*)
-			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];		
-		,{k,m}];
+			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];	
+			
+		,{k,m}];	
 		Print[i,": ",Mean[currtime]];
 		finalTimings[i]=Mean[currtime];
+		AppendTo[answers,currAnswer];	
 	,{i,sizeRange}]
 
 ];
 
-Return[{"Package"->package,"Suite"->suite,"data"->data,"timings"->finalTimings}];
+Return[{"Package"->package,"Suite"->suite,"data"->data,"answers"->answers,"timings"->finalTimings}];
 ]
 
 
@@ -173,7 +182,7 @@ Solve[Plus@@varsx<=deg,varsx,NonNegativeIntegers]]]
 
 Clear[randomPoly]
 randomPoly[ind_,vars_,deg_,type_:{}]:=Module[{monomials,poly},monomials=randomMonomial[vars,deg,type];
-If[IntegerQ[type],While[poly=Table[ResourceFunction["RandomPolynomial"][ind]/ResourceFunction["RandomPolynomial"][ind],{type}] . RandomChoice[monomials,type];
+If[IntegerQ[type],While[poly=Table[Sum[RandomInteger[{-100,100}]ind^i,{i,0,5}]/Sum[RandomInteger[{-100,100}]ind^i,{i,0,5}],{type}] . RandomChoice[monomials,type];
 poly===0],While[poly=RandomInteger[Length[monomials]+5,Length[monomials]] . monomials;poly===0]];
 poly]
 
@@ -182,7 +191,7 @@ Clear[generateDensePolynomial]
 generateDensePolynomial[ind_,vars_,deg_]:=Module[{n=Length[vars],exponentTuples,monomials,poly},
 exponentTuples=Select[Tuples[Range[0,deg],n],Total[#]<=deg&];
 monomials=Product[vars[[i]]^#[[i]],{i,n}]&/@exponentTuples;
-poly=Total[Map[ResourceFunction["RandomPolynomial"][ind]/ResourceFunction["RandomPolynomial"][ind]*#&,monomials]];
+poly=Total[Map[Sum[RandomInteger[{-100,100}]ind^i,{i,0,5}]/Sum[RandomInteger[{-100,100}]ind^i,{i,0,5}]*#&,monomials]];
 poly]
 
 
@@ -303,7 +312,7 @@ ResetTower[tower_?MatrixQ,OptionsPattern[]]:=Module[{newtower,ordList,orders,yLi
 ];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Auxiliary Functions*)
 
 
@@ -462,7 +471,7 @@ If[ArrayQ[matMod,_,IntegerQ],
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Sigma*)
 
 
@@ -489,9 +498,9 @@ Do[
 	ct=Rational`MyCoefficientNew[tower[[;;,1]],u,b];
 	w=MyTogether[ct/c];
 	{q,r}+= {w/(d+1) t^(d+1)+(g-w betaS)*t^d,MyTogether[u-w*betaR]t^d};
-	
 	MyAssert[Rational`MyCoefficientNew[tower[[;;,1]],u-w*betaR,b]===0];
-	sub=If[Length[tower]>1,Collect[MySigma[g-w betaS,tower1],tower[[-2,1]],MyTogether],MyTogether[MySigma[g-w betaS,tower1]]];
+	If[d==0,Break[]];
+	sub=If[d==1,MySigma[g-w betaS,tower1],If[Length[tower]>1,Collect[MySigma[g-w betaS,tower1],tower[[-2,1]],MyTogether],MyTogether[MySigma[g-w betaS,tower1]]]];
 	pCoeffs[[;;d]]-=sub Table[Binomial[d,i] beta^(d-i),{i,0,d-1}];
 	pCoeffs[[;;d]]-=Table[w/(d+1) Binomial[d+1,i] beta^(d+1-i),{i,0,d-1}];
 	
@@ -503,7 +512,7 @@ Return[{q,r}];
 
 (* ::Text:: *)
 (*Input: A tower as required by function CRforSimpleDR, where the last extension is a Sigma extension {t,1,beta}*)
-(*        g, an element in the tower (not necessarily simplified or canonocalized)*)
+(*        g, an element in the tower (not necessarily simplified or canonicalized)*)
 (*  Output: {gS,gR}, two elements in the tower s.t.*)
 (*             g=\[CapitalDelta](gS)+gR*)
 (*          is a complete reduction of g. gR is simplified (in particular gR === 0 if gR can be simplified to zero)*)
@@ -645,7 +654,7 @@ If[i==1000,Message[MyGetOrderOfUnity::donotrecognizeroot,alpha];Abort[];,Return[
 
 (* ::Text:: *)
 (*Input: A tower as required by function CRforSimpleDR, where the last extension is an R-extension {y,alpha,0}*)
-(*        g, an element in the tower (not necessarily simplified or canonocalized)*)
+(*        g, an element in the tower (not necessarily simplified or canonicalized)*)
 (*  Output: {gS,gR}, two elements in the tower s.t.*)
 (*             g=\[CapitalDelta](gS)+gR*)
 (*          is a complete reduction of g. gR is simplified (in particular gR === 0 if gR can be simplified to zero)*)
@@ -667,14 +676,15 @@ PiReduction[Collect[g,y]/.y^(AAA_)->y^Mod[AAA,TowerInfo["R-Extension"][[1,3]]],f
 
 
 Clear[PiReduction];
-PiReduction[0,_,tower_?MatrixQ]:={0,0}
-PiReduction[g_,s_,towerIn_?MatrixQ]:=Module[
-{st,sc,i,degG,gS,gR,gcS,gcR,tdegG,gCoeffs,t,h,a,m,tower=Most[towerIn],lo,up},
+Options[PiReduction]={"RepRule"->{}};
+PiReduction[0,_,tower_?MatrixQ,OptionsPattern[]]:={0,0}
+PiReduction[gIn_,s_,towerIn_?MatrixQ,OptionsPattern[]]:=Module[
+{g,st,sc,i,degG,gS,gR,gcS,gcR,tdegG,gCoeffs,t,h,a,m,tower=Most[towerIn],lo,up},
 MyAssert[towerIn[[-1,3]]===0];
 {t,a}=towerIn[[-1,1;;2]];
-(*g=Collect[gIn,t,MyTogether];*)
 m=Exponent[s,t];
 MyAssert[m==-Exponent[s,t^-1]];
+g=Collect[gIn,{t,1/t}]/.OptionValue["RepRule"];
 tdegG=-Exponent[g,t^(-1)];
 (*degG=Exponent[g,t];*)
 (*If[tdegG>degG,Return[{0,0}]];*)
@@ -694,12 +704,6 @@ sc=(s/.t->1);
 {lo,up}=If[m>0,{0,m-1},{m,-1}];
 If[degG<up,gCoeffs=Join[gCoeffs,Table[0,up-degG]]];
 If[tdegG>lo,gCoeffs=Join[Table[0,tdegG-lo],gCoeffs]];
-(*gCoeffs=If[m>0,
-	PadRight[gCoeffs,Max[degG,Abs[m]-1]-Min[tdegG,0]+1,0,Max[tdegG,0]]
-,
-	PadRight[gCoeffs,Max[degG,-1]-Min[tdegG-m,0]+1,0,Max[tdegG-m,0]]
-];*)
-(*Print["gCoeffs= ",gCoeffs];*)
 st=Min[tdegG,lo]-1; (*exponent of first entry in gCoeffs*)
 gS=0;
 If[m>0,
@@ -739,7 +743,7 @@ lambda=(t/.(Rule@@@(TowerInfo["R-Extension"][[;;,{1,3}]])));MyAssert[IntegerQ[la
 m=Exponent[f,t];
 s=Coefficient[f,t,m];
 MyAssert[MyTogether[f-s t^m]===0];
-If[m==0,Return[PiReduction[Collect[g,t]/.t^AAA_->t^Mod[AAA,lambda],f,tower]]];
+If[m==0,Return[PiReduction[g,f,tower,"RepRule"->(t^AAA_->t^Mod[AAA,lambda])]]];
 d=GCD[lambda,m];
 (*Print["d=  ",d];*)
 mu=lambda/d;
