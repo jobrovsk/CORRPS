@@ -19,6 +19,9 @@ If[Quiet[Get["CORRPS/Rational.m"],{Get::noopen}]===$Failed,Get["corrps/Rational.
 BeginPackage["RationalReduction`"];
 
 
+$RationalReductionEnableAssert=False;
+
+
 ClearAll@@Names["RationalReduction`*"];
 
 
@@ -31,6 +34,12 @@ Begin["`Private`"];
 
 (* ::Subsection:: *)
 (*MISC*)
+
+
+Clear[MyAssert]
+MyAssert::AssertionFaild="Assertion failed: `1` does not evaluate to true";
+Attributes[MyAssert]=HoldAll;
+MyAssert[check_]:=If[$RationalReductionEnableAssert,If[!ReleaseHold[TrueQ[check]],Message[MyAssert::AssertionFaild,Hold[check]];Abort[]]];
 
 
 $activateJEcho=False;
@@ -133,7 +142,7 @@ Do[
 shiftgoal=Floor/@Mean/@sigmafactors[[;;,;;,1]];
 Do[sigmafactors[[i,;;,1]]-=shiftgoal[[i]],{i,Length[factors]}];
 factors=Table[If[shiftgoal[[i]]!=0,MyTogether[RatSigma[factors[[i]],shiftgoal[[i]],tower]],factors[[i]]],{i,Length[factors]}];
-Assert[MyTogether[xFreePart Product[RatSigma[factors[[i]],sigmafactors[[i,j,1]],tower]^sigmafactors[[i,j,2]] ,{i,Length[factors]},{j,Length[sigmafactors[[i]]]}]-f]===0];
+MyAssert[MyTogether[xFreePart Product[RatSigma[factors[[i]],sigmafactors[[i,j,1]],tower]^sigmafactors[[i,j,2]] ,{i,Length[factors]},{j,Length[sigmafactors[[i]]]}]-f]===0];
 Return[{factors,{{xFreePart,1,sigmafactors}}}];
 ]
 
@@ -142,7 +151,7 @@ Clear[LookupShiftEq]
 LookupShiftEq[g_,CurrentS_List,tower_]:=Module[{key=Missing[],f,k},
 Do[
 	k=MyGetSpecification[g,f,tower];
-	Assert[k===Sigma`DifferenceFields`BasicTools`DFInterface`GetSpecification[g,f,tower]];
+	MyAssert[k===Sigma`DifferenceFields`BasicTools`DFInterface`GetSpecification[g,f,tower]];
 	If[k=!=Null,
 		key=f;
 		Break[];
@@ -157,7 +166,7 @@ LookupShiftEqAlt[g_,InCurrentS_List,tower_]:=Module[{key=Missing[],f,k,CurrentS=
 Do[
 	{f,annot}=CurrentS[[i]];
 	k=MyGetSpecification[g,f,tower];
-	Assert[k===Sigma`DifferenceFields`BasicTools`DFInterface`GetSpecification[g,f,tower]];
+	MyAssert[k===Sigma`DifferenceFields`BasicTools`DFInterface`GetSpecification[g,f,tower]];
 	If[k=!=Null,
 		If[annot===">=",
 			CurrentS[[i,2]]="==";
@@ -226,7 +235,7 @@ MyPolynomialReduction[b_,u_,v_,tower:{{x_,_,_}}]:=Module[{du,dv,dp,lu,lv,a=0,p=b
 {du,dv,dp}=Exponent[{u,v,p},x];
 JEcho["MyPolynomialReduction: {u,v}=",{u,v}];
 lu=Coefficient[u,x,du];lv=Coefficient[v,x,dv];
-Assert[PolynomialQ[b,x]];Assert[PolynomialQ[u,x]];Assert[PolynomialQ[v,x]];
+MyAssert[PolynomialQ[b,x]];MyAssert[PolynomialQ[u,x]];MyAssert[PolynomialQ[v,x]];
 If[du!=dv || MyTogether[lu-lv]=!=0, (*Case I*)
 	d=Max[du,dv];
 	If[du<dv,lu=0,If[du>dv,lv=0]];
@@ -238,7 +247,7 @@ If[du!=dv || MyTogether[lu-lv]=!=0, (*Case I*)
 		a+=lp g;
 		p=Collect[p-lp pg,x,Together];
 		dp=Exponent[p,x];
-		Assert[i>dp-d];
+		MyAssert[i>dp-d];
 		i=dp-d;
 	];
 	Return[{a,p}];
@@ -251,7 +260,7 @@ If[du!=dv || MyTogether[lu-lv]=!=0, (*Case I*)
 		a+=lp g;
 		p=Collect[p-lp pg, x,MyTogether];
 		dp=Exponent[p,x];
-		Assert[i>dp+1];
+		MyAssert[i>dp+1];
 		i=dp+1;
 	];
 	Return[{a,p}];	
@@ -273,7 +282,7 @@ If[IntegerQ[m]&&m>=0 ,  (*Case IV*)
 		bm+=pm;
 		p=Collect[p-pm, x,MyTogether];
 		dp=Exponent[p,x];
-		Assert[i>dp-du+1];
+		MyAssert[i>dp-du+1];
 		i=dp-du+1;
 	];
 	
@@ -286,7 +295,7 @@ If[IntegerQ[m]&&m>=0 ,  (*Case IV*)
 		gr-=g;
 		r=Collect[r-u RatSigma[g,tower]+v g, x,MyTogether];	
 		dr=Exponent[r,x];
-		Assert[i>dr-du+1];
+		MyAssert[i>dr-du+1];
 		i=dr-du+1;	
 	];
 	{lr,pr}=Coefficient[{r,p},x,dr];
@@ -300,7 +309,7 @@ If[IntegerQ[m]&&m>=0 ,  (*Case IV*)
 		a+=lp g;
 		p=Collect[p-lp pg, x,MyTogether];
 		dp=Exponent[p,x];
-		Assert[i>dp-du+1];
+		MyAssert[i>dp-du+1];
 		i=dp-du+1;	
 	];
 ];
@@ -335,7 +344,7 @@ JEcho["xi:",xi];
 eta=Product[Product[RatSigma[factors[[i]],j,tower]^-Total[Select[sigmaFac[[1,-1,i]],(#[[1]]<=j)&][[;;,2]]],{j,Min[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]-1}],{i,Length[factors]}]*
 	Product[Product[RatSigma[factors[[i]],j-1,tower]^Total[Select[sigmaFac[[1,-1,i]],(#[[1]]>=j)&][[;;,2]]],{j,Max[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]+1,-1}],{i,Length[factors]}];
 JEcho["eta:",eta];
-Assert[MyTogether[(xi RatSigma[eta,tower]/eta-f)]===0];
+MyAssert[MyTogether[(xi RatSigma[eta,tower]/eta-f)]===0];
 Return[{{xi,eta},Join[CurrentS,NewS]}];
 ]
 
@@ -373,7 +382,7 @@ JEcho["xi:",xi];
 eta=Product[Product[RatSigma[factors[[i]],j,tower]^-Total[Select[sigmaFac[[1,-1,i]],(#[[1]]<=j)&][[;;,2]]],{j,Min[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]-1}],{i,Length[factors]}]*
 	Product[Product[RatSigma[factors[[i]],j-1,tower]^Total[Select[sigmaFac[[1,-1,i]],(#[[1]]>=j)&][[;;,2]]],{j,Max[sigmaFac[[1,-1,i,;;,1]]],shiftgoal[[i]]+1,-1}],{i,Length[factors]}];
 JEcho["eta:",eta];
-Assert[MyTogether[(xi RatSigma[eta,tower]/eta-f)]===0];
+MyAssert[MyTogether[(xi RatSigma[eta,tower]/eta-f)]===0];
 Return[{{xi,eta},Join[CurrentS,NewS]}];
 ]
 
@@ -381,7 +390,7 @@ Return[{{xi,eta},Join[CurrentS,NewS]}];
 Clear[ShiftDenominatorToS];
 ShiftDenominatorToS[gNum_,dks_,0,xi_,tower_List]:={0,gNum,0}
 ShiftDenominatorToS[c_,dks_,l_Integer,K_,tower_]:=Module[{a,u,v,x=tower[[1,1]],s,t,fTilde,dksM1,gTilde,bTilde,dksP1,g0,result},
-Assert[PolynomialQ[c,x]];Assert[PolynomialQ[dks,x]];
+MyAssert[PolynomialQ[c,x]];MyAssert[PolynomialQ[dks,x]];
 {u,v}=NumeratorDenominator[K];
 If[l>0,
 	{s,t}=ExtendedEuclidean[u,dks,v c,x];
@@ -405,7 +414,7 @@ If[l>0,
 		result={g0+gTilde,a,t+bTilde};
 	];		
 ];
-Assert[MyTogether[c/dks -(DeltaF[result[[1]],K,tower]+result[[2]]/RatSigma[dks,-l,tower]+result[[3]]/v)]===0];
+MyAssert[MyTogether[c/dks -(DeltaF[result[[1]],K,tower]+result[[2]]/RatSigma[dks,-l,tower]+result[[3]]/v)]===0];
 Return[result];
 ]
 
@@ -427,7 +436,7 @@ piSigmaMList=Table[Product[RatSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[
 Sow[Timing[
 giSigmaNumList=ParFracDecomp[hNum, piSigmaMList,x];
 ][[1]],"ParFracDecomp"];
-Assert[MyTogether[Total[giSigmaNumList/piSigmaMList]-hNum/(Times@@piSigmaMList)]===0];
+MyAssert[MyTogether[Total[giSigmaNumList/piSigmaMList]-hNum/(Times@@piSigmaMList)]===0];
 {a,u,v}={0,0,0};
 Do[
 	gijDenList=Table[RatSigma[piList[[i]],hFac[[1,-1,i,j,1]],tower]^hFac[[1,-1,i,j,2]],{j,Length[hFac[[1,-1,i]]]}];
@@ -441,12 +450,12 @@ Do[
 		Sow[Timing[
 		{aj,uj,vj}=ShiftDenominatorToS[gijNumList[[j]],gijDenList[[j]],hFac[[1,-1,i,j,1]],xi,tower];
 		][[1]],"ShiftDenominatorToS"];
-		Assert[PolynomialQ[uj,x]];
+		MyAssert[PolynomialQ[uj,x]];
 		{ai,ui,vi}+={aj,uj*(piList[[i]]^(maxPower-mij)),vj};
 	,{j,Length[gijNumList]}];
 	{a,u,v}+={ai,ui/piList[[i]]^maxPower,vi};
 ,{i,Length[piList]}];
-Assert[MyTogether[DeltaF[a,xi,tower]+u+v/xiDen -h]===0];
+MyAssert[MyTogether[DeltaF[a,xi,tower]+u+v/xiDen -h]===0];
 Return[{{a,u,v},CurrentS}];
 ]
 
@@ -473,16 +482,16 @@ piSigmaMList=Table[Product[RatSigma[piList[[i]],k,tower]^LookupMultInFac[hFac[[1
 Sow[Timing[
 giSigmaNumList=ParFracDecompAlt[hNum, piSigmaMList,x];
 ][[1]],"ParFracDecomp"];
-Assert[MyTogether[Total[giSigmaNumList/piSigmaMList]-hNum/(Times@@piSigmaMList)]===0];
+MyAssert[MyTogether[Total[giSigmaNumList/piSigmaMList]-hNum/(Times@@piSigmaMList)]===0];
 {a,u,v}={0,0,0};
 Do[
 	Sow[Timing[
 	{ai,ui,vi}=ShiftDenominatorToS[giSigmaNumList[[k-minShift+1]],piSigmaMList[[k-minShift+1]],k,xi,tower];
 	][[1]],"ShiftDenominatorToS"];
-	Assert[PolynomialQ[ui,x]];
+	MyAssert[PolynomialQ[ui,x]];
 	{a,u,v}+={ai/hFac[[1,1]],ui/Product[piList[[i]]^LookupMultInFac[hFac[[1,-1,i]],k],{i,Length[piList]}]/hFac[[1,1]],vi/hFac[[1,1]]};
 ,{k,minShift,maxShift}];
-Assert[MyTogether[DeltaF[a,xi,tower]+u+v/xiDen -h]===0];
+MyAssert[MyTogether[DeltaF[a,xi,tower]+u+v/xiDen -h]===0];
 Return[{{a,u,v},CurrentS}];
 ]
 
@@ -502,7 +511,7 @@ Sow[Timing[
 Sow[Timing[
 {gTS,gTR}=JEcho["MyPolynomialReduction: ",MyPolynomialReduction[Collect[xiDen gT+v,x,MyTogether],xiNum,xiDen,tower]];
 ][[1]],"MyPolynomialReduction"];
-Assert[MyTogether[DeltaF[gTS,xi,tower]+gTR/xiDen-(gT+v/xiDen)]===0];
+MyAssert[MyTogether[DeltaF[gTS,xi,tower]+gTR/xiDen-(gT+v/xiDen)]===0];
 Return[{{a+gTS,u+gTR/xiDen},CurrentS}];
 ]
 
@@ -551,9 +560,9 @@ Sow[Timing[
 {pp,r}=MyTogether[MyPolynomialQuotientRemainder[num,den,var]];
 ][[1]],"MyPolynomialQuotientRemainder"];
 {rNum,rDen}=NumeratorDenominator[r];
-Assert[PolynomialQ[pp,var]];
-Assert[Exponent[rNum,var]<Exponent[rDen den,var]];
-Assert[MyTogether[rNum/(rDen den)+pp-f]===0];
+MyAssert[PolynomialQ[pp,var]];
+MyAssert[Exponent[rNum,var]<Exponent[rDen den,var]];
+MyAssert[MyTogether[rNum/(rDen den)+pp-f]===0];
 Return[{rNum/(rDen den),pp}]
 ];
 

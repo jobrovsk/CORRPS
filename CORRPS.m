@@ -20,6 +20,9 @@ ClearAll@@Names["CORRPS`*"];
 $CRforDRenableAssert=False;
 
 
+CORRPS`RationalReduction`$RationalReductionEnableAssert:=$CRforDRenableAssert;
+
+
 $VersionCRforDR="Version 0.4.0 (July 2, 2026)";
 
 
@@ -56,6 +59,7 @@ Options:
 \"WithNegativeShifts\" -> True|False (Default: False)
 Whether also negative shifts are used internally in the computation. This can make the computation faster.
 \"SimplifyFullOutput\" -> True|False (Default: False) : Whether the certificate should be simplified, or only the found recurrenc, which is the default.";
+ProfileCORRPS::usage="";
 
 
 (* ::Input::Initialization:: *)
@@ -71,6 +75,119 @@ CellPrint[TextCell["CORRPS by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyrig
 
 
 (* ::Subsection:: *)
+(*Profiling*)
+
+
+ClearAll[ProfileCORRPS];
+ProfileCORRPS::wrongres="Error:Result is wrong!";
+Options[ProfileCORRPS]={"Package"->"Corrps","Suite"->"TelescopingSimpleNr1","Repetitions"->3,"Seed"->314159265358};
+ProfileCORRPS[sizeRange_?VectorQ,OptionsPattern[]]:=Module[{towerK,towerN,kk,nn,bb,hh,yy,xx,summand,pp,mySuml,tt,suite,j,tower,m,data,k,i,package,depth,correct,currtime,time,res,finalTimings},
+suite=OptionValue["Suite"];
+package=ToLowerCase[OptionValue["Package"]];
+m=OptionValue["Repetitions"];
+Print["Generating Data for ",suite];
+Which[suite=="TelescopingSimpleNr1",
+	{xx,pp,tt}={Global`x,Global`p,Global`t};
+	tower={{xx,1,1},{pp,2*(2*xx+1)/(xx+1),0},{tt,1,1/(xx+1)}};
+	depth={1,2,2};
+	Print["tower = ",tower];
+	ResetTower[tower];
+	SeedRandom[OptionValue["Seed"]];
+	data=Association@@Table[i->Table[Collect[MySigma[#,1,tower]-#,{tt},Together]&@randomPoly[{xx},{pp,tt},i,2*i],{m}],{i,sizeRange}];
+,suite=="TelescopingSimpleNr2",
+	{xx,yy,pp,tt}={Global`x,Global`y,Global`p,Global`t};
+	tower={{xx,1,1},{yy,-1,0},{pp,2*(2*xx+1)/(xx+1),0},{tt,1,-yy/(xx+1)}};
+	depth={1,1,2,2};
+	Print["tower = ",tower];	
+	ResetTower[tower];
+	SeedRandom[OptionValue["Seed"]];
+	data=Association@@Table[i->Table[Collect[MySigma[#,1,tower]-#,{yy,pp,tt}]&@
+			(generateDensePolynomial[xx,{pp,tt},i]+generateDensePolynomial[xx,{pp,tt},i]*yy),{m}],{i,sizeRange}];		
+
+];
+Print["Timing ",package, " with input Data."];
+Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
+	finalTimings=<||>;
+	Do[
+		Do[
+			currtime={};
+			Which[package=="corrps",
+			{time,res}=Timing[ResetTower[tower];CRforDR[data[i][[k]],tower]];
+			,package=="sigma",
+			{time,res}=Timing[Sigma`DifferenceFields`RefinedTelescoping`RefinedConstruction`RefinedTelescoping[data[i][[k]],tower,depth,Global`V]];
+			ResetTower[tower];					
+			];
+			correct=(res[[-1]]==0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];
+			(*Print["res: ",res];*)				
+			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];	
+			AppendTo[currtime,time];	
+		,{k,m}];
+		Print[i,": ",Mean[currtime]];
+		finalTimings[i]=Mean[currtime];
+	,{i,sizeRange}];
+,suite=="CreativeTelescopingNr1",
+	{kk,nn,bb,hh}={Global`k,Global`n,Global`b,Global`h};
+	towerK={{kk,1,1},{bb,(-kk+nn)/(1+kk),0},{hh,1,1/(kk+1)}};
+	towerN={{nn,1,1},{bb,(1+nn)/(1-kk+nn),0}};
+	Do[
+		Do[
+			currtime={};
+			correct=True;
+			summand=(1-i kk hh+i(-kk+nn)hh)bb^i;
+			Which[package=="corrps",
+			{time,res}=Timing[CreativeTelescopingViaCR[summand,{towerN,towerK},"WithNegativeShifts"->True]];
+			,package=="sigma",
+			mySuml=Sigma`Summation`SumProducts`SigmaSum[(1-i Global`j Sigma`Summation`Objects`SigmaHNumber[Global`j]+i(-Global`j+nn)Sigma`Summation`Objects`SigmaHNumber[Global`j])Sigma`Summation`Objects`SigmaBinomial[nn,Global`j]^i,{Global`j,0,nn}];		
+			{time,res}=Timing[Sigma`Summation`SumProducts`CreativeTelescoping[mySuml]];
+			(*correct=(res[[-1]]==0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];*)		
+			];
+			AppendTo[currtime,time];
+			(*Print["res: ",res];*)
+			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];		
+		,{k,m}];
+		Print[i,": ",Mean[currtime]];
+		finalTimings[i]=Mean[currtime];
+	,{i,sizeRange}]
+
+];
+
+Return[{"Package"->package,"Suite"->suite,"data"->data,"timings"->finalTimings}];
+]
+
+
+Clear[CheckReductionHeuristic]
+CheckReductionHeuristic[{g_,f_},{gS_,gR_},tower_]:=Module[{numR,yList,alphas,orders},
+numR=If[KeyExistsQ[TowerInfo,"R-Extension"],Length[TowerInfo["R-Extension"][[;;,1]] \[Intersection] tower[[;;,1]]],0];
+{yList,alphas,orders}=If[KeyExistsQ[TowerInfo,"R-Extension"],Transpose[TowerInfo["R-Extension"][[;;numR]]],{{},{},{}}];
+((DeltaF[gS,f,tower]+gR-g/.Thread[yList->(Table[-1,numR]^(2/orders))^RandomInteger[{1,10},numR]]
+						/.Thread[Variables[tower]->RandomInteger[{1000,2000},Length[Variables[tower]]]])===0)
+]
+
+
+Clear[randomMonomial]
+randomMonomial[vars_,deg_,type_]:=Module[{i,n:=Length[vars],varsx},varsx=Table[Unique[],{Length[vars]}];
+If[type==="Homogeneous",Product[vars[[i]]^varsx[[i]],{i,n}]/.
+Solve[Plus@@varsx==deg,varsx,NonNegativeIntegers],Product[vars[[i]]^varsx[[i]],{i,n}]/.
+Solve[Plus@@varsx<=deg,varsx,NonNegativeIntegers]]]
+
+
+Clear[randomPoly]
+randomPoly[ind_,vars_,deg_,type_:{}]:=Module[{monomials,poly},monomials=randomMonomial[vars,deg,type];
+If[IntegerQ[type],While[poly=Table[ResourceFunction["RandomPolynomial"][ind]/ResourceFunction["RandomPolynomial"][ind],{type}] . RandomChoice[monomials,type];
+poly===0],While[poly=RandomInteger[Length[monomials]+5,Length[monomials]] . monomials;poly===0]];
+poly]
+
+
+Clear[generateDensePolynomial]
+generateDensePolynomial[ind_,vars_,deg_]:=Module[{n=Length[vars],exponentTuples,monomials,poly},
+exponentTuples=Select[Tuples[Range[0,deg],n],Total[#]<=deg&];
+monomials=Product[vars[[i]]^#[[i]],{i,n}]&/@exponentTuples;
+poly=Total[Map[ResourceFunction["RandomPolynomial"][ind]/ResourceFunction["RandomPolynomial"][ind]*#&,monomials]];
+poly]
+
+
+
+(* ::Subsection::Closed:: *)
 (*Main*)
 
 
@@ -740,7 +857,7 @@ Return[{If[OptionValue["SimplifyFullOutput"],MyTogether[gS],gS],gR}];
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Creative/Parametric Telescoping *)
 
 
@@ -894,7 +1011,7 @@ TowerInfo=AssociationThread[tower[[2;;,1]]->TowerInfo]
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*End of package*)
 
 
