@@ -69,8 +69,9 @@ Options:
 	\"TelescopingSimpleNr1\": tower: {{x,1,1},{p,\!\(\*FractionBox[\(2\\\ \((1 + 2\\\ x)\)\), \(1 + x\)]\),0},{t,1,\!\(\*FractionBox[\(1\), \(1 + x\)]\)}}. The input is \[CapitalDelta](p), where p is a sparse polynomial in Q(x)[p,t] with total degree i in p and t, where the coefficients are quotients of random dense polynomials in Q[x] of degree 5.
 	\"TelescopingSimpleNr2\": tower: {{x,1,1},{y,-1,0},{p,\!\(\*FractionBox[\(2\\\ \((1 + 2\\\ x)\)\), \(1 + x\)]\),0},{t,1,-\!\(\*FractionBox[\(y\), \(1 + x\)]\)}}.
 	The input is \[CapitalDelta](u_i+y v_i), where u_i,v_i are two dense polynomials in Q(x)[p][t] with total degree i in p and t, where the coefficients are quotients of random dense polynomials in Q[x] of degree 5.
-	\"CreativeTelescopingNr1\": SequenceForm["towerK: ", {{k, 1, 1}, {b, (1 + k)^(-1) (-k + n), 0}, {h, 1, (1 + k)^(-1)}}]
-	SequenceForm["towerN: ", {{n, 1, 1}, {b, (1 + n)/(1 - k + n), 0}}]
+	\"CreativeTelescopingNr1\": 
+	towerK:, {{k, 1, 1}, {b, (1 + k)^(-1) (-k + n), 0}, {h, 1, (1 + k)^(-1)}}
+	towerN: {{n, 1, 1}, {b, (1 + n)/(1 - k + n), 0}}
 	Summand: b^i (1-h i k+h i (-k+n))
 
 \"Repetitions\"->n (Default: 3) : Number of times the timing is repeated. If the input is random, then each time new random data is used. The output is the mean of all repeated timings.  
@@ -215,18 +216,18 @@ poly]
 
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Main*)
 
 
 Clear[CRforDR]
-Options[CRforDR]={"SimplifyFullOutput"->False}
+Options[CRforDR]={"SimplifyFullOutput"->False};
 CRforDR[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=CRforDR[g,1,tower,opts]
 CRforDR[g_,f_,tower_?MatrixQ,opts:OptionsPattern[]]:=
 	If[(TowerInfo["UseAlwaysIdempotents"]&&KeyExistsQ[TowerInfo,"R-Extension"])||!SimpleTowerQ[tower],
 		IdempotentReduction[g,f,tower,opts]
 	,
-		CRforSimpleDR[g,f,tower,opts]
+		CRforSimpleDR[g/.Thread[TowerInfo["R-Extension"][[;;,1]]^(AAA12121212_)->TowerInfo["R-Extension"][[;;,1]]^Mod[AAA12121212,TowerInfo["R-Extension"][[;;,-1]]]],f,tower,opts]
 	]
 
 
