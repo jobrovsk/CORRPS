@@ -23,7 +23,7 @@ $CRforDRenableAssert=False;
 CORRPS`RationalReduction`$RationalReductionEnableAssert:=$CRforDRenableAssert;
 
 
-$VersionCRforDR="Version 0.4.0 (July 2, 2026)";
+$VersionCRforDR="Version 0.5.0 (July 17, 2026)";
 
 
 (* ::Input::Initialization:: *)
@@ -58,8 +58,24 @@ of minimal order m. The output is given as {{\!\(\*SubscriptBox[\(c\), \(0\)]\),
 Options:
 \"WithNegativeShifts\" -> True|False (Default: False)
 Whether also negative shifts are used internally in the computation. This can make the computation faster.
-\"SimplifyFullOutput\" -> True|False (Default: False) : Whether the certificate should be simplified, or only the found recurrenc, which is the default.";
-ProfileCORRPS::usage="";
+\"SimplifyFullOutput\" -> True|False (Default: False) : Whether the certificate should be simplified, or only the found recurrence, which is the default.";
+
+ProfileCORRPS::usage="ProfileCORRPS[{i_1,i_2,...,i_n},OptionsPattern[]] does timings for sizes i_1,i_2,...,i_n. The size i has different meanings depending on the used suite.
+Output: {\"Package\"->package,\"Suite\"->suite,\"data\"->data,\"answers\"->answers,\"timings\"->finalTimings}
+
+Options:
+\"Package\" -> \"Corrps\"|\"Sigma\" (Default: \"Corrps\") : The packege which should be timed for the given suite.
+\"Suite\"->\"TelescopingSimpleNr1\"|\"TelescopingSimpleNr2\"|\"CreativeTelescopingNr1\": The problem suite which should be used. Available are
+	\"TelescopingSimpleNr1\": tower: {{x,1,1},{p,\!\(\*FractionBox[\(2\\\ \((1 + 2\\\ x)\)\), \(1 + x\)]\),0},{t,1,\!\(\*FractionBox[\(1\), \(1 + x\)]\)}}. The input is \[CapitalDelta](p), where p is a sparse polynomial in Q(x)[p,t] with total degree i in p and t, where the coefficients are quotients of random dense polynomials in Q[x] of degree 5.
+	\"TelescopingSimpleNr2\": tower: {{x,1,1},{y,-1,0},{p,\!\(\*FractionBox[\(2\\\ \((1 + 2\\\ x)\)\), \(1 + x\)]\),0},{t,1,-\!\(\*FractionBox[\(y\), \(1 + x\)]\)}}.
+	The input is \[CapitalDelta](u_i+y v_i), where u_i,v_i are two dense polynomials in Q(x)[p][t] with total degree i in p and t, where the coefficients are quotients of random dense polynomials in Q[x] of degree 5.
+	\"CreativeTelescopingNr1\": SequenceForm["towerK: ", {{k, 1, 1}, {b, (1 + k)^(-1) (-k + n), 0}, {h, 1, (1 + k)^(-1)}}]
+	SequenceForm["towerN: ", {{n, 1, 1}, {b, (1 + n)/(1 - k + n), 0}}]
+	Summand: b^i (1-h i k+h i (-k+n))
+
+\"Repetitions\"->n (Default: 3) : Number of times the timing is repeated. If the input is random, then each time new random data is used. The output is the mean of all repeated timings.  
+\"Seed\"-> n: (Default: 314159265358): Random seed which is used for generating the data. (With SeedRandom[n]).
+";
 
 
 (* ::Input::Initialization:: *)
@@ -74,7 +90,7 @@ CellPrint[TextCell["CORRPS by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyrig
 				Background -> RGBColor[102/256,139/256, 232/256], ButtonBoxOptions -> {Active -> True}]]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Profiling*)
 
 
@@ -134,6 +150,9 @@ Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
 	{kk,nn,bb,hh}={Global`k,Global`n,Global`b,Global`h};
 	towerK={{kk,1,1},{bb,(-kk+nn)/(1+kk),0},{hh,1,1/(kk+1)}};
 	towerN={{nn,1,1},{bb,(1+nn)/(1-kk+nn),0}};
+	Print["towerK: ",towerK];
+	Print["towerN: ",towerN];
+	Print["summand: ", (1-i kk hh+i(-kk+nn)hh)bb^i];
 	Do[
 		Do[
 			currtime={};
@@ -471,7 +490,7 @@ If[ArrayQ[matMod,_,IntegerQ],
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Sigma*)
 
 
