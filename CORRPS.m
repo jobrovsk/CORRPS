@@ -61,7 +61,7 @@ Whether also negative shifts are used internally in the computation. This can ma
 \"SimplifyFullOutput\" -> True|False (Default: False) : Whether the certificate should be simplified, or only the found recurrence, which is the default.";
 
 ProfileCORRPS::usage="ProfileCORRPS[{i_1,i_2,...,i_n},OptionsPattern[]] does timings for sizes i_1,i_2,...,i_n. The size i has different meanings depending on the used suite.
-Output: {\"Package\"->package,\"Suite\"->suite,\"data\"->data,\"answers\"->answers,\"timings\"->finalTimings}
+Output: {\"Package\"->package,\"Suite\"->suite,\"Machine\"->$MachineName,\"data\"->data,\"Output\"->answers,\"AbsoluteTimings\"->absTimings,\"Timings\"->finalTimings}
 
 Options:
 \"Package\" -> \"Corrps\"|\"Sigma\" (Default: \"Corrps\") : The packege which should be timed for the given suite.
@@ -98,7 +98,8 @@ CellPrint[TextCell["CORRPS by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyrig
 ClearAll[ProfileCORRPS];
 ProfileCORRPS::wrongres="Error:Result is wrong!";
 Options[ProfileCORRPS]={"Package"->"Corrps","Suite"->"TelescopingSimpleNr1","Repetitions"->3,"Seed"->314159265358};
-ProfileCORRPS[sizeRange_?VectorQ,OptionsPattern[]]:=Module[{towerK,towerN,kk,nn,bb,hh,yy,xx,answers,currAnswer,summand,pp,mySuml,tt,suite,j,tower,m,data,k,i,package,depth,correct,currtime,time,res,finalTimings},
+ProfileCORRPS[sizeRange_?VectorQ,OptionsPattern[]]:=Module[{atime,absTimings,towerK,towerN,kk,nn,bb,hh,yy,xx,answers,currAnswer,
+					summand,pp,mySuml,tt,suite,j,tower,m,data,k,i,package,depth,correct,currtime,time,res,finalTimings},
 suite=OptionValue["Suite"];
 package=ToLowerCase[OptionValue["Package"]];
 m=OptionValue["Repetitions"];
@@ -122,7 +123,7 @@ Which[suite=="TelescopingSimpleNr1",
 ];
 Print["Timing ",package, " with input \"Data\" on machine \"",$MachineName,"\"."];
 answers={};
-finalTimings=<||>;
+finalTimings=<||>;absTimings=<||>;
 Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
 	
 	Do[
@@ -130,20 +131,20 @@ Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
 			currtime={};
 			currAnswer={};
 			Which[package=="corrps",
-				{time,res}=Timing[ResetTower[tower];CRforDR[data[i][[k]],tower]];
+				{atime,{time,res}}=AbsoluteTiming[Timing[ResetTower[tower];CRforDR[data[i][[k]],tower]]];
 			,package=="sigma",
-				{time,res}=Timing[Sigma`DifferenceFields`RefinedTelescoping`RefinedConstruction`RefinedTelescoping[data[i][[k]],tower,depth,Global`V]];
+				{atime,{time,res}}AbsoluteTiming[Timing[Sigma`DifferenceFields`RefinedTelescoping`RefinedConstruction`RefinedTelescoping[data[i][[k]],tower,depth,Global`V]]];
 				ResetTower[tower];					
 			];
 			correct=(res[[-1]]==0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];
 			(*Print["res: ",res];*)				
 			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];
 			AppendTo[currAnswer,res[[{1,-1}]]];
-			AppendTo[currtime,time];	
+			AppendTo[currtime,{atime,time}];	
 		,{k,m}];
 		AppendTo[answers,currAnswer];
-		Print[i,": ",Mean[currtime]];
-		finalTimings[i]=Mean[currtime];
+		Print[i,": ",Mean[currtime[[;;,2]]]];
+		finalTimings[i]=Mean[currtime[[;;,2]]];absTimings[i]=Mean[currtime[[;;,1]]];
 	,{i,sizeRange}];
 ,suite=="CreativeTelescopingNr1",
 	{kk,nn,bb,hh}={Global`k,Global`n,Global`b,Global`h};
@@ -159,26 +160,26 @@ Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
 			correct=True;
 			summand=(1-i kk hh+i(-kk+nn)hh)bb^i;
 			Which[package=="corrps",
-			{time,res}=Timing[CreativeTelescopingViaCR[summand,{towerN,towerK},"WithNegativeShifts"->True]];
+			{atime,{time,res}}=AbsoluteTiming[Timing[CreativeTelescopingViaCR[summand,{towerN,towerK},"WithNegativeShifts"->True]]];
 			,package=="sigma",
 			mySuml=Sigma`Summation`SumProducts`SigmaSum[(1-i Global`j Sigma`Summation`Objects`SigmaHNumber[Global`j]+i(-Global`j+nn)Sigma`Summation`Objects`SigmaHNumber[Global`j])Sigma`Summation`Objects`SigmaBinomial[nn,Global`j]^i,{Global`j,0,nn}];		
-			{time,res}=Timing[Sigma`Summation`SumProducts`CreativeTelescoping[mySuml]];
+			{atime,{time,res}}=AbsoluteTiming[Timing[Sigma`Summation`SumProducts`CreativeTelescoping[mySuml]]];
 			(*correct=(res[[-1]]==0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];*)		
 			];
 			AppendTo[currAnswer,res];
-			AppendTo[currtime,time];
+			AppendTo[currtime,{atime,time}];
 			(*Print["res: ",res];*)
 			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];	
 			
 		,{k,m}];	
-		Print[i,": ",Mean[currtime]];
-		finalTimings[i]=Mean[currtime];
+		Print[i,": ",Mean[currtime[[;;,2]]]];
+		finalTimings[i]=Mean[currtime[[;;,2]]];absTimings[i]=Mean[currtime[[;;,1]]];
 		AppendTo[answers,currAnswer];	
 	,{i,sizeRange}]
 
 ];
 
-Return[{"Package"->package,"Suite"->suite,"Machine"->$MachineName,"data"->data,"answers"->answers,"timings"->finalTimings}];
+Return[{"Package"->package,"Suite"->suite,"Machine"->$MachineName,"data"->data,"Output"->answers,"AbsoluteTimings"->absTimings,"Timings"->finalTimings}];
 ]
 
 
