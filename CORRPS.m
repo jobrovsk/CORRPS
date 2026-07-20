@@ -23,7 +23,7 @@ $CRforDRenableAssert=False;
 CORRPS`RationalReduction`$RationalReductionEnableAssert:=$CRforDRenableAssert;
 
 
-$VersionCRforDR="Version 0.6.0 (July 20, 2026)";
+$VersionCRforDR="Version 0.6.1 (July 20, 2026)";
 
 
 (* ::Input::Initialization:: *)
@@ -133,10 +133,10 @@ Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
 			Which[package=="corrps",
 				{atime,{time,res}}=AbsoluteTiming[Timing[ResetTower[tower];CRforDR[data[i][[k]],tower]]];
 			,package=="sigma",
-				{atime,{time,res}}AbsoluteTiming[Timing[Sigma`DifferenceFields`RefinedTelescoping`RefinedConstruction`RefinedTelescoping[data[i][[k]],tower,depth,Global`V]]];
+				{atime,{time,res}}=AbsoluteTiming[Timing[Sigma`DifferenceFields`RefinedTelescoping`RefinedConstruction`RefinedTelescoping[data[i][[k]],tower,depth,Global`V]]];
 				ResetTower[tower];					
 			];
-			correct=(res[[-1]]==0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];
+			correct=(res[[-1]]===0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];
 			(*Print["res: ",res];*)				
 			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];
 			AppendTo[currAnswer,res[[{1,-1}]]];
