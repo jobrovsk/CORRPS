@@ -109,16 +109,14 @@ Which[suite=="TelescopingSimpleNr1",
 	depth={1,2,2};
 	Print["tower = ",tower];
 	ResetTower[tower];
-	SeedRandom[OptionValue["Seed"]];
-	data=Association@@Table[i->Table[Collect[MySigma[#,1,tower]-#,{tt},Together]&@randomPoly[xx,{pp,tt},i,2*i],{m}],{i,sizeRange}];
+	data=Association@@Table[SeedRandom[OptionValue["Seed"]-i];i->Table[Collect[MySigma[#,1,tower]-#,{tt},Together]&@randomPoly[xx,{pp,tt},i,2*i],{m}],{i,sizeRange}];
 ,suite=="TelescopingSimpleNr2",
 	{xx,yy,pp,tt}={Global`x,Global`y,Global`p,Global`t};
 	tower={{xx,1,1},{yy,-1,0},{pp,2*(2*xx+1)/(xx+1),0},{tt,1,-yy/(xx+1)}};
 	depth={1,1,2,2};
 	Print["tower = ",tower];	
 	ResetTower[tower];
-	SeedRandom[OptionValue["Seed"]];
-	data=Association@@Table[i->Table[Collect[MySigma[#,1,tower]-#,{yy,pp,tt}]&@
+	data=Association@@Table[SeedRandom[OptionValue["Seed"]-i];i->Table[Collect[MySigma[#,1,tower]-#,{yy,pp,tt}]&@
 			(generateDensePolynomial[xx,{pp,tt},i]+generateDensePolynomial[xx,{pp,tt},i]*yy),{m}],{i,sizeRange}];		
 
 ];
@@ -812,7 +810,7 @@ Return[{aC,bC}]
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Idempotent*)
 
 
