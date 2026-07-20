@@ -122,7 +122,7 @@ Which[suite=="TelescopingSimpleNr1",
 			(generateDensePolynomial[xx,{pp,tt},i]+generateDensePolynomial[xx,{pp,tt},i]*yy),{m}],{i,sizeRange}];		
 
 ];
-Print["Timing ",package, " with input Data."];
+Print["Timing ",package, " with input \"Data\" on machine \"",$MachineName,"\"."];
 answers={};
 finalTimings=<||>;
 Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
@@ -216,7 +216,7 @@ poly]
 
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Main*)
 
 
@@ -224,10 +224,12 @@ Clear[CRforDR]
 Options[CRforDR]={"SimplifyFullOutput"->False};
 CRforDR[g_,tower_?MatrixQ,opts:OptionsPattern[]]:=CRforDR[g,1,tower,opts]
 CRforDR[g_,f_,tower_?MatrixQ,opts:OptionsPattern[]]:=
-	If[(TowerInfo["UseAlwaysIdempotents"]&&KeyExistsQ[TowerInfo,"R-Extension"])||!SimpleTowerQ[tower],
+	Which[(TowerInfo["UseAlwaysIdempotents"]&&KeyExistsQ[TowerInfo,"R-Extension"])||!SimpleTowerQ[tower],
 		IdempotentReduction[g,f,tower,opts]
-	,
+	,KeyExistsQ[TowerInfo,"R-Extension"],
 		CRforSimpleDR[g/.Thread[TowerInfo["R-Extension"][[;;,1]]^(AAA12121212_)->TowerInfo["R-Extension"][[;;,1]]^Mod[AAA12121212,TowerInfo["R-Extension"][[;;,-1]]]],f,tower,opts]
+	,True,
+		CRforSimpleDR[g,f,tower,opts]
 	]
 
 
@@ -810,7 +812,7 @@ Return[{aC,bC}]
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Idempotent*)
 
 
