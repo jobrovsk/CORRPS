@@ -109,7 +109,7 @@ Which[suite=="TelescopingSimpleNr1",
 	depth={1,2,2};
 	Print["tower = ",tower];
 	ResetTower[tower];
-	data=Association@@Table[SeedRandom[OptionValue["Seed"]-i];i->Table[Collect[MySigma[#,1,tower]-#,{tt},Together]&@randomPoly[xx,{pp,tt},i,2*i],{m}],{i,sizeRange}];
+	data=Association@@Table[SeedRandom[OptionValue["Seed"]-i];i->Table[Collect[MySigma[#,1,tower]-#,tt,Together]&@randomPoly[xx,{pp,tt},i,2*i],{m}],{i,sizeRange}];
 ,suite=="TelescopingSimpleNr2",
 	{xx,yy,pp,tt}={Global`x,Global`y,Global`p,Global`t};
 	tower={{xx,1,1},{yy,-1,0},{pp,2*(2*xx+1)/(xx+1),0},{tt,1,-yy/(xx+1)}};
@@ -178,7 +178,7 @@ Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
 
 ];
 
-Return[{"Package"->package,"Suite"->suite,"data"->data,"answers"->answers,"timings"->finalTimings}];
+Return[{"Package"->package,"Suite"->suite,"Machine"->$MachineName,"data"->data,"answers"->answers,"timings"->finalTimings}];
 ]
 
 
