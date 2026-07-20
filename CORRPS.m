@@ -23,7 +23,7 @@ $CRforDRenableAssert=False;
 CORRPS`RationalReduction`$RationalReductionEnableAssert:=$CRforDRenableAssert;
 
 
-$VersionCRforDR="Version 0.5.0 (July 17, 2026)";
+$VersionCRforDR="Version 0.6.0 (July 20, 2026)";
 
 
 (* ::Input::Initialization:: *)
