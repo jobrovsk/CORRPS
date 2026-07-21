@@ -23,7 +23,7 @@ $CRforDRenableAssert=False;
 CORRPS`RationalReduction`$RationalReductionEnableAssert:=$CRforDRenableAssert;
 
 
-$VersionCRforDR="Version 0.6.1 (July 20, 2026)";
+$VersionCRforDR="Version 0.6.2 (July 21, 2026)";
 
 
 (* ::Input::Initialization:: *)
@@ -64,7 +64,7 @@ ProfileCORRPS::usage="ProfileCORRPS[{i_1,i_2,...,i_n},OptionsPattern[]] does tim
 Output: {\"Package\"->package,\"Suite\"->suite,\"Machine\"->$MachineName,\"data\"->data,\"Output\"->answers,\"AbsoluteTimings\"->absTimings,\"Timings\"->finalTimings}
 
 Options:
-\"Package\" -> \"Corrps\"|\"Sigma\" (Default: \"Corrps\") : The packege which should be timed for the given suite.
+\"Package\" -> \"Corrps\"|\"Sigma\" (Default: \"Corrps\") : The packege which should be timed for the given suite. Sigma has to be loaded if it is used.
 \"Suite\"->\"TelescopingSimpleNr1\"|\"TelescopingSimpleNr2\"|\"CreativeTelescopingNr1\": The problem suite which should be used. Available are
 	\"TelescopingSimpleNr1\": tower: {{x,1,1},{p,\!\(\*FractionBox[\(2\\\ \((1 + 2\\\ x)\)\), \(1 + x\)]\),0},{t,1,\!\(\*FractionBox[\(1\), \(1 + x\)]\)}}. The input is \[CapitalDelta](p), where p is a sparse polynomial in Q(x)[p,t] with total degree i in p and t, where the coefficients are quotients of random dense polynomials in Q[x] of degree 5.
 	\"TelescopingSimpleNr2\": tower: {{x,1,1},{y,-1,0},{p,\!\(\*FractionBox[\(2\\\ \((1 + 2\\\ x)\)\), \(1 + x\)]\),0},{t,1,-\!\(\*FractionBox[\(y\), \(1 + x\)]\)}}.
@@ -75,7 +75,7 @@ Options:
 	Summand: b^i (1-h i k+h i (-k+n))
 
 \"Repetitions\"->n (Default: 3) : Number of times the timing is repeated. If the input is random, then each time new random data is used. The output is the mean of all repeated timings.  
-\"Seed\"-> n: (Default: 314159265358): Random seed which is used for generating the data. (With SeedRandom[n]).
+\"Seed\"-> n: (Default: 314159265358): Random seed which is used for generating the data.
 ";
 
 
@@ -142,8 +142,8 @@ Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
 			AppendTo[currtime,{atime,time}];	
 		,{k,m}];
 		AppendTo[answers,currAnswer];
-		Print[i,": ",Mean[currtime[[;;,2]]]];
 		finalTimings[i]=Mean[currtime[[;;,2]]];absTimings[i]=Mean[currtime[[;;,1]]];
+		Print[i,": ",finalTimings[i]," absolute time: ",absTimings[i]];
 	,{i,sizeRange}];
 ,suite=="CreativeTelescopingNr1",
 	{kk,nn,bb,hh}={Global`k,Global`n,Global`b,Global`h};
@@ -159,20 +159,19 @@ Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
 			correct=True;
 			summand=(1-i kk hh+i(-kk+nn)hh)bb^i;
 			Which[package=="corrps",
-			{atime,{time,res}}=AbsoluteTiming[Timing[CreativeTelescopingViaCR[summand,{towerN,towerK},"WithNegativeShifts"->True]]];
+				{atime,{time,res}}=AbsoluteTiming[Timing[CreativeTelescopingViaCR[summand,{towerN,towerK},"WithNegativeShifts"->True]]];
 			,package=="sigma",
-			mySuml=Sigma`Summation`SumProducts`SigmaSum[(1-i Global`j Sigma`Summation`Objects`SigmaHNumber[Global`j]+i(-Global`j+nn)Sigma`Summation`Objects`SigmaHNumber[Global`j])Sigma`Summation`Objects`SigmaBinomial[nn,Global`j]^i,{Global`j,0,nn}];		
-			{atime,{time,res}}=AbsoluteTiming[Timing[Sigma`Summation`SumProducts`CreativeTelescoping[mySuml]]];
-			(*correct=(res[[-1]]==0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];*)		
+				mySuml=Sigma`Summation`SumProducts`SigmaSum[(1-i Global`j Sigma`Summation`Objects`SigmaHNumber[Global`j]+i(-Global`j+nn)Sigma`Summation`Objects`SigmaHNumber[Global`j])Sigma`Summation`Objects`SigmaBinomial[nn,Global`j]^i,{Global`j,0,nn}];		
+				{atime,{time,res}}=AbsoluteTiming[Timing[Sigma`Summation`SumProducts`CreativeTelescoping[mySuml]]];
+				(*correct=(res[[-1]]==0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];*)		
 			];
 			AppendTo[currAnswer,res];
 			AppendTo[currtime,{atime,time}];
 			(*Print["res: ",res];*)
 			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];	
-			
-		,{k,m}];	
-		Print[i,": ",Mean[currtime[[;;,2]]]];
+		,{k,m}];
 		finalTimings[i]=Mean[currtime[[;;,2]]];absTimings[i]=Mean[currtime[[;;,1]]];
+		Print[i,": ",finalTimings[i]," absolute time: ",absTimings[i]];
 		AppendTo[answers,currAnswer];	
 	,{i,sizeRange}]
 
