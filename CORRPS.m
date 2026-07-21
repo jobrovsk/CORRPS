@@ -127,17 +127,16 @@ finalTimings=<||>;absTimings=<||>;
 Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
 	
 	Do[
+		currtime={};
+		currAnswer={};
 		Do[
-			currtime={};
-			currAnswer={};
 			Which[package=="corrps",
 				{atime,{time,res}}=AbsoluteTiming[Timing[ResetTower[tower];CRforDR[data[i][[k]],tower]]];
 			,package=="sigma",
 				{atime,{time,res}}=AbsoluteTiming[Timing[Sigma`DifferenceFields`RefinedTelescoping`RefinedConstruction`RefinedTelescoping[data[i][[k]],tower,depth,Global`V]]];
 				ResetTower[tower];					
 			];
-			correct=(res[[-1]]===0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];
-			(*Print["res: ",res];*)				
+			correct=(res[[-1]]===0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];			
 			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];
 			AppendTo[currAnswer,res[[{1,-1}]]];
 			AppendTo[currtime,{atime,time}];	
@@ -154,9 +153,9 @@ Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
 	Print["towerN: ",towerN];
 	Print["summand: ", (1-i kk hh+i(-kk+nn)hh)bb^i];
 	Do[
-		Do[
-			currtime={};
-			currAnswer={};
+		currtime={};
+		currAnswer={};
+		Do[			
 			correct=True;
 			summand=(1-i kk hh+i(-kk+nn)hh)bb^i;
 			Which[package=="corrps",
