@@ -49,6 +49,7 @@ Options:
 \"UseAlwaysIdempotents\"->True|False (Default: False) : Whether Idempotent Representation should be used always or only when the tower is not a simple tower (default)
 ";
 ParametricTelescopingViaCR ::usage="";
+PTviaCR::usage=ParametricTelescopingViaCR ::usage;
 MyTogether::usage="Chooses an efficient way to simplify the given object. The output is canonical w.r.t. the R-extension, i.e. it is explicitely 0 if f is equal to zero in the given tower.";
 DeltaF::usage="DeltaF[g,f,tower] returns f*MySigma[g,1,tower]-f";
 MySigma::usage="MySigma[g,k,tower] returns \[Sigma]^k(g) where \[Sigma] is defined by tower.";
@@ -59,7 +60,7 @@ Options:
 \"WithNegativeShifts\" -> True|False (Default: False)
 Whether also negative shifts are used internally in the computation. This can make the computation faster.
 \"SimplifyFullOutput\" -> True|False (Default: False) : Whether the certificate should be simplified, or only the found recurrence, which is the default.";
-
+CTviaCR::usage=CreativeTelescopingViaCR::usage;
 ProfileCORRPS::usage="ProfileCORRPS[{i_1,i_2,...,i_n},OptionsPattern[]] does timings for sizes i_1,i_2,...,i_n. The size i has different meanings depending on the used suite.
 Output: {\"Package\"->package,\"Suite\"->suite,\"Machine\"->$MachineName,\"data\"->data,\"Output\"->answers,\"AbsoluteTimings\"->absTimings,\"Timings\"->finalTimings}
 
@@ -880,7 +881,7 @@ Return[{If[OptionValue["SimplifyFullOutput"],MyTogether[gS],gS],gR}];
 ]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Creative/Parametric Telescoping *)
 
 
@@ -897,6 +898,9 @@ Return[Table[{sol,sol . SigmaPairList[[;;,1]]},{sol,Sol}]]
 ]
 
 
+Clear[PTviaCR]
+PTviaCR[in___]:=ParametricTelescopingViaCR[in]
+
 Clear[ParametricTelescopingViaCR];
 ParametricTelescopingViaCR[tower_List,F_List]:= Module[{n,A,R,c,clist,coeff,m,B,i,j,Sol},
 n=Length[F];
@@ -908,9 +912,11 @@ Return[FindSummableCombination[A,tower[[;;,1]]]];
 
 
 
+Clear[CTviaCR]
+CTviaCR[in___]:=CreativeTelescopingViaCR[in]
+
 Clear[CreativeTelescopingViaCR]
 CreativeTelescopingViaCR::norecfound="No recurrence of order <= `1` exists, increase value of option \"MaxOrder\"";
-
 Options[CreativeTelescopingViaCR]={"MaxOrder"->30,"WithNegativeShifts"->False,"SimplifyFullOutput"->False};
 CreativeTelescopingViaCR[g_,{towerN_List,towerK_List},opts:OptionsPattern[]]:=CreativeTelescopingViaCR[g,{towerN,towerK},OptionValue["WithNegativeShifts"],opts]
 CreativeTelescopingViaCR[g_,{towerN_List,towerK_List},False,OptionsPattern[]]:=Module[{comb,gPairList,m,gmS,gmR},
