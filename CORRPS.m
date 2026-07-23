@@ -77,6 +77,7 @@ Options:
 
 \"Repetitions\"->n (Default: 3) : Number of times the timing is repeated. If the input is random, then each time new random data is used. The output is the mean of all repeated timings.  
 \"Seed\"-> n: (Default: 314159265358): Random seed which is used for generating the data.
+\"UseAlwaysIdempotents\"->True|False: (Default: False): This option is passed down to ResetTower[] for the TelescopingSimple suites.
 ";
 
 
@@ -93,128 +94,6 @@ CellPrint[TextCell["CORRPS by Yiman Gao and Jakob Obrovsky \[LongDash] \[Copyrig
 
 
 (* ::Subsection:: *)
-(*Profiling*)
-
-
-ClearAll[ProfileCORRPS];
-ProfileCORRPS::wrongres="Error:Result is wrong!";
-Options[ProfileCORRPS]={"Package"->"Corrps","Suite"->"TelescopingSimpleNr1","Repetitions"->3,"Seed"->314159265358};
-ProfileCORRPS[sizeRange_?VectorQ,OptionsPattern[]]:=Module[{atime,absTimings,towerK,towerN,kk,nn,bb,hh,yy,xx,answers,currAnswer,
-					summand,pp,mySuml,tt,suite,j,tower,m,data,k,i,package,depth,correct,currtime,time,res,finalTimings},
-suite=OptionValue["Suite"];
-package=ToLowerCase[OptionValue["Package"]];
-m=OptionValue["Repetitions"];
-Print["Generating Data for ",suite];
-Which[suite=="TelescopingSimpleNr1",
-	{xx,pp,tt}={Global`x,Global`p,Global`t};
-	tower={{xx,1,1},{pp,2*(2*xx+1)/(xx+1),0},{tt,1,1/(xx+1)}};
-	depth={1,2,2};
-	Print["tower = ",tower];
-	ResetTower[tower];
-	data=Association@@Table[SeedRandom[OptionValue["Seed"]-i];i->Table[Collect[MySigma[#,1,tower]-#,tt,Together]&@randomPoly[xx,{pp,tt},i,2*i],{m}],{i,sizeRange}];
-,suite=="TelescopingSimpleNr2",
-	{xx,yy,pp,tt}={Global`x,Global`y,Global`p,Global`t};
-	tower={{xx,1,1},{yy,-1,0},{pp,2*(2*xx+1)/(xx+1),0},{tt,1,-yy/(xx+1)}};
-	depth={1,1,2,2};
-	Print["tower = ",tower];	
-	ResetTower[tower];
-	data=Association@@Table[SeedRandom[OptionValue["Seed"]-i];i->Table[Collect[MySigma[#,1,tower]-#,{yy,pp,tt}]&@
-			(generateDensePolynomial[xx,{pp,tt},i]+generateDensePolynomial[xx,{pp,tt},i]*yy),{m}],{i,sizeRange}];		
-
-];
-Print["Timing ",package, " with input \"Data\" on machine \"",$MachineName,"\"."];
-answers={};
-finalTimings=<||>;absTimings=<||>;
-Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
-	
-	Do[
-		currtime={};
-		currAnswer={};
-		Do[
-			Which[package=="corrps",
-				{atime,{time,res}}=AbsoluteTiming[Timing[ResetTower[tower];CRforDR[data[i][[k]],tower]]];
-			,package=="sigma",
-				{atime,{time,res}}=AbsoluteTiming[Timing[Sigma`DifferenceFields`RefinedTelescoping`RefinedConstruction`RefinedTelescoping[data[i][[k]],tower,depth,Global`V]]];
-				ResetTower[tower];					
-			];
-			correct=(res[[-1]]===0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];			
-			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];
-			AppendTo[currAnswer,res[[{1,-1}]]];
-			AppendTo[currtime,{atime,time}];	
-		,{k,m}];
-		AppendTo[answers,currAnswer];
-		finalTimings[i]=Mean[currtime[[;;,2]]];absTimings[i]=Mean[currtime[[;;,1]]];
-		Print[i,": ",finalTimings[i]," absolute time: ",absTimings[i]];
-	,{i,sizeRange}];
-,suite=="CreativeTelescopingNr1",
-	{kk,nn,bb,hh}={Global`k,Global`n,Global`b,Global`h};
-	towerK={{kk,1,1},{bb,(-kk+nn)/(1+kk),0},{hh,1,1/(kk+1)}};
-	towerN={{nn,1,1},{bb,(1+nn)/(1-kk+nn),0}};
-	Print["towerK: ",towerK];
-	Print["towerN: ",towerN];
-	Print["summand: ", (1-i kk hh+i(-kk+nn)hh)bb^i];
-	Do[
-		currtime={};
-		currAnswer={};
-		Do[			
-			correct=True;
-			summand=(1-i kk hh+i(-kk+nn)hh)bb^i;
-			Which[package=="corrps",
-				{atime,{time,res}}=AbsoluteTiming[Timing[CreativeTelescopingViaCR[summand,{towerN,towerK},"WithNegativeShifts"->True]]];
-			,package=="sigma",
-				mySuml=Sigma`Summation`SumProducts`SigmaSum[(1-i Global`j Sigma`Summation`Objects`SigmaHNumber[Global`j]+i(-Global`j+nn)Sigma`Summation`Objects`SigmaHNumber[Global`j])Sigma`Summation`Objects`SigmaBinomial[nn,Global`j]^i,{Global`j,0,nn}];		
-				{atime,{time,res}}=AbsoluteTiming[Timing[Sigma`Summation`SumProducts`CreativeTelescoping[mySuml]]];
-				(*correct=(res[[-1]]==0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];*)		
-			];
-			AppendTo[currAnswer,res];
-			AppendTo[currtime,{atime,time}];
-			(*Print["res: ",res];*)
-			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];	
-		,{k,m}];
-		finalTimings[i]=Mean[currtime[[;;,2]]];absTimings[i]=Mean[currtime[[;;,1]]];
-		Print[i,": ",finalTimings[i]," absolute time: ",absTimings[i]];
-		AppendTo[answers,currAnswer];	
-	,{i,sizeRange}]
-
-];
-
-Return[{"Package"->package,"Suite"->suite,"Machine"->$MachineName,"data"->data,"Output"->answers,"AbsoluteTimings"->absTimings,"Timings"->finalTimings}];
-]
-
-
-Clear[CheckReductionHeuristic]
-CheckReductionHeuristic[{g_,f_},{gS_,gR_},tower_]:=Module[{numR,yList,alphas,orders},
-numR=If[KeyExistsQ[TowerInfo,"R-Extension"],Length[TowerInfo["R-Extension"][[;;,1]] \[Intersection] tower[[;;,1]]],0];
-{yList,alphas,orders}=If[KeyExistsQ[TowerInfo,"R-Extension"],Transpose[TowerInfo["R-Extension"][[;;numR]]],{{},{},{}}];
-((DeltaF[gS,f,tower]+gR-g/.Thread[yList->(Table[-1,numR]^(2/orders))^RandomInteger[{1,10},numR]]
-						/.Thread[Variables[tower]->RandomInteger[{1000,2000},Length[Variables[tower]]]])===0)
-]
-
-
-Clear[randomMonomial]
-randomMonomial[vars_,deg_,type_]:=Module[{i,n:=Length[vars],varsx},varsx=Table[Unique[],{Length[vars]}];
-If[type==="Homogeneous",Product[vars[[i]]^varsx[[i]],{i,n}]/.
-Solve[Plus@@varsx==deg,varsx,NonNegativeIntegers],Product[vars[[i]]^varsx[[i]],{i,n}]/.
-Solve[Plus@@varsx<=deg,varsx,NonNegativeIntegers]]]
-
-
-Clear[randomPoly]
-randomPoly[ind_,vars_,deg_,type_:{}]:=Module[{monomials,poly},monomials=randomMonomial[vars,deg,type];
-If[IntegerQ[type],While[poly=Table[Sum[RandomInteger[{-100,100}]ind^i,{i,0,5}]/Sum[RandomInteger[{-100,100}]ind^i,{i,0,5}],{type}] . RandomChoice[monomials,type];
-poly===0],While[poly=RandomInteger[Length[monomials]+5,Length[monomials]] . monomials;poly===0]];
-poly]
-
-
-Clear[generateDensePolynomial]
-generateDensePolynomial[ind_,vars_,deg_]:=Module[{n=Length[vars],exponentTuples,monomials,poly},
-exponentTuples=Select[Tuples[Range[0,deg],n],Total[#]<=deg&];
-monomials=Product[vars[[i]]^#[[i]],{i,n}]&/@exponentTuples;
-poly=Total[Map[Sum[RandomInteger[{-100,100}]ind^i,{i,0,5}]/Sum[RandomInteger[{-100,100}]ind^i,{i,0,5}]*#&,monomials]];
-poly]
-
-
-
-(* ::Subsection::Closed:: *)
 (*Main*)
 
 
@@ -229,6 +108,42 @@ CRforDR[g_,f_,tower_?MatrixQ,opts:OptionsPattern[]]:=
 	,True,
 		CRforSimpleDR[g,f,tower,opts]
 	]
+
+
+ResetTower::malformedTower="Error: Tower `1` contains more than one R-extension, this is not implemented";
+Clear[ResetTower]
+Options[ResetTower]={"SingleSetOfRepresentatives"->False,"UseAlwaysIdempotents"->False}
+
+ResetTower[tower_?MatrixQ,OptionsPattern[]]:=Module[{newtower,ordList,orders,yList,RExt,alphas},
+	TowerInfo=<||>;	
+	If[Head[OptionValue["SingleSetOfRepresentatives"]]===List,
+		TowerInfo[tower[[1,1]]]={#,"=="}&/@OptionValue["SingleSetOfRepresentatives"];
+		TowerInfo["SingleSetOfRepresentatives"]=True;
+	,
+		TowerInfo["SingleSetOfRepresentatives"]=TrueQ[OptionValue["SingleSetOfRepresentatives"]]
+	];
+	TowerInfo["UseAlwaysIdempotents"]=OptionValue["UseAlwaysIdempotents"];
+	TowerInfo["Generators"]=tower[[;;,1]];
+	(*Delete precomputed higher towers*)
+	ReleaseHold[MapAt[Unset,Select[DownValues[MyChangeShiftTower],(Head[#[[1,1,1]]]===List && IntegerQ[#[[1,1,2]]])&][[;;,1]],{All,1}]];
+	
+	newtower=tower;
+	While[True,
+		RExt=Select[newtower,(#[[3]]===0 && RootOfUnityQ[#[[2]]])&];
+		If[Length[RExt]==0,Break[]];
+		yList=RExt[[;;,1]];
+		orders=(MyGetOrderOfUnity/@RExt[[;;,2]]);
+		alphas=Table[RExt[[i,2]]^(Times@@RExt[[;;i-1,2]]),{i,Length[RExt]}];
+		MyAssert[Union[MyTogether[Select[tower,MemberQ[yList,#[[1]]]& ][[;;,2]]^orders]][[1]]===1];
+		If[!KeyExistsQ[TowerInfo,"R-Extension"],TowerInfo["R-Extension"]={}];
+		TowerInfo["R-Extension"]=
+			SortBy[Join[TowerInfo["R-Extension"],Transpose[{yList,alphas,orders}]],FirstPosition[tower[[;;,1]],#[[1]]][[1]]&];
+		{newtower,ordList}=RemoveRMonomials[newtower,yList,0];
+		MyAssert[ordList===orders];
+		MyAssert[Length[newtower]+Length[TowerInfo["R-Extension"]]==Length[tower]];
+	]
+
+];
 
 
 (* ::Text:: *)
@@ -284,52 +199,6 @@ If[beta===0,
 MyAssert[CheckReduction[{g,f},{gS,gR},tower]];
 Return[{If[OptionValue["SimplifyFullOutput"],MyTogether[gS],gS],gR}];
 ]
-
-
-(* ::Text:: *)
-(*Input :  An admissible tower (as specified for function CRforSimpleDR). *)
-(*    Output : Null*)
-(*    Side effect : If there is no R-extension then*)
-(*         TowerInfo=<| |>,*)
-(*           otherwise if there is an R - extension {y, alpha, 0} in the tower*)
-(*        TowerInfo = <|"R-Extension" -> {y, lambda}|>,  where lambda = ord (alpha)*)
-
-
-ResetTower::malformedTower="Error: Tower `1` contains more than one R-extension, this is not implemented";
-Clear[ResetTower]
-Options[ResetTower]={"SingleSetOfRepresentatives"->False,"UseAlwaysIdempotents"->False}
-
-ResetTower[tower_?MatrixQ,OptionsPattern[]]:=Module[{newtower,ordList,orders,yList,RExt,alphas},
-	TowerInfo=<||>;
-	If[Head[OptionValue["SingleSetOfRepresentatives"]]===List,
-		TowerInfo[tower[[1,1]]]={#,"=="}&/@OptionValue["SingleSetOfRepresentatives"];
-		TowerInfo["SingleSetOfRepresentatives"]=True;
-	,
-		TowerInfo["SingleSetOfRepresentatives"]=TrueQ[OptionValue["SingleSetOfRepresentatives"]]
-	];
-	TowerInfo["UseAlwaysIdempotents"]=OptionValue["UseAlwaysIdempotents"];
-	(*If[Length[RExt]>1,Message[ResetTower::malformedTower,tower];Abort[]];*)
-	TowerInfo["Generators"]=tower[[;;,1]];
-	(*Delete precomputed higher towers*)
-	ReleaseHold[MapAt[Unset,Select[DownValues[MyChangeShiftTower],(Head[#[[1,1,1]]]===List && IntegerQ[#[[1,1,2]]])&][[;;,1]],{All,1}]];
-	
-	newtower=tower;
-	While[True,
-		RExt=Select[newtower,(#[[3]]===0 && RootOfUnityQ[#[[2]]])&];
-		If[Length[RExt]==0,Break[]];
-		yList=RExt[[;;,1]];
-		orders=(MyGetOrderOfUnity/@RExt[[;;,2]]);
-		alphas=Table[RExt[[i,2]]^(Times@@RExt[[;;i-1,2]]),{i,Length[RExt]}];
-		MyAssert[Union[MyTogether[Select[tower,MemberQ[yList,#[[1]]]& ][[;;,2]]^orders]][[1]]===1];
-		If[!KeyExistsQ[TowerInfo,"R-Extension"],TowerInfo["R-Extension"]={}];
-		TowerInfo["R-Extension"]=
-			SortBy[Join[TowerInfo["R-Extension"],Transpose[{yList,alphas,orders}]],FirstPosition[tower[[;;,1]],#[[1]]][[1]]&];
-		{newtower,ordList}=RemoveRMonomials[newtower,yList,0];
-		MyAssert[ordList===orders];
-		MyAssert[Length[newtower]+Length[TowerInfo["R-Extension"]]==Length[tower]];
-	]
-
-];
 
 
 (* ::Subsection::Closed:: *)
@@ -881,7 +750,7 @@ Return[{If[OptionValue["SimplifyFullOutput"],MyTogether[gS],gS],gR}];
 ]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Creative/Parametric Telescoping *)
 
 
@@ -965,6 +834,128 @@ Do[
 If[comb==={},Message[CreativeTelescopingViaCR::norecfound,OptionValue["MaxOrder"]]];
 Return[If[OptionValue["SimplifyFullOutput"],MyTogether[result],result]];
 ]
+
+
+(* ::Subsection:: *)
+(*Profiling*)
+
+
+Clear[ProfileCORRPS];
+ProfileCORRPS::wrongres="Error:Result is wrong!";
+Options[ProfileCORRPS]=Join[{"Package"->"Corrps","Suite"->"TelescopingSimpleNr1","Repetitions"->3,"Seed"->314159265358},Options[ResetTower],Options[CreativeTelescopingViaCR]];
+ProfileCORRPS[sizeRange_?VectorQ,opts:OptionsPattern[]]:=Module[{atime,absTimings,towerK,towerN,kk,nn,bb,hh,yy,xx,answers,currAnswer,
+					summand,pp,mySuml,tt,suite,j,tower,m,data,k,i,package,depth,correct,currtime,time,res,finalTimings},
+suite=OptionValue["Suite"];
+package=ToLowerCase[OptionValue["Package"]];
+m=OptionValue["Repetitions"];
+Print["Generating Data for ",suite];
+Which[suite=="TelescopingSimpleNr1",
+	{xx,pp,tt}={Global`x,Global`p,Global`t};
+	tower={{xx,1,1},{pp,2*(2*xx+1)/(xx+1),0},{tt,1,1/(xx+1)}};
+	depth={1,2,2};
+	Print["tower = ",tower];
+	ResetTower[tower];
+	data=Association@@Table[SeedRandom[OptionValue["Seed"]-i];i->Table[Collect[MySigma[#,1,tower]-#,tt,Together]&@randomPoly[xx,{pp,tt},i,2*i],{m}],{i,sizeRange}];
+,suite=="TelescopingSimpleNr2",
+	{xx,yy,pp,tt}={Global`x,Global`y,Global`p,Global`t};
+	tower={{xx,1,1},{yy,-1,0},{pp,2*(2*xx+1)/(xx+1),0},{tt,1,-yy/(xx+1)}};
+	depth={1,1,2,2};
+	Print["tower = ",tower];	
+	ResetTower[tower];
+	data=Association@@Table[SeedRandom[OptionValue["Seed"]-i];i->Table[Collect[MySigma[#,1,tower]-#,{yy,pp,tt}]&@
+			(generateDensePolynomial[xx,{pp,tt},i]+generateDensePolynomial[xx,{pp,tt},i]*yy),{m}],{i,sizeRange}];		
+
+];
+Print["Timing ",package, " with input \"Data\" on machine \"",$MachineName,"\"."];
+answers={};
+finalTimings=<||>;absTimings=<||>;
+Which[MemberQ[{"TelescopingSimpleNr1","TelescopingSimpleNr2"},suite],
+	
+	Do[
+		currtime={};
+		currAnswer={};
+		Do[
+			Which[package=="corrps",
+				{atime,{time,res}}=AbsoluteTiming[Timing[ResetTower[tower,Sequence@@FilterRules[{opts},Options[ResetTower]]];CRforDR[data[i][[k]],tower]]];
+			,package=="sigma",
+				{atime,{time,res}}=AbsoluteTiming[Timing[Sigma`DifferenceFields`RefinedTelescoping`RefinedConstruction`RefinedTelescoping[data[i][[k]],tower,depth,Global`V]]];
+				ResetTower[tower];					
+			];
+			correct=(res[[-1]]===0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];			
+			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];
+			AppendTo[currAnswer,res[[{1,-1}]]];
+			AppendTo[currtime,{atime,time}];	
+		,{k,m}];
+		AppendTo[answers,currAnswer];
+		finalTimings[i]=Mean[currtime[[;;,2]]];absTimings[i]=Mean[currtime[[;;,1]]];
+		Print[i,": ",finalTimings[i]," absolute time: ",absTimings[i]];
+	,{i,sizeRange}];
+,suite=="CreativeTelescopingNr1",
+	{kk,nn,bb,hh}={Global`k,Global`n,Global`b,Global`h};
+	towerK={{kk,1,1},{bb,(-kk+nn)/(1+kk),0},{hh,1,1/(kk+1)}};
+	towerN={{nn,1,1},{bb,(1+nn)/(1-kk+nn),0}};
+	Print["towerK: ",towerK];
+	Print["towerN: ",towerN];
+	Print["summand: ", (1-i kk hh+i(-kk+nn)hh)bb^i];
+	Do[
+		currtime={};
+		currAnswer={};
+		Do[			
+			correct=True;
+			summand=(1-i kk hh+i(-kk+nn)hh)bb^i;
+			Which[package=="corrps",
+				{atime,{time,res}}=AbsoluteTiming[Timing[CreativeTelescopingViaCR[summand,{towerN,towerK},"WithNegativeShifts"->True]]];
+			,package=="sigma",
+				mySuml=Sigma`Summation`SumProducts`SigmaSum[(1-i Global`j Sigma`Summation`Objects`SigmaHNumber[Global`j]+i(-Global`j+nn)Sigma`Summation`Objects`SigmaHNumber[Global`j])Sigma`Summation`Objects`SigmaBinomial[nn,Global`j]^i,{Global`j,0,nn}];		
+				{atime,{time,res}}=AbsoluteTiming[Timing[Sigma`Summation`SumProducts`CreativeTelescoping[mySuml]]];
+				(*correct=(res[[-1]]==0)&&CheckReductionHeuristic[{data[i][[k]],1},{res[[1]],0},tower];*)		
+			];
+			AppendTo[currAnswer,res];
+			AppendTo[currtime,{atime,time}];
+			(*Print["res: ",res];*)
+			If[!TrueQ[correct],Message[ProfileCORRPS::wrongres];Abort[]];	
+		,{k,m}];
+		finalTimings[i]=Mean[currtime[[;;,2]]];absTimings[i]=Mean[currtime[[;;,1]]];
+		Print[i,": ",finalTimings[i]," absolute time: ",absTimings[i]];
+		AppendTo[answers,currAnswer];	
+	,{i,sizeRange}]
+
+];
+
+Return[{"Package"->package,"Suite"->suite,"Machine"->$MachineName,"data"->data,"Output"->answers,"AbsoluteTimings"->absTimings,"Timings"->finalTimings}];
+]
+
+
+Clear[CheckReductionHeuristic]
+CheckReductionHeuristic[{g_,f_},{gS_,gR_},tower_]:=Module[{numR,yList,alphas,orders},
+numR=If[KeyExistsQ[TowerInfo,"R-Extension"],Length[TowerInfo["R-Extension"][[;;,1]] \[Intersection] tower[[;;,1]]],0];
+{yList,alphas,orders}=If[KeyExistsQ[TowerInfo,"R-Extension"],Transpose[TowerInfo["R-Extension"][[;;numR]]],{{},{},{}}];
+((DeltaF[gS,f,tower]+gR-g/.Thread[yList->(Table[-1,numR]^(2/orders))^RandomInteger[{1,10},numR]]
+						/.Thread[Variables[tower]->RandomInteger[{1000,2000},Length[Variables[tower]]]])===0)
+]
+
+
+Clear[randomMonomial]
+randomMonomial[vars_,deg_,type_]:=Module[{i,n:=Length[vars],varsx},varsx=Table[Unique[],{Length[vars]}];
+If[type==="Homogeneous",Product[vars[[i]]^varsx[[i]],{i,n}]/.
+Solve[Plus@@varsx==deg,varsx,NonNegativeIntegers],Product[vars[[i]]^varsx[[i]],{i,n}]/.
+Solve[Plus@@varsx<=deg,varsx,NonNegativeIntegers]]]
+
+
+Clear[randomPoly]
+randomPoly[ind_,vars_,deg_,type_:{}]:=Module[{monomials,poly},monomials=randomMonomial[vars,deg,type];
+If[IntegerQ[type],While[poly=Table[Sum[RandomInteger[{-100,100}]ind^i,{i,0,5}]/Sum[RandomInteger[{-100,100}]ind^i,{i,0,5}],{type}] . RandomChoice[monomials,type];
+poly===0],While[poly=RandomInteger[Length[monomials]+5,Length[monomials]] . monomials;poly===0]];
+poly]
+
+
+Clear[generateDensePolynomial]
+generateDensePolynomial[ind_,vars_,deg_]:=Module[{n=Length[vars],exponentTuples,monomials,poly},
+exponentTuples=Select[Tuples[Range[0,deg],n],Total[#]<=deg&];
+monomials=Product[vars[[i]]^#[[i]],{i,n}]&/@exponentTuples;
+poly=Total[Map[Sum[RandomInteger[{-100,100}]ind^i,{i,0,5}]/Sum[RandomInteger[{-100,100}]ind^i,{i,0,5}]*#&,monomials]];
+poly]
+
 
 
 (* ::Subsection::Closed:: *)
